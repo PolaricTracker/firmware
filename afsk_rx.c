@@ -2,7 +2,7 @@
  * AFSK receiver/demodulator
  */
  
-#include "config.h" 
+
 #include <avr/io.h>
 #include <inttypes.h>
 #include <avr/interrupt.h>
@@ -10,7 +10,7 @@
 #include "afsk.h"
 #include "kernel.h"
 #include "stream.h"
-
+#include "config.h" 
 
 
 static   uint8_t    rxtoggled;  // Signals frequency just toggled
@@ -28,7 +28,7 @@ void init_afsk_RX()
     ADCSRB = 0;                    // Select AIN1 as neg. input (SFIOR in Atmega8)
     ACSR =  (1<<ACBG);             // Select bandgap for positive input. 
     fbuf_new(&fbuf);               // Initialise packet buffer
-    DCD_LED_OFF;
+    CLR_BIT( DCD_LED );
 }
 
 
@@ -44,6 +44,7 @@ void afsk_enable_RX()
     TCCR1B = 0x03;                  // 3 => Timer2 clock prescale of 8.     3=>64. 
     TCNT1  = 0;
 }
+
 
 
 /**************************************************************************************
@@ -83,7 +84,7 @@ void afsk_rxBitClock()
     if (dcd)                              // If we are actively monitoring a signal
     {   
        dcd--;                             // Decrement the dcd timer
-       DCD_LED_ON; 
+       SET_BIT( DCD_LED ); 
        
        if (rxtoggled)                     // See if a tone toggle was recognized
        {    
@@ -135,7 +136,7 @@ void afsk_rxBitClock()
            bit_count = 0;
     }    
     else {
-       DCD_LED_OFF; 
+       CLR_BIT( DCD_LED ); 
        frame = FALSE;
        if (byte_count)                     // IF DCD drops and we are receiving...
        {                                   //  throw buffer away
