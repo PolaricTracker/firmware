@@ -198,15 +198,41 @@ void afsk_txBitClock()
 
 
 
+
+#ifdef AFSK_METHOD_ADF
+
+/*
+ * Simple method of generating a clock signal at 1200 and 2200 Hz. 
+ * This is output to ADF TXRXCLK pin. It is possible to set the hardware
+ * to automagically toggle the OC1A pin each time TCNT1 matches OCR1A, 
+ * and then we dont need this interrupt handler. 
+ */
+SIGNAL(SIG_OVERFLOW1)
+{
+    if (transmit)
+    {
+       TOGGLE_OUTPUT;
+         /* Det er en liten mulighet for at vi mister match-interrupt og
+          * og at telleren vil fortsette fra 0. Da vil vi få en lang puls ut, noe
+          * vi ikke ønsker. Sannsynligheten for det er imidlertid svært liten. 
+          */ 
+    }
+} 
+
+#define TXTOGGLE { txtone=(txtone==MARK ? SPACE : MARK); OCR1A=txtone; }
+
+ 
+#else
+
 /*******************************************************************************
- * Tone generator interrupt routine (based on the whereavr code)
+ *  Tone generator interrupt routine (based on the whereavr code)
  *
- * ABSTRACT: This function handles the counter2 overflow interrupt.
- *				Counter2 is used to generate a sine wave using resistors on
- *				Pins B5-B1. Following are the sixteen 4-bit sinewave values:
- *							7, 10, 13, 14, 15, 14, 13, 10, 8, 5, 2, 1, 0, 1, 2, 5.
- *				If in receive mode, the counter is pre-loaded with a long delay
- *				and the delay variable is cleared.
+ *  This function handles the counter2 overflow interrupt.
+ *	 Counter2 is used to generate a sine wave using resistors on
+ *	 Pins B5-B1. Following are the sixteen 4-bit sinewave values:
+ *	          7, 10, 13, 14, 15, 14, 13, 10, 8, 5, 2, 1, 0, 1, 2, 5.
+ *	 If in receive mode, the counter is pre-loaded with a long delay
+ *	 and the delay variable is cleared.
  *******************************************************************************/
 
 SIGNAL(SIG_OVERFLOW1)
@@ -222,9 +248,8 @@ SIGNAL(SIG_OVERFLOW1)
 		TCNT1 = txtone;						// Preload counter based on freq.
 	}
 	else
-	{
 		TCNT1 = 0;								// Make long as possible delay
-      // FIXME FIXME FIXME
-	}
-   
-}		// End SIGNAL(SIG_OVERFLOW1)
+} 
+
+
+#endif
