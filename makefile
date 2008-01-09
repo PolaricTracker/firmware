@@ -28,7 +28,7 @@
 	TARGET = test
 
 # List C source files here.
-	SRC = kernel.c timer.c test.c stream.c uart.c afsk_tx.c afsk_rx.c fbuf.c
+	SRC = kernel.c timer.c test.c stream.c uart.c afsk_tx.c afsk_rx.c fbuf.c adf_prog.c
 			 
 # List Assembler source files here.
 	ASRC = 

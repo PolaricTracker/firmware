@@ -146,12 +146,23 @@ void fbuf_write (FBUF* b, const char* data, const uint8_t size)
 }
 
 
+
+/*******************************************************
+    Write a null terminated string to a buffer chain
+ *******************************************************/
+ 
 void fbuf_putstr(FBUF* b, const char *data)
 { 
     while (*data != 0)
         fbuf_putChar(b, *(data++));
 }
 
+
+
+/*******************************************************
+    Write a null terminated string in program memory
+    to a buffer chain
+ *******************************************************/
 
 void fbuf_putstr_P(FBUF *b, const char * data) 
 {
