@@ -15,13 +15,13 @@ void adf_write(uint8_t addr, uint32_t data, uint8_t data_len)
     for (i=0; i<data_len; i++)
     {
         if (data & 0x80000000)
-           SET_BIT( ADF_SDATA ); 
+           set_bit( ADF_SDATA ); 
         else 
-           CLR_BIT( ADF_SDATA );
+           clear_bit( ADF_SDATA );
            
-        SET_BIT (ADF_SCLK );
+        set_bit( ADF_SCLK );
         data <<= 1;       
-        CLR_BIT( ADF_SCLK );
+        clear_bit( ADF_SCLK );
     }
 }
 
