@@ -4,7 +4,7 @@
  
 #include "kernel.h"
 #include <avr/interrupt.h>
-
+#include "config.h"
 
 static TCB root_task;
 static TCB * q_head, * q_end; /* Ready queue */
@@ -19,10 +19,10 @@ void *stack;
  
 void sem_init(Semaphore* s, uint8_t cnt)
 {
-   cli();
+   enter_critical();
    s->cnt = cnt; 
    s->qfirst = s->qlast = NULL;
-   sei();
+   leave_critical();
 }
 
 
@@ -31,7 +31,7 @@ void sem_init(Semaphore* s, uint8_t cnt)
  *********************************************************************************/
 
 void sem_set(Semaphore* s, uint8_t cnt)
-  { cli(); s->cnt = cnt; sei(); }
+  { enter_critical(); s->cnt = cnt; leave_critical(); }
 
 
 
@@ -40,7 +40,7 @@ void sem_set(Semaphore* s, uint8_t cnt)
  ********************************************************************************/
  
 void sem_nb_down(Semaphore* s)
-  { cli(); if (s->cnt > 0) s->cnt--; sei(); }
+  { enter_critical(); if (s->cnt > 0) s->cnt--; leave_critical(); }
 
 
 
@@ -56,8 +56,8 @@ void sem_down(Semaphore* s)
    if (s->cnt == 0)
    {
        if (setjmp(q_head->env) == 0) 
-       {
-          cli();
+       { 
+          enter_critical()
           if (s->qfirst == NULL)
               s->qlast = s->qfirst = q_head; 
           else
@@ -67,7 +67,7 @@ void sem_down(Semaphore* s)
           q_end = q_end->next = q_head->next;
           q_head = x; 
           s->qlast->next = NULL;
-          sei(); 
+          leave_critical();
           longjmp(q_head->env, 1);    
        }
    }
@@ -85,7 +85,7 @@ void sem_down(Semaphore* s)
 
 void sem_up(Semaphore* s)
 {
-    cli();
+    enter_critical();
     if (s->qfirst != NULL) {
        register TCB* x = s->qfirst; 
        s->qfirst = x->next; 
@@ -94,23 +94,23 @@ void sem_up(Semaphore* s)
     }
     else
        s->cnt++;
-    sei();
+    leave_critical();
 }
 
 
 
 /****************************************************************************
- * Volunarly give up the CPU. Schedule the next thread in ready queue
+ * Voluntarly give up the CPU. Schedule the next thread in ready queue
  ****************************************************************************/
  
 void t_yield()
 {
     if (setjmp(q_head->env) == 0)
     {
-        cli();
+        enter_critical();
         q_head = q_head->next;
         q_end = q_end->next;
-        sei();  
+        leave_critical();
         longjmp(q_head->env, 1);
     }
 }
@@ -127,7 +127,7 @@ void _t_start(void (*task)() , TCB * tcb, uint8_t stsize)
 {
     if (setjmp(q_head->env) == 0)
     {
-        cli();
+        enter_critical();
         tcb->next = q_head->next; 
         q_head->next = tcb; 
         q_end = q_head; 
@@ -141,8 +141,9 @@ void _t_start(void (*task)() , TCB * tcb, uint8_t stsize)
            "out __SP_H__, __tmp_reg__" "\n\t"
            ::
             "e" (stack)
-         );
-         sei();
+         ); 
+         
+         leave_critical();
          stack -= stsize; 
          (*task)();
         
@@ -153,7 +154,7 @@ void _t_start(void (*task)() , TCB * tcb, uint8_t stsize)
         q_head = q_head->next;
         q_end->next = q_head;
         longjmp(q_head->env, 1);
-    }          
+    }   
 }
 
 
@@ -164,18 +165,19 @@ void _t_start(void (*task)() , TCB * tcb, uint8_t stsize)
  ****************************************************************************/
  
 void init_kernel(uint8_t stsize) 
-{
-        cli();
+{  
+        enter_critical();
         q_head = q_end = &root_task;
         q_head->next = q_head;
+
         asm volatile(
             "in __tmp_reg__,  __SP_L__"  "\n\t"
-            "mov %A0, __tmp_reg__"     "\n\t"
+            "mov %A0, __tmp_reg__"       "\n\t"
             "in __tmp_reg__,  __SP_H__"  "\n\t"
-            "mov %B0, __tmp_reg__"     "\n\t" 
+            "mov %B0, __tmp_reg__"       "\n\t" 
              : "=e" (stack) :
          );
-        stack -= stsize;
-        sei();
+        stack -= stsize; 
+        leave_critical(); 
 }
 

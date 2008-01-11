@@ -19,14 +19,15 @@ static Timer * _timers;
 void timer_set(Timer* t, uint16_t ticks) 
 {
     sem_init(&t->kick, 0);
-    cli();
+
+    enter_critical();
     t->count = ticks;
     t->prev = NULL;
     t->next = _timers;
     if (_timers != NULL) 
         _timers->prev = t;  
     _timers = t;
-    sei();  
+    leave_critical();  
 }
 
 
@@ -68,7 +69,7 @@ void timer_tick()
              /* Remove t from the list of running timers and
               * kick the waiting thread
               */
-             cli();
+             enter_critical();
              if (t->next != NULL)
                  t->next->prev = t->prev; 
              if (t->prev != NULL) 
@@ -78,7 +79,7 @@ void timer_tick()
                  else
                     _timers = t->next; 
              }          
-             sei();
+             leave_critical();
              sem_up(&t->kick);
         }
         t = t->next; 

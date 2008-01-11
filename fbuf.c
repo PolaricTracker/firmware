@@ -41,7 +41,7 @@ char      _fbuf_buf   [FBUF_SLOTS][FBUF_SLOTSIZE];
 static uint8_t _fbuf_newslot ()
 {
    register uint8_t i; 
-   cli();
+   enter_critical();
    for (i=0; i<FBUF_SLOTS; i++)
        if (_fbuf_refcnt[i] == 0) 
        {
@@ -50,7 +50,7 @@ static uint8_t _fbuf_newslot ()
            _fbuf_next[i] = NILPTR; 
            return i; 
        }
-   sei(); 
+   leave_critical(); 
    return NILPTR; 
 }
 
@@ -73,14 +73,14 @@ void fbuf_new (FBUF* bb)
 
 void fbuf_release(FBUF* bb)
 {
-    cli();
+    enter_critical();
     register uint8_t b = bb->head;
     while (b != NILPTR) 
     {
        _fbuf_refcnt[b]--; 
        b = _fbuf_next[b]; 
     } 
-    sei();
+    leave_critical();
     fbuf_new(bb);
 }
 
@@ -233,13 +233,13 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
 void _fbq_init(FBQ* q, void* buf, const uint8_t sz)
 {
     register uint8_t i;
-    cli();
+    enter_critical();
     q->size = sz;
     q->buf = (FBUF*) buf;
     sem_init(&q->length, 0);
     for (i=q->index; i< q->index+q->length.cnt; i++)
         fbuf_release(&q->buf[i]);
-    sei();
+    leave_critical();
 }
 
 
@@ -250,12 +250,12 @@ void _fbq_init(FBQ* q, void* buf, const uint8_t sz)
  
 void fbq_put(FBQ* q, FBUF b)
 {
-    cli();
+    enter_critical();
     register uint8_t i = q->index + q->length.cnt; 
     if (i >= q->size)
         i -= q->size; 
     q->buf[i] = b; 
-    sei();
+    leave_critical();
     sem_up(&q->length);
 }
 
@@ -268,12 +268,12 @@ void fbq_put(FBQ* q, FBUF b)
 FBUF fbq_get(FBQ* q)
 {
     sem_down(&q->length); 
-    cli();
+    enter_critical();
     register uint8_t i = q->index;
     if (++q->index >= q->size) 
         q->index = 0; 
     return q->buf[i];
-    sei();
+    leave_critical();
 }
 
 // FIXME: Prevent unwanted sharing of FBUF/slots?

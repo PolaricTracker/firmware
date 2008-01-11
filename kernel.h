@@ -49,3 +49,7 @@ void sem_nb_down(Semaphore *s);
 
 
 #endif
+
+uint8_t __sreg; 
+#define enter_critical() { __sreg = SREG; cli(); }
+#define leave_critical() { SREG = __sreg; }

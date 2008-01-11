@@ -75,11 +75,11 @@ void putstr_P(Stream *b, const char * addr)
 char getch(Stream *b)
 {
     sem_down(&b->block);
-    cli(); 
+    enter_critical(); 
     register char x = '\0'; 
     if (!_buf_empty(b)) 
         x = _buf_get(b);
-    sei(); 
+    leave_critical(); 
     return x;
 }
 
@@ -149,11 +149,11 @@ void _buf_put(Stream* b, const char c)
  
 void _sendByte(Stream *b, const char chr)
 {
-    cli();
+    enter_critical();
     uint8_t was_empty = _buf_empty(b);
     if (!_buf_full(b)) 
         _buf_put(b, chr);
-    sei();
+    leave_critical();
     if (was_empty)
         (*b->kick)();
 }

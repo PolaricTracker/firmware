@@ -67,7 +67,7 @@ void kickout()
  
 ISR(USART_RX_vect)
 {
-   cli(); 
+   enter_critical(); 
    if (!_buf_full(&instr))
    { 
       register char x = UDR0;	    
@@ -79,7 +79,7 @@ ISR(USART_RX_vect)
       }  
       sem_up(&instr.block);
    }
-   sei();
+   leave_critical();
 } 
 
 
@@ -91,9 +91,9 @@ ISR(USART_RX_vect)
 
 ISR(USART_TX_vect)
 {
-   cli(); 
+   enter_critical(); 
 	if (! _buf_empty(&outstr) ) 
       kickout();
-   sei();
+   leave_critical();
 }
  
