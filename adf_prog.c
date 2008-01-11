@@ -20,7 +20,8 @@ void adf_write(uint8_t addr, uint32_t data, uint8_t data_len)
            clear_bit( ADF_SDATA );
            
         set_bit( ADF_SCLK );
-        data <<= 1;       
+        data <<= 1;  
+        nop();    
         clear_bit( ADF_SCLK );
     }
 }
