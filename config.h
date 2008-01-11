@@ -41,3 +41,10 @@
 #define set_bit(x)     (x##_PORT) |= (1  << (x##_BIT))
 #define clear_bit(x)   (x##_PORT)  &= ~(1 << x##_BIT)
 #define toggle_bit(x)  (x##_PORT) ^= (x##_BIT)
+
+/*
+ * Other macros
+ */
+
+inline void nop() { asm volatile ("nop"); } 
+ 
