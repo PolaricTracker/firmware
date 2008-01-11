@@ -4,7 +4,7 @@
   INCDIR = .
   LIBDIR = .
     LIBS =
-	
+
 # Define programs.
     SHELL = sh
     AR = ar
@@ -19,7 +19,7 @@
     ELFSIZE = @avr-size $(TARGET).elf
 
 # MCU name
-	MCU = atmega168
+	MCU = at90usb1287
 
 # Output format. Can be [srec|ihex].
     FORMAT = ihex
@@ -29,12 +29,12 @@
 
 # List C source files here.
 	SRC = kernel.c timer.c test.c stream.c uart.c afsk_tx.c afsk_rx.c fbuf.c adf_prog.c
-			 
+
 # List Assembler source files here.
 	ASRC = 
 
-# Compiler flags. -Os
-	CPFLAGS = -Os -Wall -Wa,-ahlms=$(<:.c=.lst)
+# Compiler flags.
+	CPFLAGS = -O2 --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst)
 
 # Assembler flags.
     ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
@@ -47,18 +47,18 @@
 
 # Define all project specific object files.
 	OBJ	= $(SRC:.c=.o) $(ASRC:.s=.o) 	
-	
+
 # Define all listing files.
 	LST = $(ASRC:.s=.lst) $(SRC:.c=.lst)
-	
+
 # Compiler flags to generate dependency files.
 	GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
 
 # Add target processor to flags.
-   	CPFLAGS += -mmcu=$(MCU) $(GENDEPFLAGS)
+	CPFLAGS += -mmcu=$(MCU) $(GENDEPFLAGS)
 	ASFLAGS += -mmcu=$(MCU)
 	LDFLAGS += -mmcu=$(MCU)	
-  
+
 .PHONY : build
 build: $(TARGET).elf $(TARGET).hex $(TARGET).lss $(TARGET).bin line1 overallsize line2
 
@@ -69,7 +69,7 @@ buildall: clean $(TARGET).elf $(TARGET).hex $(TARGET).lss $(TARGET).bin line1 ov
 overallsize:
 	@echo Elf size:
 	$(ELFSIZE)
-	
+
 %.bin: %.elf
 	$(OBJCOPY) -j .text -j .data -O binary $< $@
 
@@ -86,15 +86,26 @@ overallsize:
 .PRECIOUS : $(OBJ)
 %.elf: $(OBJ)
 	$(COMPILE) $(LDFLAGS) $(OBJ) $(LIBFLAGS) --output $@
-	
+
 # Compile: create object files from C source files.
 %.o : %.c
 	$(COMPILE) -c $(CPFLAGS) -I$(INCDIR) $< -o $@ 
+
+# Compile: create assembler files from C source files.
+%.s : %.c
+	$(COMPILE) -S -fverbose-asm $(CPFLAGS) -I$(INCDIR) $< -o $@ 
 
 # Assemble: create object files from assembler files.
 
 %.o : %.s
 	$(ASSEMBLE) -c $(ASFLAGS) $< -o $@
+
+# device firmware upload via usb 
+dfu: $(TARGET).hex
+	dfu-programmer $(MCU) erase
+	dfu-programmer $(MCU) flash $(TARGET).hex
+	dfu-programmer $(MCU) start
+
 
 # Target: line1 project.
 .PHONY : line1
@@ -123,8 +134,8 @@ clean :
 	$(REMOVE) $(LST)
 	$(REMOVE) $(SRC:.c=.s)
 
-        
-        
+
+
 # Include the dependency files.
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
 
