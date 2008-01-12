@@ -1,8 +1,14 @@
+#if !defined __FBUF_H__
+#define __FBUF_H__
 
 #include <inttypes.h>
 #include "kernel.h"
 
 #define NILPTR        255
+
+/* Type names fontified as such in Emacs */
+#define fbuf_t FBUF
+#define fqb_t FBQ
 
 
 /*********************************
@@ -64,3 +70,4 @@ FBUF  fbq_get (FBQ* q);
                               _fbq_init(&(name), (name##_fbqbuf), (size));
 
    
+#endif /* __FBUF_H__ */

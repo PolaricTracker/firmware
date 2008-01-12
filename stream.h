@@ -2,6 +2,11 @@
  * Common stuff for serial communication
  */
 
+#if !defined __STREAM_H__
+#define __STREAM_H__
+
+/* Type name fontified as such in Emacs */
+#define stream_t Stream
 
 typedef struct _Stream
 {
@@ -44,3 +49,5 @@ void   getstr(Stream*, char* addr, uint8_t, char marker);
 char _buf_get(Stream*);
 void _buf_put(Stream*,  const char);
 void _sendByte(Stream*, const char);
+
+#endif /* __STREAM_H__ */
