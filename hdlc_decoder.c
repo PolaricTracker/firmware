@@ -1,11 +1,11 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <util/crc16.h>
 #include "kernel.h"
 #include "config.h"
 #include "hdlc.h"
 #include "stream.h"
 #include "fbuf.h"
-#include "crc-ccitt.h"
 
 static stream_t *stream;
 static fbuf_t fbuf;
@@ -90,12 +90,12 @@ static void hdlc_decode ()
       }
     }
 
-    crc = crc_ccitt_byte (crc, octet);
+    crc = _crc_ccitt_update (crc, octet);
     fbuf_putChar(&fbuf, octet);
     length++;
   } while (bit != HDLC_FLAG);
 
-  if (crc == CRC_CCITT_OK) {
+  if (crc == 0xf0b8) {
     fbq_put(&fbin, fbuf);       
     fbuf_new(&fbuf);
   }
