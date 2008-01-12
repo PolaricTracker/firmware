@@ -18,7 +18,7 @@
 #define ADF_SCLK_PORT   PORTB
 #define ADF_SCLK_BIT    PB0
 #define ADF_SDATA_PORT  PORTB
-#define AFD_SDATA_BIT   PB1
+#define ADF_SDATA_BIT   PB1
 
 
 /*
@@ -43,8 +43,6 @@
 #define toggle_bit(x)  (x##_PORT) ^= (x##_BIT)
 
 /*
- * Other macros
+ * other
  */
-
-inline void nop() { asm volatile ("nop"); } 
- 
+#define nop()  asm volatile("nop");
