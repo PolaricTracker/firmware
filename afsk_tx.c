@@ -28,9 +28,9 @@ static stream_t *stream;
    
 void init_afsk_TX()
 {
-   TCCR1B = 0x03           /* Pre-scaler for timer0 = 64 */             
+   TCCR0B = 0x03           /* Pre-scaler for timer0 = 64 */             
           | (1<<WGM02);    /* CTC mode */             
-   TIMSK1 = 1<<OCIE1A;     /* Interrupt on compare match */  
+   TIMSK0 = 1<<OCIE0A;     /* Interrupt on compare match */  
    OCR0A  = _TXI_SPACE;
 }		
 
