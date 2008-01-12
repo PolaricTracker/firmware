@@ -13,6 +13,11 @@
 #define FBUF_SLOTS    32
 #define FBUF_SLOTSIZE 16
 
+#define DEFAULT_STACK_SIZE 70
+
+#define AFSK_DECODER_BUFFER_SIZE 128
+#define HDLC_DECODER_QUEUE_SIZE 4
+
 #define DCD_LED_PORT    PORTD
 #define DCD_LED_BIT     PD5
 #define ADF_SCLK_PORT   PORTB
@@ -52,6 +57,10 @@
 #define set_bit(x)     (x##_PORT) |= (1  << (x##_BIT))
 #define clear_bit(x)   (x##_PORT)  &= ~(1 << x##_BIT)
 #define toggle_bit(x)  (x##_PORT) ^= (x##_BIT)
+
+#define set_sfr_bit(sfr,bit) (sfr)|=(1<<(bit))
+#define clear_sfr_bit(sfr,bit) (sfr)&=~(1<<(bit))
+#define toggle_sfr_bit(sfr,bit) (sfr)^=bit;
 
 /*
  * other
