@@ -6,6 +6,8 @@
 #include "kernel.h"
 #include "stream.h"
 
+#define USART_BAUD 9600
+#define UART_UBRR (F_CPU/(16L*USART_BAUD)-1) 
 
 void kickout(); 
 
@@ -37,23 +39,22 @@ void	init_UART(const unsigned char e)
  
    outstr.kick = kickout; 
 
-	// Set baud rate of USART to 4800 baud at 14.7456 MHz
-	UBRR0H = 0;
-	UBRR0L = 96;  // 191 for 4800bd 
+	// Set baud rate 
+	UBRR1 = UART_UBRR;
    
 	// Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
-   UCSR0B = (1<<RXCIE0)|(1<<TXCIE0)| (1<<RXEN0)|(1<<TXEN0);
+   UCSR1B = (1<<RXCIE1)|(1<<TXCIE1)| (1<<RXEN1)|(1<<TXEN1);
 	// Set frame format to 8 data bits, no parity, and 1stop bit
-	UCSR0C = (3<<UCSZ00);
+	UCSR1C = (1<<UCSZ10) | (1<<UCSZ11);
 }		
 
 
 
 void kickout()
 {
-   if ((UCSR0A & (1<<UDRE0)))
+   if ((UCSR1A & (1<<UDRE1)))
    {
-		 UDR0 = _buf_get(&outstr);     
+		 UDR1 = _buf_get(&outstr);     
        sem_up(&outstr.block);
    }
 }
@@ -70,7 +71,7 @@ ISR(USART_RX_vect)
    enter_critical(); 
    if (!_buf_full(&instr))
    { 
-      register char x = UDR0;	    
+      register char x = UDR1;	    
       _buf_put(&instr, x);
       if ( echo ) 
       {
