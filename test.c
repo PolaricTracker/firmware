@@ -15,7 +15,7 @@
  * (100Hz), AFSK transmitter (1200Hz) and AFSK receiver (9600Hz).  
  ***************************************************************************/ 
  
-ISR(TIMER0_COMPA_vect) 
+ISR(TIMER1_COMPA_vect) 
 {
      static uint8_t ticks; 
      
@@ -67,10 +67,10 @@ int main(void) {
       DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);
 
      
-      TCCR0B = 0x02;         /* Pre-scaler for timer0 = 8 */             
-      TIMSK0 = 1<<OCIE0A;    /* Interrupt on compare match */
-      TCCR0A = 1<<WGM01;     /* CTC mode */ 
-      OCR0A  = (F_CPU / 8 / 9600) - 1;
+      TCCR1B = 0x02          /* Pre-scaler for timer0 */             
+             | (1<<WGM02);   /* CTC mode */             
+      TIMSK1 = 1<<OCIE1A;    /* Interrupt on compare match */
+      OCR1A  = (F_CPU / 8 / 9600) - 1;
      
       sei();
       
