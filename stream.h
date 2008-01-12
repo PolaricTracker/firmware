@@ -5,6 +5,10 @@
 #if !defined __STREAM_H__
 #define __STREAM_H__
 
+# include "kernel.h"
+
+
+
 /* Type name fontified as such in Emacs */
 #define stream_t Stream
 
