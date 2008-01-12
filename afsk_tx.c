@@ -16,19 +16,19 @@
 #define AFSK_TXTONE_SPACE 1200
 
 /* Internal config */
-#define _PRESCALER0  8
-#define _TXI_MARK   ((F_CPU / _PRESCALER0 / AFSK_TXTONE_MARK) - 1 )
-#define _TXI_SPACE  ((F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE) - 1 )
+#define _PRESCALER0  64
+#define _TXI_MARK   ((F_CPU / _PRESCALER0 / AFSK_TXTONE_MARK / 2) - 1 )
+#define _TXI_SPACE  ((F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE / 2) - 1 )
 
 
-// static uint8_t  transmit; 		
+uint8_t  transmit; 		
 static stream_t *stream;
 
 
    
 void init_afsk_TX()
 {
-   TCCR1B = 0x02           /* Pre-scaler for timer0 = 8 */             
+   TCCR1B = 0x03           /* Pre-scaler for timer0 = 64 */             
           | (1<<WGM02);    /* CTC mode */             
    TIMSK1 = 1<<OCIE1A;     /* Interrupt on compare match */  
    OCR0A  = _TXI_SPACE;
@@ -43,7 +43,7 @@ void init_afsk_TX()
  
 void afsk_ptt_on()
 {
-    afsk_disable_RX();
+//  afsk_disable_RX();
     transmit = TRUE; 
 }
 
@@ -56,7 +56,7 @@ void afsk_ptt_on()
 void afsk_ptt_off()
 {
     transmit = FALSE; 
-    afsk_enable_RX(); 
+//  afsk_enable_RX(); 
 }
 
 
@@ -96,7 +96,11 @@ void afsk_txBitClock()
     register uint8_t bit = get_bit();
     if ( !bit ) {
         /* Toggle TX frequency */
-        // OCR0A = ((OCR0A >= (uint8_t) _TXI_MARK) ? _TXI_SPACE : _TXI_MARK); 
+        enter_critical();
+        OCR0A = ((OCR0A >= _TXI_MARK) ? _TXI_SPACE : _TXI_MARK); 
+        if (TCNT0 > OCR0A)
+            TCNT0 = 0xFF - TCNT0;
+        leave_critical();
     }
 }
 
