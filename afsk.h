@@ -15,9 +15,9 @@ enum {
 
 
 
-void afsk_setTxTone(unsigned char x);
-void init_afsk_TX();
-void afsk_startTx();
+stream_t init_afsk_encoder();
+void afsk_ptt_on();
+void afsk_ptt_off();
 void afsk_txBitClock();
 
 
@@ -27,7 +27,7 @@ void afsk_disable_decoder ();
 bool afsk_channel_ready (uint16_t timeout); /* ms, µs, something else? */
 
 
-extern uint8_t transmit; 
+extern bool transmit; 
 extern uint8_t dcd;
 
 extern FBQ outbuf, fbin; 
