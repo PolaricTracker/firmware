@@ -27,7 +27,8 @@
 #define TRANSCEIVER_READBACK_FILTER_CAL 0x187
 #define TRANSCEIVER_READBACK_SILICON_REV 0x1C7
 
-
+/* This struct should be set up at modulator/demodulator level during
+   initialization and then do a call to transceiver_init */
 typedef struct _transceiver_setup {
   uint32_t n;
   uint32_t vco;
