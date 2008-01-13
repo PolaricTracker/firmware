@@ -71,8 +71,14 @@ static uint8_t get_bit()
   static uint8_t bits;
   static uint8_t bit_count = 0;
   
-  if (bit_count == 0) {
-    bits = getch (stream);
+  if (bit_count == 0) 
+  {
+    /* Turn off TX if buffer is empty (have reached end of frame) */
+    if (_buf_empty(stream)) {
+        afsk_ptt_off();
+        return 1; 
+    }   
+    bits = _buf_get (stream);
     bit_count = 8;
   } 
   
