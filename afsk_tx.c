@@ -21,17 +21,16 @@
 #define _TXI_SPACE  ((F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE / 2) - 1 )
 
 
-uint8_t  transmit; 		
-static stream_t *stream;
+bool  transmit; 		
+stream_t afsk_tx_stream;
+static uint8_t afsk_tx_buf[AFSK_ENCODER_BUFFER_SIZE];
 
 
    
-void init_afsk_TX()
+stream_t* afsk_init_encoder() 
 {
-   TCCR0B = 0x03           /* Pre-scaler for timer0 = 64 */             
-          | (1<<WGM02);    /* CTC mode */             
-   TIMSK0 = 1<<OCIE0A;     /* Interrupt on compare match */  
-   OCR0A  = _TXI_SPACE;
+   _buf_init (&afsk_tx_stream, (char*)afsk_tx_buf, AFSK_ENCODER_BUFFER_SIZE);
+    return &afsk_tx_stream;
 }		
 
 
@@ -43,7 +42,12 @@ void init_afsk_TX()
  
 void afsk_ptt_on()
 {
-//  afsk_disable_RX();
+//  should notify application level?
+
+    TCCR0B = 0x03           /* Pre-scaler for timer0 = 64 */             
+           | (1<<WGM02);    /* CTC mode */             
+    TIMSK0 = 1<<OCIE0A;     /* Interrupt on compare match */ 
+    OCR0A  = _TXI_SPACE;
     transmit = TRUE; 
 }
 
@@ -56,7 +60,7 @@ void afsk_ptt_on()
 void afsk_ptt_off()
 {
     transmit = FALSE; 
-//  afsk_enable_RX(); 
+//  should notify application level 
 }
 
 
@@ -74,11 +78,11 @@ static uint8_t get_bit()
   if (bit_count == 0) 
   {
     /* Turn off TX if buffer is empty (have reached end of frame) */
-    if (_buf_empty(stream)) {
+    if (_buf_empty(&afsk_tx_stream)) {
         afsk_ptt_off();
         return 1; 
     }   
-    bits = _buf_get (stream);
+    bits = _buf_get (&afsk_tx_stream);
     bit_count = 8;
   } 
   
@@ -118,7 +122,7 @@ void afsk_txBitClock()
  * we dont need this interrupt handler at all! 
  ******************************************************************************/
  
-SIGNAL(TIMER0_COMPA_vect)
+ISR(TIMER0_COMPA_vect)
 {
      toggle_bit( ADF_SCLK );
 } 
