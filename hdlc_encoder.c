@@ -6,20 +6,25 @@
 #include <avr/io.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <avr/interrupt.h>
 #include "fbuf.h"
-#include "afsk.h"
+#include "hdlc.h"
 #include "kernel.h"
 #include "timer.h"
 #include "stream.h"
-
-	
-extern uint8_t	transmit;		          
+#include <util/crc16.h>
+		          
 uint8_t txbytes; 
 
 // Buffers
-FBQ outbuf; 
+FBQ encoder_queue; 
 static FBUF buffer;                                 
+static stream_t* outstream;
+
+static Semaphore test; 
+static bool test_active;
+static uint8_t testbyte;
 
 #define BUFFER_EMPTY (fbuf_eof(&buffer))            
 
@@ -31,13 +36,48 @@ enum {TXOFF, TXPRE, TXPACKET, TXPOST} txState;
 #define PERSISTENCE 100
 #define SLOTTIME    50
 
+static void hdlc_txencoder();
+static void hdlc_testsignal();
+static void hdlc_encode_frames();
+
 
    
 void init_hdlc_encoder()
 {
-   DEFINE_FBQ(outbuf, TX_Q_SIZE);
-   THREAD_START( afsk_txencoder, DEFAULT_STACK_SIZE);
+   DEFINE_FBQ(encoder_queue, HDLC_ENCODER_QUEUE_SIZE);
+   THREAD_START( hdlc_txencoder, DEFAULT_STACK_SIZE);
+   
+   sem_init(&test, 0);
+   THREAD_START( hdlc_testsignal, DEFAULT_STACK_SIZE);
 }		
+
+
+/*******************************************************
+ * Code for generating a test signal
+ *******************************************************/
+
+void hdlc_test_on(uint8_t b)
+{ 
+    testbyte = b;
+    test_active = true;
+    sem_up(&test);
+}
+
+void hdlc_test_off()
+    { test_active=false; }
+
+    
+static void hdlc_testsignal()
+{
+    while (true)
+    {
+        sem_down(&test);
+        while(test_active);
+            putch(outstream, testbyte);  
+    }
+}
+
+
 
 
 
@@ -49,18 +89,18 @@ void init_hdlc_encoder()
  * from a loop in a thread.  
  *******************************************************************************/
  
-static void afsk_txencoder()
+static void hdlc_txencoder()
 {  
    /* Get frame from buffer-queue when available. This is a blocking call.
     * FIXME: Protect against concurrent access
     */
-   buffer = fbq_get(&outbuf);     
+   buffer = fbq_get(&encoder_queue);     
        
    /* Wait until channel is free 
     * P-persistence algorithm 
     */
    for (;;) {
-     while ( !afsk_channel_ready(0) )
+     while ( !afsk_channel_ready(0) )  // FIXME
         t_yield(); 
      int r  = rand(); 
      if (r > PERSISTENCE * 255)
@@ -69,8 +109,8 @@ static void afsk_txencoder()
          break;
    }
   
-   afsk_ptt_on();   
-   afsk_encode_frames();
+   afsk_ptt_on();                      // FIXME
+   hdlc_encode_frames();
 }
    
 
@@ -82,19 +122,17 @@ static void afsk_txencoder()
  * flags at start and end of frames.
  *******************************************************************************/
  
-void afsk_encode_frames()
+static void hdlc_encode_frames()
 {
-    uint8_t txbyte, txbits, bit_zero, flag, nflags;  
-    uint8_t outbyte, outbits;
-    uint8_t sequential_ones;
+    uint8_t  bit_zero, txbyte=0, txbits=0, flag=0, nflags=0;  
+    uint8_t outbyte=0, outbits=0, crc=0;
+    uint8_t sequential_ones=0;
     
     txState = TXPRE;
     txbytes = 0;
-    while (TRUE)
-    {
+    while (TRUE) {
        /* 
-        * This part (if txbits == 0) determines the next byte to 
-        * send or alternatively, to turn off the transmitter.
+        * This part (if txbits == 0) determines the next byte to send
         */  
        if (txbits == 0) 
        {
@@ -104,6 +142,7 @@ void afsk_encode_frames()
             * TXPOST   - end frame - send as many flags as indicated in TXTAIL
             * TXPACKET - send frame data until buffer is empty.         
             */
+           txbits = 8;  
            if (txState == TXPRE && nflags >= TXDELAY)
                txState = TXPACKET;
              
@@ -114,30 +153,30 @@ void afsk_encode_frames()
            else if (txState == TXPACKET && BUFFER_EMPTY) {
                nflags = 0;                               // If end of buffer, go to TXPOST state (send end-of-frame flags)
                txState = TXPOST;                         // FIXME: Allow more than one frame per transmission?
-               fbuf_release(&buffer); 
+               fbuf_release(&buffer);
+               txbyte = crc;                             // Insert checksum
+               break;                                   
            }    
-
-      
+     
            /*
             * Do the work (depending on the state). 
             * Get next byte to transmit, or use FLAG
             */
            if (txState == TXPACKET) {          
                txbyte = fbuf_getChar(&buffer);            // send next byte from buffer
+               crc = _crc_ccitt_update (crc, txbyte);     // compute checksum
                txbytes++; 
                flag = 0;        
            }
            else {                                 
-               flag = txbyte = FLAG;                      // Send flag. And indicate that this was done deliberately
+               flag = txbyte = HDLC_FLAG;                 // Send flag. And indicate that this was done deliberately
                nflags++;                                  // And count how many flags was sent  
            }
-           txbits = 8; 
        }
     
     
        /* 
         * Transmit the bits with bit stuffing.
-        * AFSK:  Toggle transmitter tone if 0. Do nothing if 1. 
         */
        if (flag)
            sequential_ones = 0; 
@@ -149,13 +188,13 @@ void afsk_encode_frames()
        if (sequential_ones < 6) 
           { txbyte >>= 1; txbits--; }    
        
-       outbyte << 1;
+       outbyte <<= 1;
        outbyte |= bit_zero; 
        outbits++;
        if (!sequential_ones)                       
-          { outbyte << 1; outbits++; }  /* Bit stuffing */ 
+          { outbyte <<= 1; outbits++; }  /* Bit stuffing */ 
        
-       putch(&stream, outbyte);       
+       putch(outstream, outbyte);       
     }
 }
 
