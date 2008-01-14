@@ -15,7 +15,7 @@ enum {
 
 
 
-stream_t init_afsk_encoder();
+stream_t* afsk_init_encoder();
 void afsk_ptt_on();
 void afsk_ptt_off();
 void afsk_txBitClock();
@@ -24,7 +24,7 @@ void afsk_txBitClock();
 stream_t* afsk_init_decoder ();
 void afsk_enable_decoder ();
 void afsk_disable_decoder ();
-bool afsk_channel_ready (uint16_t timeout); /* ms, Âµs, something else? */
+bool afsk_channel_ready (uint16_t timeout); /* ms, µs, something else? */
 
 
 extern bool transmit; 
