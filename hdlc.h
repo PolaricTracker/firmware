@@ -9,6 +9,10 @@
 
 
 fqb_t* hdlc_init_decoder (stream_t *s);
+fqb_t* hdlc_init_encoder (stream_t *s);
+void hdlc_test_on(uint8_t b);
+void hdlc_test_off();
+
 
 
 #endif /* __HDLC_H__ */
