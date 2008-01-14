@@ -7,6 +7,7 @@
 
 #include <inttypes.h>
 #include <setjmp.h>
+#include <stdbool.h>
 
 #define NULL ((void*) 0)
 
@@ -36,7 +37,7 @@ void t_yield();
 void sem_init(Semaphore* s, uint8_t cnt);
 void sem_down(Semaphore* s);
 void sem_up(Semaphore* s);
-void sem_nb_down(Semaphore *s);
+bool sem_nb_down(Semaphore *s);
 
 /*
  * Convenience macro for creating and starting threads. 

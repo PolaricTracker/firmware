@@ -39,8 +39,14 @@ void sem_set(Semaphore* s, uint8_t cnt)
  * Non-blocking down-counter
  ********************************************************************************/
  
-void sem_nb_down(Semaphore* s)
-  { enter_critical(); if (s->cnt > 0) s->cnt--; leave_critical(); }
+bool sem_nb_down(Semaphore* s)
+{ 
+    enter_critical(); 
+    if (s->cnt > 0) 
+       { s->cnt--; leave_critical(); return true;}
+    else
+       { leave_critical(); return false; }
+}
 
 
 
