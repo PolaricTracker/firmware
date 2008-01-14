@@ -21,15 +21,13 @@
 #define _TXI_SPACE  ((F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE / 2) - 1 )
 
 
-bool  transmit; 		
+bool     transmit; 		
 stream_t afsk_tx_stream;
-static uint8_t afsk_tx_buf[AFSK_ENCODER_BUFFER_SIZE];
-
 
    
 stream_t* afsk_init_encoder() 
 {
-   _buf_init (&afsk_tx_stream, (char*)afsk_tx_buf, AFSK_ENCODER_BUFFER_SIZE);
+    STREAM_INIT(afsk_tx_stream, AFSK_ENCODER_BUFFER_SIZE);    
     return &afsk_tx_stream;
 }		
 
@@ -49,6 +47,7 @@ void afsk_ptt_on()
     TIMSK0 = 1<<OCIE0A;     /* Interrupt on compare match */ 
     OCR0A  = _TXI_SPACE;
     transmit = TRUE; 
+    set_bit(USBKEY_LED4);
 }
 
 
@@ -60,6 +59,7 @@ void afsk_ptt_on()
 void afsk_ptt_off()
 {
     transmit = FALSE; 
+    clear_bit(USBKEY_LED4);
 //  should notify application level 
 }
 
@@ -78,19 +78,20 @@ static uint8_t get_bit()
   if (bit_count == 0) 
   {
     /* Turn off TX if buffer is empty (have reached end of frame) */
-    if (_buf_empty(&afsk_tx_stream)) {
+    if (_stream_empty(&afsk_tx_stream)) {
         afsk_ptt_off();
         return 1; 
     }   
-    bits = _buf_get (&afsk_tx_stream);
+    bits = _stream_get (&afsk_tx_stream, true);
     bit_count = 8;
   } 
-  
+
   uint8_t bit = bits & 0x01;
   bits >>= 1;
   bit_count--;
   return bit;
 }
+
 
 
 /*******************************************************************************
@@ -103,9 +104,12 @@ static uint8_t get_bit()
  
 void afsk_txBitClock()
 {
+    if (!transmit) 
+        return;
+        
     register uint8_t bit = get_bit();
     if ( !bit ) {
-        /* Toggle TX frequency */
+        /* Toggle TX frequency */ 
         enter_critical();
         OCR0A = ((OCR0A >= _TXI_MARK) ? _TXI_SPACE : _TXI_MARK); 
         if (TCNT0 > OCR0A)
@@ -123,7 +127,7 @@ void afsk_txBitClock()
  ******************************************************************************/
  
 ISR(TIMER0_COMPA_vect)
-{
+{   
      toggle_bit( ADF_SCLK );
 } 
 
