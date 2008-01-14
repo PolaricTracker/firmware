@@ -8,7 +8,7 @@
 
 #include "kernel.h"
 #include "stream.h"
-
+#include "config.h"
 
      
 /***************************************************************************
@@ -17,25 +17,16 @@
  *   s - buffer size.
  ***************************************************************************/     
  
-void _buf_init(Stream* b, char* bdata, const uint8_t s)
+void _stream_init(Stream* b, char* bdata, const uint8_t s)
 {
     b->buf = bdata; 
     b->size = s; 
     b->index=0; 
-    b->length=0; 
+    sem_init(&b->mutex,1);
+    sem_init(&b->length, 0);
+    sem_init(&b->capacity, s-1); 
 }      
 
-
-
-/****************************************************************************
- * put character chr into stream b. Blocks if buffer is full.
- ****************************************************************************/
- 
-void	putch(Stream *b, const char chr)
-{
-     sem_down(&b->block);
-     _sendByte(b, chr);
-}
 
 
 
@@ -45,9 +36,9 @@ void	putch(Stream *b, const char chr)
  
 void putstr(Stream *b, const char *str)
 {
-	while (*str != 0)			
-		putch(b, *(str++));		
-}	
+     while (*str != 0)                       
+        putch(b, *(str++));             
+}       
 
 
 
@@ -55,33 +46,17 @@ void putstr(Stream *b, const char *str)
  * put character string s (in program memory) into stream b. 
  * Blocks if buffer is full.
  ****************************************************************************/
- 	
+        
 void putstr_P(Stream *b, const char * addr) 
 {
    char c;
-	while ((c = pgm_read_byte(addr)) != 0) 
-   { 	
-		putch(b, pgm_read_byte(addr) );
+   while ((c = pgm_read_byte(addr)) != 0) 
+   {    
+      putch(b, pgm_read_byte(addr) );
       addr++;
-   }	
-}		
+   }    
+}               
 
-
-
-/****************************************************************************
- * get a character from stream b. Blocks until character is available. 
- ****************************************************************************/
- 
-char getch(Stream *b)
-{
-    sem_down(&b->block);
-    enter_critical(); 
-    register char x = '\0'; 
-    if (!_buf_empty(b)) 
-        x = _buf_get(b);
-    leave_critical(); 
-    return x;
-}
 
 
 
@@ -111,19 +86,41 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
 
 
 /* 
- * The following functions are meant to be called from driver implementations. 
+ * The following functions are meant to be called from driver implementations
+ * with nonblock=true, or from API functions above with nonblock=false. 
  */
+ 
+
+/***************************************************************************
+ * Send a character (for driver implementations)
+ * Puts character into buffer and kicks driver if necessary
+ ***************************************************************************/
+ 
+void _stream_sendByte(Stream *b, const char chr, const bool nonblock)
+{ 
+    bool was_empty = _stream_empty(b);
+    _stream_put(b, chr, nonblock);
+    if (was_empty && b->kick)
+        (*b->kick)();
+}
+
  
 /***************************************************************************
  * Read a character from stream buffer (for driver implementations)
  ***************************************************************************/
     
-char _buf_get(Stream* b)
+char _stream_get(Stream* b, const bool nonblock)
 {   
+    if (nonblock && !sem_nb_down(&b->length))
+       return 0;
+    sem_down(&b->length);
+    
+    enter_critical();
     register uint8_t i = b->index;
-    b->length--; 
     if (++b->index >= b->size) 
         b->index = 0; 
+    sem_up(&b->capacity);
+    leave_critical();
     return b->buf[i];
 }
 
@@ -132,29 +129,21 @@ char _buf_get(Stream* b)
  * Write a character to stream buffer (for driver implementations)
  ***************************************************************************/
  
-void _buf_put(Stream* b, const char c)
+void _stream_put(Stream* b, const char c, bool nonblock)
 {  
-    register uint8_t i = b->index + b->length; 
+    if (nonblock && !sem_nb_down(&b->capacity))
+       return;
+
+    sem_down(&b->capacity);
+
+    enter_critical();   
+    register uint8_t i = b->index + b->length.cnt; 
     if (i >= b->size)
         i -= b->size; 
     b->buf[i] = c; 
-    b->length++; 
+    leave_critical();
+    sem_up(&b->length);
 }
    
 
-/***************************************************************************
- * Send a character (for driver implementations)
- * Puts character into buffer and kicks driver if necessary
- ***************************************************************************/
- 
-void _sendByte(Stream *b, const char chr)
-{
-    enter_critical();
-    uint8_t was_empty = _buf_empty(b);
-    if (!_buf_full(b)) 
-        _buf_put(b, chr);
-    leave_critical();
-    if (was_empty)
-        (*b->kick)();
-}
 

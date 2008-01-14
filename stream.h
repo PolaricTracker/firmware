@@ -14,44 +14,40 @@
 
 typedef struct _Stream
 {
-    Semaphore mutex, block;
+    Semaphore mutex, length, capacity;
     void (*kick)();
-    uint8_t size, index, length; 
+    uint16_t size, index; 
     char* buf; 
 } Stream;
 
 
 
-/* Init driver */
-
-void   init_UART(unsigned char );
 
 /* API */
 
-void   _buf_init(Stream*, char*, const uint8_t);
-void   putch(Stream*, const char );
+
+  
+void   _stream_init(Stream*, char*, const uint8_t);
+char   _stream_get(Stream*, const bool nonblock);
+void   _stream_put(Stream*, const char, const bool nonblock);
+void   _stream_sendByte(Stream *b, const char chr, const bool nonblock);
+
 void   putstr(Stream*, const char *);
 void   putstr_P(Stream *outbuf, const char *);
-char   getch(Stream* );
 void   getstr(Stream*, char* addr, uint8_t, char marker);
 
-#define DEFINE_STREAM_BUF(name,size) static char name##_charbuf[(size)];     \
-                                     static Buffer (name);                   \
-                                     _buf_init(&(name), (name##charbuf), (size));
+
+#define getch(s)        _stream_get((s), false)   
+#define putch(s, chr)   _stream_sendByte((s), (chr), false);   
+
+#define _stream_empty(b)   ((b)->length.cnt == 0)
+#define _stram_full(b)    ((b)->capacity.cnt == 0)
+
+#define STREAM_INIT(name,size) static char name##_charbuf[(size)];     \
+                               _stream_init(&(name), (name##_charbuf), (size));
 #define NOTIFY_CHAR 1
 #define NOTIFY_BLOCK 2
 #define ENDLINE '\r'
 
-
-/*
- * The remaining definitions are for driver implementations
- */
-
-#define _buf_empty(b)      ((b)->length == 0)
-#define _buf_full(b)       ((b)->length == (b)->size)
-
-char _buf_get(Stream*);
-void _buf_put(Stream*,  const char);
-void _sendByte(Stream*, const char);
 
 #endif /* __STREAM_H__ */
