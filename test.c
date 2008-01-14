@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <avr/pgmspace.h>
+#include "afsk.h"
+#include "hdlc.h"
 
 
 
@@ -17,12 +19,20 @@
  
 ISR(TIMER1_COMPA_vect) 
 {
-     static uint8_t ticks; 
+     static uint8_t ticks, txticks; 
      
+     /*
+      * cont 8 ticks to get to a 1200Hz rate
+      */
+     if (++txticks == 8) {
+         afsk_txBitClock();
+         txticks = 0;
+     }
+      
      /* 
       * Count 96 ticks to get to a 100Hz rate
       */
-     if (ticks++ == 96) { 
+     if (++ticks == 96) { 
         timer_tick();  
         ticks = 0; 
      }  
@@ -46,16 +56,6 @@ void led1()
     }
 }
  
-void led2()
-{
-    while (1) {
-          set_bit( USBKEY_LED3 );
-          sleep(10);
-          clear_bit( USBKEY_LED3 );
-          sleep(290);
-    }
-}
-
 
 
 
@@ -65,7 +65,9 @@ int main(void) {
       CLKPR = 0; 
       init_kernel(60); 
       DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);
-
+    
+      DDRB |= (1<<DDB0) | (1<<DDB1); // TX Test 
+    
      
       TCCR1B = 0x02          /* Pre-scaler for timer0 */             
              | (1<<WGM02);   /* CTC mode */             
@@ -74,9 +76,10 @@ int main(void) {
      
       sei();
       
-      THREAD_START(led1, 70);    
-      THREAD_START(led2, 70);
-    
+      THREAD_START(led1, 70);  
+      
+      hdlc_init_encoder( afsk_init_encoder() );  
+      hdlc_test_on(0xff);
 
       while(1) 
           { t_yield(); }      /* FIXME: The MCU should be set in idle mode here */

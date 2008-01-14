@@ -42,13 +42,15 @@ static void hdlc_encode_frames();
 
 
    
-void init_hdlc_encoder()
+fqb_t* hdlc_init_encoder(stream_t* os)
 {
-   DEFINE_FBQ(encoder_queue, HDLC_ENCODER_QUEUE_SIZE);
+   outstream = os;
+   DEFINE_FBQ(encoder_queue, HDLC_ENCODER_QUEUE_SIZE); 
    THREAD_START( hdlc_txencoder, DEFAULT_STACK_SIZE);
    
    sem_init(&test, 0);
    THREAD_START( hdlc_testsignal, DEFAULT_STACK_SIZE);
+   return &encoder_queue;
 }		
 
 
@@ -61,6 +63,7 @@ void hdlc_test_on(uint8_t b)
     testbyte = b;
     test_active = true;
     sem_up(&test);
+    afsk_ptt_on();  // FIXME
 }
 
 void hdlc_test_off()
@@ -72,14 +75,15 @@ static void hdlc_testsignal()
     while (true)
     {
         sem_down(&test);
-        while(test_active);
-            putch(outstream, testbyte);  
+        while(test_active) 
+           putch(outstream, testbyte); 
     }
 }
 
 
 
 
+#define afsk_channel_ready(t) true
 
 /*******************************************************************************
  * Transmit a frame.
