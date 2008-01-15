@@ -111,7 +111,7 @@ void _stream_sendByte(Stream *b, const char chr, const bool nonblock)
     
 char _stream_get(Stream* b, const bool nonblock)
 {   
-    if (nonblock && !sem_nb_down(&b->length))
+    if (nonblock && &b->length.cnt==0 )
        return 0;
     sem_down(&b->length);
     
@@ -131,7 +131,7 @@ char _stream_get(Stream* b, const bool nonblock)
  
 void _stream_put(Stream* b, const char c, bool nonblock)
 {  
-    if (nonblock && !sem_nb_down(&b->capacity))
+    if (nonblock && &b->capacity==0)
        return;
 
     sem_down(&b->capacity);
