@@ -119,8 +119,8 @@ char _stream_get(Stream* b, const bool nonblock)
     register uint8_t i = b->index;
     if (++b->index >= b->size) 
         b->index = 0; 
+    leave_critical();    
     sem_up(&b->capacity);
-    leave_critical();
     return b->buf[i];
 }
 
