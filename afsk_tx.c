@@ -12,13 +12,13 @@
 #include "stream.h"
 
 /* Move to config.h or afsk.h */
-#define AFSK_TXTONE_MARK  2200
-#define AFSK_TXTONE_SPACE 1200
+#define AFSK_TXTONE_MARK  1200
+#define AFSK_TXTONE_SPACE 2200
 
 /* Internal config */
-#define _PRESCALER0  64
-#define _TXI_MARK   ((F_CPU / _PRESCALER0 / AFSK_TXTONE_MARK / 2) - 1 )
-#define _TXI_SPACE  ((F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE / 2) - 1 )
+#define _PRESCALER0  8
+#define _TXI_MARK   ((F_CPU / _PRESCALER0 / AFSK_TXTONE_MARK / 2) - 1)
+#define _TXI_SPACE  ((F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE / 2) - 1)
 
 
 bool     transmit; 		
@@ -42,11 +42,11 @@ void afsk_ptt_on()
 {
 //  should notify application level?
 
-    TCCR0B = 0x03           /* Pre-scaler for timer0 = 64 */             
-           | (1<<WGM02);    /* CTC mode */             
-    TIMSK0 = 1<<OCIE0A;     /* Interrupt on compare match */ 
-    OCR0A  = _TXI_SPACE;
-    transmit = TRUE; 
+    TCCR0B = 0x02;           /* Pre-scaler for timer0 = 64 */             
+    TCCR0A = 0x02;           /* CTC mode */             
+    OCR0A  = _TXI_MARK;
+    TIMSK0 = 1<<OCIE0A;      /* Interrupt on compare match */ 
+    transmit = true; 
     set_bit(USBKEY_LED4);
 }
 
@@ -58,7 +58,7 @@ void afsk_ptt_on()
 
 void afsk_ptt_off()
 {
-    transmit = FALSE; 
+    transmit = false; 
     clear_bit(USBKEY_LED4);
 //  should notify application level 
 }
@@ -74,7 +74,6 @@ static uint8_t get_bit()
 {
   static uint8_t bits;
   static uint8_t bit_count = 0;
-  
   if (bit_count == 0) 
   {
     /* Turn off TX if buffer is empty (have reached end of frame) */
@@ -85,7 +84,6 @@ static uint8_t get_bit()
     bits = _stream_get (&afsk_tx_stream, true);
     bit_count = 8;
   } 
-
   uint8_t bit = bits & 0x01;
   bits >>= 1;
   bit_count--;
@@ -106,14 +104,14 @@ void afsk_txBitClock()
 {
     if (!transmit) 
         return;
-        
-    register uint8_t bit = get_bit();
-    if ( !bit ) {
+
+    if ( ! get_bit() ) {
         /* Toggle TX frequency */ 
         enter_critical();
-        OCR0A = ((OCR0A >= _TXI_MARK) ? _TXI_SPACE : _TXI_MARK); 
-        if (TCNT0 > OCR0A)
-            TCNT0 = 0xFF - TCNT0;
+        register newtop = ((OCR0A >= _TXI_MARK) ? _TXI_SPACE : _TXI_MARK); 
+        if (TCNT0 >= newtop)
+            TCNT0 = _TXI_MARK - TCNT0 ;
+        OCR0A = newtop;
         leave_critical();
     }
 }
@@ -128,7 +126,7 @@ void afsk_txBitClock()
  
 ISR(TIMER0_COMPA_vect)
 {   
-     toggle_bit( ADF_SCLK );
+     toggle_bit( USBKEY_LED3 );  
 } 
 
  
