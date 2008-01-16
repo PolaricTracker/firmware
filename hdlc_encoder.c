@@ -63,7 +63,7 @@ void hdlc_test_on(uint8_t b)
     testbyte = b;
     test_active = true;
     sem_up(&test);
-    afsk_ptt_on();  // FIXME
+    afsk_ptt_on();                     // FIXME
 }
 
 void hdlc_test_off()
@@ -76,7 +76,7 @@ static void hdlc_testsignal()
     {
         sem_down(&test);
         while(test_active) 
-           putch(outstream, testbyte); 
+          putch(outstream, testbyte);
     }
 }
 
@@ -192,11 +192,11 @@ static void hdlc_encode_frames()
        if (sequential_ones < 6) 
           { txbyte >>= 1; txbits--; }    
        
-       outbyte <<= 1;
-       outbyte |= bit_zero; 
+       outbyte >>= 1;
+       outbyte |= (bit_zero << 7); 
        outbits++;
        if (!sequential_ones)                       
-          { outbyte <<= 1; outbits++; }  /* Bit stuffing */ 
+          { outbyte >>= 1; outbits++; }  /* Bit stuffing */ 
        
        putch(outstream, outbyte);       
     }
