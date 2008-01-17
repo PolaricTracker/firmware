@@ -5,6 +5,7 @@
 #if !defined __DEF_KERNEL_H__
 #define __DEF_KERNEL_H__
 
+#include <stdbool.h>
 #include <inttypes.h>
 #include <setjmp.h>
 #include <stdbool.h>
@@ -51,5 +52,15 @@ bool sem_nb_down(Semaphore *s);
 
 #endif
 
-#define enter_critical()   uint8_t __sreg = SREG; cli();
-#define leave_critical()   SREG = __sreg; 
+/* This will not work unless __sreg is made a local variable, but then
+   enter_critical and leave_critical always have to be called from the
+   same block and 'SREG = __sreg' changed to 'SREG = __sreg & 0x80'*/
+/* #define enter_critical()   uint8_t __sreg = SREG; cli(); */
+/* #define leave_critical()   SREG = __sreg;  */
+
+/* IMPORTANT: enter_critical/leave_critical must be called in ISRs to
+   get the count correct, if other critical regions are going to be
+   called from within the ISR */
+uint8_t __disable_count;
+#define enter_critical() { cli(); __disable_count++; }
+#define leave_critical() if (--__disable_count == 0) sei ();
