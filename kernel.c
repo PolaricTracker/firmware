@@ -19,10 +19,8 @@ void *stack;
  
 void sem_init(Semaphore* s, uint8_t cnt)
 {
-   enter_critical();
    s->cnt = cnt; 
    s->qfirst = s->qlast = NULL;
-   leave_critical();
 }
 
 
