@@ -8,7 +8,7 @@
 
 /* Type names fontified as such in Emacs */
 #define fbuf_t FBUF
-#define fqb_t FBQ
+#define fbq_t FBQ
 
 
 /*********************************
@@ -49,7 +49,7 @@ char* fbuf_read     (FBUF* b, uint8_t size, char *buf);
 typedef struct _fbq
 {
     uint8_t size, index; 
-    Semaphore length; 
+    Semaphore length, capacity; 
     FBUF* buf; 
 } FBQ;
 
@@ -59,13 +59,14 @@ typedef struct _fbq
    Operations for queue of packet buffer chains
  ************************************************/
  
-void  _fbq_init (FBQ* q, void* buf, const uint8_t size); 
+void  _fbq_init (FBQ* q, FBUF* buf, const uint8_t size); 
 void  fbq_put (FBQ* q, FBUF b); 
 FBUF  fbq_get (FBQ* q);
 
+
 #define fbq_length(q) (&(q)->length.cnt)
 
-#define DEFINE_FBQ(name,size) static char name##_fbqbuf[(size)];     \
+#define DEFINE_FBQ(name,size) static FBUF name##_fbqbuf[(size)];     \
                               static FBQ (name);                   \
                               _fbq_init(&(name), (name##_fbqbuf), (size));
 

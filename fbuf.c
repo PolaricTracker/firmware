@@ -230,16 +230,16 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
     initialise a queue
  *******************************************************/
  
-void _fbq_init(FBQ* q, void* buf, const uint8_t sz)
+void _fbq_init(FBQ* q, FBUF* buf, const uint8_t sz)
 {
     register uint8_t i;
-    enter_critical();
+
     q->size = sz;
-    q->buf = (FBUF*) buf;
+    q->buf = buf;
     sem_init(&q->length, 0);
+    sem_init(&q->capacity, sz);
     for (i=q->index; i< q->index+q->length.cnt; i++)
         fbuf_release(&q->buf[i]);
-    leave_critical();
 }
 
 
@@ -250,12 +250,12 @@ void _fbq_init(FBQ* q, void* buf, const uint8_t sz)
  
 void fbq_put(FBQ* q, FBUF b)
 {
-    enter_critical();
+    sem_down(&q->capacity); 
+
     register uint8_t i = q->index + q->length.cnt; 
     if (i >= q->size)
         i -= q->size; 
     q->buf[i] = b; 
-    leave_critical();
     sem_up(&q->length);
 }
 
@@ -268,18 +268,12 @@ void fbq_put(FBQ* q, FBUF b)
 FBUF fbq_get(FBQ* q)
 {
     sem_down(&q->length); 
-    enter_critical();
+
     register uint8_t i = q->index;
     if (++q->index >= q->size) 
         q->index = 0; 
+
+    sem_up(&q->capacity); 
+
     return q->buf[i];
-    leave_critical();
 }
-
-// FIXME: Prevent unwanted sharing of FBUF/slots?
-// FIXME: Need nonblocking version of get, to be used from ISR's. 
-
-
-
-
-   
