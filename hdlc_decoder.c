@@ -14,7 +14,7 @@ static fqb_t fbin;
 static void hdlc_decode ();
 
 
-fqb_t* hdlc_init_decoder (stream_t *s)
+fbq_t* hdlc_init_decoder (stream_t *s)
 {
   stream = s;
   DEFINE_FBQ(fbin, HDLC_DECODER_QUEUE_SIZE);

@@ -42,7 +42,7 @@ static void hdlc_encode_frames();
 
 
    
-fqb_t* hdlc_init_encoder(stream_t* os)
+fbq_t* hdlc_init_encoder(stream_t* os)
 {
    outstream = os;
    DEFINE_FBQ(encoder_queue, HDLC_ENCODER_QUEUE_SIZE); 
