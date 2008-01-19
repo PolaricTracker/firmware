@@ -62,7 +62,7 @@ void led1()
 
 int main(void) {
       CLKPR = (1<<7);
-      CLKPR = 0; 
+      CLKPR = 1; 
       init_kernel(60); 
       DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);
     
@@ -79,7 +79,7 @@ int main(void) {
       THREAD_START(led1, 70);  
       
       hdlc_init_encoder( afsk_init_encoder() );  
-      hdlc_test_on(0xff);
+      hdlc_test_on(0x7e);
 
       while(1) 
           { t_yield(); }      /* FIXME: The MCU should be set in idle mode here */
