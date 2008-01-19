@@ -59,7 +59,7 @@ typedef struct _fbq
    Operations for queue of packet buffer chains
  ************************************************/
  
-void  _fbq_init (FBQ* q, FBUF* buf, const uint8_t size); 
+void  _fbq_init (FBQ* q, FBUF* buf, const uint16_t size); 
 void  fbq_put (FBQ* q, FBUF b); 
 FBUF  fbq_get (FBQ* q);
 
@@ -67,7 +67,6 @@ FBUF  fbq_get (FBQ* q);
 #define fbq_length(q) (&(q)->length.cnt)
 
 #define DEFINE_FBQ(name,size) static FBUF name##_fbqbuf[(size)];     \
-                              static FBQ (name);                   \
                               _fbq_init(&(name), (name##_fbqbuf), (size));
 
    
