@@ -66,7 +66,12 @@ FBUF  fbq_get (FBQ* q);
 
 #define fbq_length(q) (&(q)->length.cnt)
 
+#define FBQ_INIT(name,size)   static FBUF name##_fbqbuf[(size)];     \               
+                              _fbq_init(&(name), (name##_fbqbuf), (size));
+
+// Deprecated. Use FBQ_INIT instead
 #define DEFINE_FBQ(name,size) static FBUF name##_fbqbuf[(size)];     \
+                              static FBQ name;                   \
                               _fbq_init(&(name), (name##_fbqbuf), (size));
 
    
