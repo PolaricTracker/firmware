@@ -1,6 +1,7 @@
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
 
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -20,7 +21,7 @@ enum {
   ADF7021_MUXOUT_LOGIC_ONE
 };
 
-#define ADF7021_MUXOUT_WAIT()  while (!pin_is_high (ADF7021_MUXOUT)) {}
+#define ADF7021_MUXOUT_WAIT()  while (!pin_is_high (ADF7021_MUXOUT)) t_yield();
 
 
 typedef struct _adf7021_n_register {
@@ -52,7 +53,7 @@ enum {
   ADF7021_CP_CURRENT_2_1
 };
 
-#define ADF7021_VCO_BIAS_CURRENT_mA(mA) (unsigned)((float)(mA)/0.25) // Valid 0.25--3.75mA
+#define ADF7021_VCO_BIAS_CURRENT_mA(mA) (unsigned)((double)(mA)/0.25) // Valid 0.25--3.75mA
 
 enum {
   ADF7021_VCO_ADJUST_NORMAL,
@@ -71,7 +72,7 @@ typedef struct _adf7021_vco_osc_register {
   unsigned r_counter : 3;
   unsigned clockout_divide : 4;
   bool xtal_doubler : 1;
-  bool xtal_osc : 1;
+  bool xosc_enable : 1;
   unsigned xtal_bias : 2;
   unsigned cp_current : 2;
   bool vco_enable : 1;
@@ -144,7 +145,7 @@ typedef struct _adf7021_modulation_register {
 
 typedef struct _adf7021_clock_register {
   unsigned address : 4;
-  unsigned bbos_clk_divide : 3;
+  unsigned bbos_clk_divide : 2;
   unsigned dem_clk_divide : 4;
   unsigned cdr_clk_divide : 8;
   unsigned seq_clk_divide : 8;
@@ -184,7 +185,7 @@ typedef enum {
 typedef struct _adf7021_demod_register {
   unsigned address : 4;
   adf7021_demod_scheme_t scheme : 3;
-  bool product : 1;
+  unsigned product : 1;
   unsigned rx_invert : 2;
   unsigned discriminator_bw : 10;
   unsigned post_demod_bw : 10;
@@ -496,7 +497,8 @@ typedef struct _adf7021_test_mode_register {
 
 
 typedef struct _adf7021_setup {
-  adf7021_n_register_t n;
+  adf7021_n_register_t tx_n;
+  adf7021_n_register_t rx_n;
   adf7021_vco_osc_register_t vco_osc;
   adf7021_modulation_register_t modulation;
   adf7021_clock_register_t clock;
@@ -518,6 +520,7 @@ typedef struct _adf7021_setup {
   /* Non register settings*/
   uint16_t deviation;
   uint16_t data_rate;
+  uint16_t ramp_time;
 } adf7021_setup_t;
 
 
@@ -526,14 +529,16 @@ extern bool adf7021_tx_enabled;
 
 
 void adf7021_setup_init(adf7021_setup_t *setup);
-void adf7021_set_power (adf7021_setup_t *setup, float dBm,  adf7021_pa_ramp_t ramp);
+void adf7021_set_power (adf7021_setup_t *setup, double dBm,  adf7021_pa_ramp_t ramp);
 void adf7021_set_frequency (adf7021_setup_t *setup, uint32_t freq);
 void adf7021_set_data_rate (adf7021_setup_t *setup, uint16_t data_rate);
 void adf7021_set_modulation (adf7021_setup_t *setup, adf7021_modulation_t scheme, uint16_t deviation);
+void adf7021_set_if_filter_fine_calibration (adf7021_setup_t *setup, double tone_cal_time);
+void adf7021_set_post_demod_filter (adf7021_setup_t *setup, uint16_t cutoff);
 void adf7021_set_demodulation (adf7021_setup_t *setup, adf7021_demod_scheme_t scheme);
 
 static inline uint32_t adf7021_pfd_freq (adf7021_setup_t *setup) {
-  return ((ADF7021_XTAL << setup->vco_osc.xtal_doubler) / setup->vco_osc.r_counter);
+  return ((ADF7021_XTAL << (setup->vco_osc.xtal_doubler ? 1 : 0)) / setup->vco_osc.r_counter);
 }
 
 
@@ -545,27 +550,22 @@ void adf7021_power_off ();
 void adf7021_enable_tx ();
 void adf7021_disable_tx ();
 
-/* Enableing tx test will destroy current settings */
-/* void adf7021_enable_tx_test (adf7021_test_mode_t mode, uint32_t pattern) */
-void adf7021_disable_tx_test ();
-
-
 void adf7021_write_register (uint32_t data);
-uint32_t adf7021_read_register (uint32_t readback);
+uint16_t adf7021_read_register (uint32_t readback);
 
-static inline float adf7021_read_battery_voltage () {
-  return (float)(adf7021_read_register (ADF7021_READBACK_VOLTAGE) & 0x7f) / 21.1;
+static inline double adf7021_read_battery_voltage () {
+  return (double)(adf7021_read_register (ADF7021_READBACK_VOLTAGE) & 0x7f) / 21.1;
 }
 
-static inline float adf7021_read_adc_voltage () {
-  return (float)(adf7021_read_register (ADF7021_READBACK_EXT_ADC) & 0x7f) / 42.1;
+static inline double adf7021_read_adc_voltage () {
+  return (double)(adf7021_read_register (ADF7021_READBACK_EXT_ADC) & 0x7f) / 42.1;
 }
 
-static inline float adf7021_read_temperature () {
+static inline double adf7021_read_temperature () {
   return -40.0 + (68.4 - (adf7021_read_register (ADF7021_READBACK_TEMP) & 0x7f)) * 9.32;
 }
 
-float adf7021_read_rssi ();
+double adf7021_read_rssi ();
 
 
 #endif /* __TRANSCEIVER_H__ */
