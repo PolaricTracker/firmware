@@ -76,7 +76,7 @@ static void hdlc_testsignal()
     {
         sem_down(&test);
         while(test_active) 
-          putch(outstream, testbyte);
+           putch(outstream, testbyte);
     }
 }
 
@@ -143,8 +143,10 @@ static void hdlc_encode_frames()
          crc = _crc_ccitt_update (crc, txbyte);
          hdlc_encode_byte(txbyte, false);
      }
-     hdlc_encode_byte(crc, false);
-    
+     fbuf_release(&buffer);
+     hdlc_encode_byte(crc, false);     // Send FCS, LSB first?
+     hdlc_encode_byte(crc>>8, false);  // MSB
+          
      for (i=0; i<TXTAIL; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 }
@@ -162,17 +164,18 @@ static void hdlc_encode_byte(uint8_t txbyte, bool flag)
      for (uint8_t i=1; i<8+1; i++)
      { 
         register uint8_t bit_zero = txbyte & 0x01;
-        if (!flag && bit_zero && sequential_ones++ == 6) {
+        if (!flag && bit_zero && ++sequential_ones == 6) {
             i--;
             sequential_ones = 0;     
         }
         else {
-            txbyte >>= 1;       
-            outbyte |= (bit_zero << 7); 
+          txbyte >>= 1;       
+          outbyte |= (bit_zero << 7); 
         }
      
-        if (outbits++ == 8) {
+        if (++outbits == 8) {
             putch(outstream, outbyte);
+            outbyte = 0;
             outbits = 0;
         }
         else
