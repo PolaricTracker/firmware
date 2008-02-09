@@ -42,10 +42,10 @@ void afsk_ptt_on()
 {
 //  should notify application level?
 
-    TCCR0B = 0x02;           /* Pre-scaler for timer0 = 64 */             
-    TCCR0A = 0x02;           /* CTC mode */             
-    OCR0A  = _TXI_MARK;
-    TIMSK0 = 1<<OCIE0A;      /* Interrupt on compare match */ 
+    TCCR0B = 0x02;             /* Pre-scaler for timer0 = 64 */             
+    TCCR0A = 0x02;             /* CTC mode */             
+    OCR0A  = _TXI_SPACE;
+    TIMSK0 = 1<<OCIE0A;        /* Interrupt on compare match */ 
     transmit = true; 
     set_bit(USBKEY_LED4);
 }
@@ -58,8 +58,10 @@ void afsk_ptt_on()
 
 void afsk_ptt_off()
 {
+    TIMSK0 = 0x00;
     transmit = false; 
-    clear_bit(USBKEY_LED4);
+    clear_bit(USBKEY_LED4);            /* LED / PTT */
+    clear_bit(ADF_TXRXDATA);           /* out signal */
 //  should notify application level 
 }
 
@@ -126,7 +128,7 @@ void afsk_txBitClock()
  
 ISR(TIMER0_COMPA_vect)
 {   
-     toggle_bit( USBKEY_LED3 );  
+     toggle_bit( ADF_TXRXDATA );  
 } 
 
  
