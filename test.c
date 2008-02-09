@@ -22,7 +22,7 @@ ISR(TIMER1_COMPA_vect)
      static uint8_t ticks, txticks; 
      
      /*
-      * cont 8 ticks to get to a 1200Hz rate
+      * count 8 ticks to get to a 1200Hz rate
       */
      if (++txticks == 8) {
          afsk_txBitClock();
@@ -36,7 +36,6 @@ ISR(TIMER1_COMPA_vect)
         timer_tick();  
         ticks = 0; 
      }  
-     
 }
 
 
@@ -56,6 +55,25 @@ void led1()
     }
 }
  
+ 
+
+static fbq_t* outframes;  
+
+void send_testframes()
+{
+     FBUF packet; 
+     while (1) {
+         sleep(300);
+         fbuf_new(&packet);
+         fbuf_putstr_P(&packet, PSTR("123456789012345678901234567890123456789012345678901234567890"));     
+         fbq_put(outframes, packet);
+         sleep(300);
+         fbuf_new(&packet);
+         fbuf_putstr_P(&packet, PSTR("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"));     
+
+         fbq_put(outframes, packet);
+     }
+}
 
 
 
@@ -64,22 +82,23 @@ int main(void) {
       CLKPR = (1<<7);
       CLKPR = 1; 
       init_kernel(60); 
-      DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);
-    
-      DDRB |= (1<<DDB0) | (1<<DDB1); // TX Test 
+      DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
+      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3); // TX Test 
     
      
       TCCR1B = 0x02          /* Pre-scaler for timer0 */             
-             | (1<<WGM02);   /* CTC mode */             
+             | (1<<WGM12);   /* CTC mode */             
       TIMSK1 = 1<<OCIE1A;    /* Interrupt on compare match */
       OCR1A  = (F_CPU / 8 / 9600) - 1;
      
       sei();
       
+      outframes = hdlc_init_encoder( afsk_init_encoder() );  
+//      hdlc_test_on(0xff);
+
       THREAD_START(led1, 70);  
+      THREAD_START(send_testframes, 70);
       
-      hdlc_init_encoder( afsk_init_encoder() );  
-      hdlc_test_on(0x7e);
 
       while(1) 
           { t_yield(); }      /* FIXME: The MCU should be set in idle mode here */
