@@ -230,7 +230,7 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
     initialise a queue
  *******************************************************/
  
-void _fbq_init(FBQ* q, FBUF* buf, const uint8_t sz)
+void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 {
     register uint8_t i;
 
