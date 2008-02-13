@@ -36,7 +36,7 @@ void  fbuf_putstr   (FBUF* b, const char *data);
 void  fbuf_putstr_P (FBUF *b, const char * data);
 char  fbuf_getChar  (FBUF* b);
 char* fbuf_read     (FBUF* b, uint8_t size, char *buf);
-
+void  fbuf_merge    (FBUF* b, FBUF* x, uint8_t pos);
 
 #define fbuf_eof(b) ((b)->rslot == NILPTR)
 

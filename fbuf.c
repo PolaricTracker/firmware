@@ -133,6 +133,46 @@ void fbuf_putChar (FBUF* b, const char c)
 }
 
 
+/*******************************************************
+ * Merge a buffer chain into another buffer chain
+ *******************************************************/
+ 
+void fbuf_merge(FBUF* b, FBUF* x, uint8_t pos)
+{
+    register uint8_t islot = b->head;    
+    while (pos >= FBUF_SLOTSIZE) {
+        pos -= _fbuf_length[islot]; 
+        if (pos > 0) 
+            islot = _fbuf_next[islot];
+    }
+    
+    /* Find last slot in x chain and increment reference count*/
+    register uint8_t xlast = x->head;
+    _fbuf_refcnt[xlast]++;
+    while (_fbuf_next[xlast] != NILPTR) {
+        xlast = _fbuf_next[xlast];
+        _fbuf_refcnt[xlast]++;
+    }
+    
+    
+    /* Split slot if necessary */    
+    if (pos!=0) {
+         register uint8_t newslot = _fbuf_newslot();
+         _fbuf_next[newslot] = _fbuf_next[islot];
+         _fbuf_next[islot] = newslot;
+         for (uint8_t i = 0; i<FBUF_SLOTSIZE-pos; i++)
+             _fbuf_buf[newslot][i] = _fbuf_buf[islot][pos+i];   
+         _fbuf_length[newslot] = FBUF_SLOTSIZE - pos;
+         _fbuf_length[islot] = pos;               
+    }
+    
+    /* Insert x chain after islot */  
+    _fbuf_next[xlast] = _fbuf_next[islot];
+    _fbuf_next[islot] = x->head;
+}
+
+
+
 
 /*******************************************************
     Write a string to a buffer chain
@@ -195,7 +235,6 @@ char fbuf_getChar(FBUF* b)
 }
 
 
-
 /*******************************************************
     Read a string of bytes from buffer chain. 
     (this will add 'size' to the read-position)
@@ -214,7 +253,7 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
        strncpy(buf+r, _fbuf_buf[bb], n);
        r += n; 
        bb = _fbuf_next[bb];
-       if (r >= size)
+       if (r >= size || r >= b->length)
            break;
     }
     return buf; 
