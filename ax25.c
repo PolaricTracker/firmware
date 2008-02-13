@@ -5,8 +5,9 @@
 #define TO_POS    1
 #define FROM_POS  (AXLEN + 1)
 #define DIGI_POS  (AXLEN + AXLEN + 1)
-#define ASCII_0    0                      // FIXME
-#define ASCII_SPC  0
+#define ASCII_0    0x00                 
+#define ASCII_SPC  0x20
+
 #define FLAG_CMD   0x80
 #define FLAG_LAST  0x01
 
@@ -35,21 +36,20 @@ void ax25_encode_frame(FBUF* b, char* from, uint8_t from_ssid,
                                 char* to, uint8_t to_ssid,
                                 uint8_t ctrl,
                                 uint8_t pid,
-                                char* data)
+                                char* data, 
+                                uint8_t data_length)
 {
     fbuf_new(b);
     encode_callsign(b, to, to_ssid, 0);
     encode_callsign(b, from, from_ssid, 0);
     fbuf_putChar(b, ctrl);       
     
-    if ((ctrl & 0x01) == 0  ||       // I frame
-         ctrl == FTYPE_UI)           // UI frame
+    if ((ctrl & 0x01) == 0  ||       // PID and data field, only if I frame
+         ctrl == FTYPE_UI)           // or UI frame
     {
         fbuf_putChar(b, pid);
-        fbuf_putstr(b, data);
-    }
- 
-    
+        fbuf_write(b, data, data_length);
+    }   
 }
 
  
