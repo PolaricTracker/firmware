@@ -41,7 +41,7 @@ void   getstr(Stream*, char* addr, uint8_t, char marker);
 #define putch(s, chr)   _stream_sendByte((s), (chr), false);   
 
 #define _stream_empty(b)   ((b)->length.cnt == 0)
-#define _stram_full(b)    ((b)->capacity.cnt == 0)
+#define _stream_full(b)    ((b)->capacity.cnt == 0)
 
 #define STREAM_INIT(name,size) static char name##_charbuf[(size)];     \
                                _stream_init(&(name), (name##_charbuf), (size));
