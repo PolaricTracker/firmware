@@ -18,9 +18,10 @@
     HEXSIZE = @avr-size --target=$(FORMAT) $(TARGET).hex
     ELFSIZE = @avr-size $(TARGET).elf
 
-# MCU name
+# MCU name and clock speed
 	MCU = at90usb1287
-
+        F_CPU = 8000000
+        
 # Output format. Can be [srec|ihex].
     FORMAT = ihex
 
@@ -28,13 +29,19 @@
 	TARGET = test
 
 # List C source files here.
-	SRC = kernel.c timer.c test.c stream.c uart.c afsk_tx.c hdlc_encoder.c fbuf.c
+	SRC = usb_descriptors.c \
+              MyUSB/Drivers/USB/LowLevel/LowLevel.c MyUSB/Drivers/USB/HighLevel/USBTask.c \
+              MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
+              MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
+              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c \
+              kernel.c timer.c test.c stream.c uart.c \
+              afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c
 
 # List Assembler source files here.
 	ASRC = 
 
 # Compiler flags.
-	CPFLAGS = -O2 --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst)
+	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -O2 --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst)
 
 # Assembler flags.
     ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 

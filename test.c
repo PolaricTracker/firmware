@@ -10,7 +10,9 @@
 #include "afsk.h"
 #include "hdlc.h"
 
-
+extern Semaphore cdc_run;    
+extern Stream cdc_instr; 
+extern Stream cdc_outstr;
 
 /***************************************************************************
  * Main clock interrupt routine. Provides clock ticks for software timers
@@ -59,28 +61,39 @@ void led1()
 
 static fbq_t* outframes;  
 
-void send_testframes()
+      
+void serListener()
 {
-     FBUF packet; 
-     while (1) {
-         sleep(300);
-         fbuf_new(&packet);
-         fbuf_putstr_P(&packet, PSTR("123456789012345678901234567890123456789012345678901234567890"));     
-         fbq_put(outframes, packet);
-         sleep(300);
-         fbuf_new(&packet);
-         fbuf_putstr_P(&packet, PSTR("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"));     
+    static char buf[20];
+    sem_down(&cdc_run);
+    
+    getstr(&cdc_instr, buf, 30, '\r');
+    putstr_P(&cdc_outstr, PSTR("\n\rVelkommen til LA3T AVR test firmware\n\r"));
 
-         fbq_put(outframes, packet);
-     }
+    while (1) {
+         putstr(&cdc_outstr, "cmd: ");     
+         getstr(&cdc_instr, buf, 30, '\r');
+         
+         if (strncmp("test", buf, 3) == 0)
+         {
+             putstr_P(&cdc_outstr, PSTR("Just tteesting"));
+             putstr(&cdc_outstr, "\n\r");
+         }
+         else if (strncmp("tx", buf, 3) == 0)
+         {
+             FBUF packet; 
+             fbuf_new(&packet);
+             fbuf_putstr_P(&packet, PSTR("123456789012345678901234567890123456789012345678901234567890"));     
+             fbq_put(outframes, packet);
+         }
+    }
 }
-
 
 
 
 int main(void) {
       CLKPR = (1<<7);
-      CLKPR = 1; 
+      CLKPR = 0; 
       init_kernel(60); 
       DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
       DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3); // TX Test 
@@ -92,15 +105,17 @@ int main(void) {
       OCR1A  = (F_CPU / 8 / 9600) - 1;
      
       sei();
-      
+  
+      usb_init();         
       outframes = hdlc_init_encoder( afsk_init_encoder() );  
-//      hdlc_test_on(0xff);
+//    hdlc_test_on(0xff);
 
       THREAD_START(led1, 70);  
-      THREAD_START(send_testframes, 70);
+      THREAD_START(serListener, 70);
       
 
       while(1) 
-          { t_yield(); }      /* FIXME: The MCU should be set in idle mode here */
+          { USB_USBTask(); t_yield(); }     
+           /* The MCU should be set in idle mode here, if possible */
   
 }
