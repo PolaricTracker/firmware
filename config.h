@@ -3,8 +3,6 @@
 #define TRUE   (1)
 #define FALSE  (0)
 
-#define F_CPU 4000000UL 
-
 #define	UART_BUF_SIZE	(16)		
 
 
