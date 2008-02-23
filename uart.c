@@ -9,7 +9,7 @@
 #define USART_BAUD 9600
 #define UART_UBRR (F_CPU/(16L*USART_BAUD)-1) 
 
-void kickout(); 
+void uart_kickout(); 
 
 
 /************************************
@@ -30,7 +30,7 @@ void init_UART(const unsigned char e)
    STREAM_INIT( instr, UART_BUF_SIZE );
    STREAM_INIT( outstr, UART_BUF_SIZE );
     
-   outstr.kick = kickout; 
+   outstr.kick = uart_kickout; 
 
    // Set baud rate 
    UBRR1 = UART_UBRR;
@@ -43,7 +43,7 @@ void init_UART(const unsigned char e)
 
 
 
-void kickout()
+void uart_kickout()
 {
    if ((UCSR1A & (1<<UDRE1)))
        UDR1 = _stream_get(&outstr, true);     
@@ -74,6 +74,6 @@ ISR(USART_RX_vect)
 ISR(USART_TX_vect)
 {
    if (! _stream_empty(&outstr) ) 
-       kickout();
+       uart_kickout();
 }
  
