@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+#define SCALED_F_CPU   (F_CPU / 2)
+
 #define TRUE   (1)
 #define FALSE  (0)
 
