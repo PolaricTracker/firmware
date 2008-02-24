@@ -7,9 +7,9 @@
 #include "stream.h"
 
 #define USART_BAUD 9600
-#define UART_UBRR (F_CPU/(16L*USART_BAUD)-1) 
+#define UART_UBRR (SCALED_F_CPU/(16L*USART_BAUD)-1) 
 
-void uart_kickout(); 
+void uart_kickout(void); 
 
 
 /************************************
@@ -43,7 +43,7 @@ void init_UART(const unsigned char e)
 
 
 
-void uart_kickout()
+void uart_kickout(void)
 {
    if ((UCSR1A & (1<<UDRE1)))
        UDR1 = _stream_get(&outstr, true);     
@@ -56,7 +56,7 @@ void uart_kickout()
    byte to the head of the RX buffer.
  *******************************************************************************/
  
-ISR(USART_RX_vect)
+ISR(USART1_RX_vect)
 {
       register char x = UDR1;       
       _stream_put(&instr, x, true);
@@ -71,7 +71,7 @@ ISR(USART_RX_vect)
    byte into the TX register.
  *******************************************************************************/
 
-ISR(USART_TX_vect)
+ISR(USART1_TX_vect)
 {
    if (! _stream_empty(&outstr) ) 
        uart_kickout();
