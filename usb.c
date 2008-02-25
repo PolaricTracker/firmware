@@ -1,4 +1,3 @@
-
 #include "usb.h"
 #include "kernel.h"
 #include "stream.h"
@@ -52,8 +51,7 @@ EVENT_HANDLER(USB_CreateEndpoints)
 
 	/* Double green to indicate USB connected and ready */
 	set_bit(USBKEY_LED3);
-	
-   
+   enter_critical();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_EnableEndpoint();
    USB_INT_Enable( ENDPOINT_INT_OUT );
@@ -61,6 +59,7 @@ EVENT_HANDLER(USB_CreateEndpoints)
    Endpoint_EnableEndpoint();   	 
    USB_INT_Enable( ENDPOINT_INT_IN );   
 	sem_up(&cdc_run);
+   leave_critical();
    
 }
 
@@ -127,13 +126,15 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 
 
 
-void usb_kickout()
+void usb_kickout(void)
 {
+   enter_critical();
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);	      
    while ( !_stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
        Endpoint_Write_Byte( _stream_get(&cdc_outstr, true) );  
 
-   Endpoint_FIFOCON_Clear();    
+   Endpoint_FIFOCON_Clear();
+   leave_critical();    
 }
 
 
@@ -142,7 +143,8 @@ void usb_kickout()
 
 
 ISR(ENDPOINT_PIPE_vect)
-{              
+{   
+   enter_critical();           
 	if (Endpoint_HasEndpointInterrupted(CDC_RX_EPNUM))
 	{
 		Endpoint_ClearEndpointInterrupt(CDC_RX_EPNUM);
@@ -154,18 +156,19 @@ ISR(ENDPOINT_PIPE_vect)
              while (Endpoint_BytesInEndpoint() && !_stream_full(&cdc_instr) )
                  _stream_put(&cdc_instr, Endpoint_Read_Byte(), true);
              Endpoint_FIFOCON_Clear();
-         }
+         }   
       }
    }
    if (Endpoint_HasEndpointInterrupted(CDC_TX_EPNUM))
-	{	 
+	{	
 		Endpoint_ClearEndpointInterrupt(CDC_TX_EPNUM);
 		Endpoint_SelectEndpoint(CDC_TX_EPNUM);	
 		if ( USB_INT_HasOccurred(ENDPOINT_INT_IN) ) {  
            USB_INT_Clear(ENDPOINT_INT_IN);
            usb_kickout(); 
       }
-   }
+   } 
+   leave_critical();  
 }
 
   
