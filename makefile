@@ -41,7 +41,7 @@
 	ASRC = 
 
 # Compiler flags.
-	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -O2 --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst)
+	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -O2 --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
 
 # Assembler flags.
     ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 

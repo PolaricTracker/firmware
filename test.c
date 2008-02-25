@@ -9,6 +9,7 @@
 #include <avr/pgmspace.h>
 #include "afsk.h"
 #include "hdlc.h"
+#include "usb.h"
 
 extern Semaphore cdc_run;    
 extern Stream cdc_instr; 
@@ -47,7 +48,7 @@ ISR(TIMER1_COMPA_vect)
  * Heartbeat LED blink. 
  *************************************************************************/
  
-void led1()
+void led1(void)
 {
     while (1) {
           set_bit( USBKEY_LED1 );
@@ -62,21 +63,21 @@ void led1()
 static fbq_t* outframes;  
 
       
-void serListener()
+void serListener(void)
 {
     static char buf[20];
     sem_down(&cdc_run);
     
     getstr(&cdc_instr, buf, 30, '\r');
     putstr_P(&cdc_outstr, PSTR("\n\rVelkommen til LA3T AVR test firmware\n\r"));
-
     while (1) {
+ 
          putstr(&cdc_outstr, "cmd: ");     
          getstr(&cdc_instr, buf, 30, '\r');
          
          if (strncmp("test", buf, 3) == 0)
          {
-             putstr_P(&cdc_outstr, PSTR("Just tteesting"));
+             putstr_P(&cdc_outstr, PSTR("Just tteesting."));
              putstr(&cdc_outstr, "\n\r");
          }
          else if (strncmp("tx", buf, 3) == 0)
@@ -93,7 +94,7 @@ void serListener()
 
 int main(void) {
       CLKPR = (1<<7);
-      CLKPR = 0; 
+      CLKPR = 1; 
       init_kernel(60); 
       DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
       DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3); // TX Test 
@@ -102,7 +103,7 @@ int main(void) {
       TCCR1B = 0x02          /* Pre-scaler for timer0 */             
              | (1<<WGM12);   /* CTC mode */             
       TIMSK1 = 1<<OCIE1A;    /* Interrupt on compare match */
-      OCR1A  = (F_CPU / 8 / 9600) - 1;
+      OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
      
       sei();
   
