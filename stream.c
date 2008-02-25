@@ -37,7 +37,7 @@ void _stream_init(Stream* b, char* bdata, const uint8_t s)
 void putstr(Stream *b, const char *str)
 {
      while (*str != 0)                       
-        putch(b, *(str++));             
+        putch(b, *(str++));          
 }       
 
 
@@ -71,7 +71,6 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
     register uint8_t i;
     register char x;
     sem_down(&b->mutex); 
-
     for (i=0; i<len-1; i++) 
     {
        x = getch(b);   
@@ -79,7 +78,7 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
            break;
        addr[i] = x;  
     }
-    addr[i] = '\0';
+    addr[i] = '\0';   
     sem_up(&b->mutex);
 }
 
@@ -113,14 +112,14 @@ char _stream_get(Stream* b, const bool nonblock)
 {   
     if (nonblock && &b->length.cnt==0 )
        return 0;
-    sem_down(&b->length);
-    
+  
     enter_critical();
+    sem_down(&b->length);
     register uint8_t i = b->index;
     if (++b->index >= b->size) 
-        b->index = 0; 
-    leave_critical();    
+        b->index = 0;  
     sem_up(&b->capacity);
+    leave_critical();     
     return b->buf[i];
 }
 
@@ -133,16 +132,15 @@ void _stream_put(Stream* b, const char c, bool nonblock)
 {  
     if (nonblock && &b->capacity==0)
        return;
-
+       
+    enter_critical();  
     sem_down(&b->capacity);
-
-    enter_critical();   
     register uint8_t i = b->index + b->length.cnt; 
     if (i >= b->size)
         i -= b->size; 
     b->buf[i] = c; 
-    leave_critical();
     sem_up(&b->length);
+    leave_critical();
 }
    
 
