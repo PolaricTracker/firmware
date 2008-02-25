@@ -22,10 +22,10 @@ typedef struct _timer
  
 
 /* Timer API */
-void timer_set(Timer* t, uint16_t ticks);
-void timer_wait(Timer* t);
-void sleep(uint16_t ticks);
+void timer_set(Timer*, uint16_t);
+void timer_wait(Timer*);
+void sleep(uint16_t);
 
 
 /* Must be called periodically from a timer interrupt handler */
-void timer_tick();
+void timer_tick(void);

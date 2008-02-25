@@ -33,12 +33,12 @@ typedef struct _sem {
 
 /* Kernel API */
 void init_kernel(uint8_t);
-void _t_start(void(*task)() , TCB * tcb, uint8_t stsize); 
-void t_yield();
-void sem_init(Semaphore* s, uint8_t cnt);
-void sem_down(Semaphore* s);
-void sem_up(Semaphore* s);
-bool sem_nb_down(Semaphore *s);
+void _t_start( void(*)(void) , TCB*, uint8_t); 
+void t_yield(void);
+void sem_init(Semaphore*, uint8_t);
+void sem_down(Semaphore*);
+void sem_up(Semaphore*);
+bool sem_nb_down(Semaphore*);
 
 /*
  * Convenience macro for creating and starting threads. 
@@ -61,6 +61,7 @@ bool sem_nb_down(Semaphore *s);
 /* IMPORTANT: enter_critical/leave_critical must be called in ISRs to
    get the count correct, if other critical regions are going to be
    called from within the ISR */
+   
 uint8_t __disable_count;
 #define enter_critical() { cli(); __disable_count++; }
 #define leave_critical() if (--__disable_count == 0) sei ();

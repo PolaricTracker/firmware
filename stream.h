@@ -15,7 +15,7 @@
 typedef struct _Stream
 {
     Semaphore mutex, length, capacity;
-    void (*kick)();
+    void (*kick)(void);
     uint16_t size, index; 
     char* buf; 
 } Stream;
@@ -28,13 +28,13 @@ typedef struct _Stream
 
   
 void   _stream_init(Stream*, char*, const uint8_t);
-char   _stream_get(Stream*, const bool nonblock);
-void   _stream_put(Stream*, const char, const bool nonblock);
-void   _stream_sendByte(Stream *b, const char chr, const bool nonblock);
+char   _stream_get(Stream*, const bool);
+void   _stream_put(Stream*, const char, const bool);
+void   _stream_sendByte(Stream *b, const char, const bool);
 
 void   putstr(Stream*, const char *);
 void   putstr_P(Stream *outbuf, const char *);
-void   getstr(Stream*, char* addr, uint8_t, char marker);
+void   getstr(Stream*, char*, uint8_t, char);
 
 
 #define getch(s)        _stream_get((s), false)   

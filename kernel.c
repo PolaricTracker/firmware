@@ -127,7 +127,7 @@ void t_yield()
  *  as argument. 
  ****************************************************************************/
 
-void _t_start(void (*task)() , TCB * tcb, uint8_t stsize)
+void _t_start(void (*task)(), TCB * tcb, uint8_t stsize)
 {
     if (setjmp(q_head->env) == 0)
     {

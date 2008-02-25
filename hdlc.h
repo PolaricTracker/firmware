@@ -8,10 +8,10 @@
 #define MAX_HDLC_FRAME_SIZE 289 // including FCS field
 
 
-fbq_t* hdlc_init_decoder (stream_t *s);
-fbq_t* hdlc_init_encoder (stream_t *s);
-void hdlc_test_on(uint8_t b);
-void hdlc_test_off();
+fbq_t* hdlc_init_decoder (stream_t *);
+fbq_t* hdlc_init_encoder (stream_t *);
+void hdlc_test_on(uint8_t);
+void hdlc_test_off(void);
 
 
 

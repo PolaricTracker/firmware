@@ -49,4 +49,7 @@
 		} CDC_Line_Codeing_Parity;
 
 
+   /* Function prototypes: */
+      void usb_init(void);
+      void USB_USBTask(void);
 #endif

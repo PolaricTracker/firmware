@@ -36,10 +36,10 @@ enum {TXOFF, TXPRE, TXPACKET, TXPOST} txState;
 #define PERSISTENCE 100
 #define SLOTTIME    50
 
-static void hdlc_txencoder();
-static void hdlc_testsignal();
-static void hdlc_encode_frames();
-static void hdlc_encode_byte(uint8_t txbyte, bool flag);
+static void hdlc_txencoder(void);
+static void hdlc_testsignal(void);
+static void hdlc_encode_frames(void);
+static void hdlc_encode_byte(uint8_t, bool);
 
    
 fbq_t* hdlc_init_encoder(stream_t* os)

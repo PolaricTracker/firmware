@@ -15,16 +15,16 @@ enum {
 
 
 
-stream_t* afsk_init_encoder();
-void afsk_ptt_on();
-void afsk_ptt_off();
-void afsk_txBitClock();
+stream_t* afsk_init_encoder(void);
+void afsk_ptt_on(void);
+void afsk_ptt_off(void);
+void afsk_txBitClock(void);
 
 
-stream_t* afsk_init_decoder ();
-void afsk_enable_decoder ();
-void afsk_disable_decoder ();
-bool afsk_channel_ready (uint16_t timeout); /* ms, µs, something else? */
+stream_t* afsk_init_decoder (void);
+void afsk_enable_decoder (void);
+void afsk_disable_decoder (void);
+bool afsk_channel_ready (uint16_t); /* ms, µs, something else? */
 
 
 extern bool transmit; 
