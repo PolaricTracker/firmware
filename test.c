@@ -14,6 +14,8 @@
 extern Semaphore cdc_run;    
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
+static fbq_t* outframes;  
+
 
 /***************************************************************************
  * Main clock interrupt routine. Provides clock ticks for software timers
@@ -28,6 +30,7 @@ ISR(TIMER1_COMPA_vect)
       * count 8 ticks to get to a 1200Hz rate
       */
      if (++txticks == 8) {
+         toggle_bit(USBKEY_LED2);
          afsk_txBitClock();
          txticks = 0;
      }
@@ -60,30 +63,57 @@ void led1(void)
  
  
 
-static fbq_t* outframes;  
 
       
+/**************************************************************************
+ * Read and process commands on USB interface
+ **************************************************************************/
+       
 void serListener(void)
 {
-    static char buf[20];
+    static char buf[30];
+    
+    /* Wait until USB is plugged in */
     sem_down(&cdc_run);
     
     getstr(&cdc_instr, buf, 30, '\r');
     putstr_P(&cdc_outstr, PSTR("\n\rVelkommen til LA3T AVR test firmware\n\r"));
     while (1) {
- 
          putstr(&cdc_outstr, "cmd: ");     
          getstr(&cdc_instr, buf, 30, '\r');
          
-         if (strncmp("test", buf, 3) == 0)
+         /***************************************
+          * teston <byte> : Turn on test signal
+          ***************************************/
+         if (strncmp("teston", buf, 6) == 0)
          {
-             putstr_P(&cdc_outstr, PSTR("Just tteesting."));
-             putstr(&cdc_outstr, "\n\r");
+             int ch = 0;
+             hdlc_test_off();
+             sleep(10);
+             sscanf(buf+6, " %i", &ch);
+             hdlc_test_on((uint8_t) ch);
+             sprintf_P(buf, PSTR("Test signal on: 0x%X\n\r"), ch);
+             putstr(&cdc_outstr, buf );  
+  
          }
+         
+         /**********************************
+          * testoff : Turn off test signal
+          **********************************/
+         else if (strncmp("testoff", buf, 7) == 0)
+         {
+             putstr_P(&cdc_outstr, PSTR("Test signal off\n\r"));  
+             hdlc_test_off();  
+         }
+         
+         /***************************
+          * tx : Send test packet
+          ***************************/
          else if (strncmp("tx", buf, 3) == 0)
          {
              FBUF packet; 
              fbuf_new(&packet);
+             putstr_P(&cdc_outstr, PSTR("Sending 60 bytes test packet: 1234....\n\r"));    
              fbuf_putstr_P(&packet, PSTR("123456789012345678901234567890123456789012345678901234567890"));     
              fbq_put(outframes, packet);
          }
@@ -92,12 +122,13 @@ void serListener(void)
 
 
 
+
 int main(void) {
       CLKPR = (1<<7);
       CLKPR = 1; 
       init_kernel(60); 
       DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
-      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3); // TX Test 
+      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3) | (1<<DDB7); // TX Test 
     
      
       TCCR1B = 0x02          /* Pre-scaler for timer0 */             
@@ -109,7 +140,6 @@ int main(void) {
   
       usb_init();         
       outframes = hdlc_init_encoder( afsk_init_encoder() );  
-//    hdlc_test_on(0xff);
 
       THREAD_START(led1, 70);  
       THREAD_START(serListener, 70);
