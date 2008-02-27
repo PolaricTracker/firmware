@@ -63,7 +63,6 @@ void hdlc_test_on(uint8_t b)
     testbyte = b;
     test_active = true;
     sem_up(&test);
-    afsk_ptt_on();                     // FIXME
 }
 
 void hdlc_test_off()
@@ -114,8 +113,6 @@ static void hdlc_txencoder()
         else
             break;
       }
-  
-      afsk_ptt_on();                      // FIXME
       hdlc_encode_frames();
    }
 }
