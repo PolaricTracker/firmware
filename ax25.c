@@ -5,44 +5,42 @@
 #define TO_POS    1
 #define FROM_POS  (AXLEN + 1)
 #define DIGI_POS  (AXLEN + AXLEN + 1)
-#define ASCII_0    0x00                 
-#define ASCII_SPC  0x20
 
-#define FLAG_CMD   0x80
-#define FLAG_LAST  0x01
-
-#define FTYPE_I      0x00
-#define FTYPE_RR     0x01
-#define FTYPE_RNR    0x05
-#define FTYPE_REJ    0x09
-#define FTYPE_SABM   0x2F
-#define FTYPE_SABME  0x6F
-#define FTYPE_DISC   0x43
-#define FTYPE_DM     0x0F
-#define FTYPE_UA     0x63
-#define FTYPE_FRMR   0x87
-#define FTYPE_UI     0x03
-
-static void encode_callsign(FBUF *b, char* c, uint8_t ssid, uint8_t flags);
+static void encode_addr(FBUF *, char*, uint8_t, uint8_t);
 
 
 
-
+addr_t addr(char* c, uint8_t s) 
+   { addr_t x; x.callsign=c; x.ssid=s; return x;} 
+   
+   
+   
 /**********************************************************************
  * Encode a new AX25 frame
  **********************************************************************/
  
-void ax25_encode_frame(FBUF* b, char* from, uint8_t from_ssid, 
-                                char* to, uint8_t to_ssid,
+void ax25_encode_frame(FBUF* b, addr_t from, 
+                                addr_t to,
+                                addr_t digis[],
                                 uint8_t ctrl,
                                 uint8_t pid,
                                 char* data, 
                                 uint8_t data_length)
 {
+    register uint8_t i;
     fbuf_new(b);
-    encode_callsign(b, to, to_ssid, 0);
-    encode_callsign(b, from, from_ssid, 0);
+    encode_addr(b, to.callsign, to.ssid, 0);
+    encode_addr(b, from.callsign, from.ssid, 
+                  (digis[0].callsign == NULL ? FLAG_LAST : 0));
     fbuf_putChar(b, ctrl);       
+    
+    for (i=0; i<7; i++)
+    {
+        if (digis[i].callsign == NULL)
+            break;
+        encode_addr(b, digis[i].callsign, digis[i].ssid, 
+                      (digis[i+1].callsign == NULL ? FLAG_LAST : 0));
+    }
     
     if ((ctrl & 0x01) == 0  ||       // PID and data field, only if I frame
          ctrl == FTYPE_UI)           // or UI frame
@@ -59,7 +57,7 @@ void ax25_encode_frame(FBUF* b, char* from, uint8_t from_ssid,
  * Encode AX25 address field (callsign)
  ************************************************************************/
  
-static void encode_callsign(FBUF *b, char* c, uint8_t ssid, uint8_t flags)
+static void encode_addr(FBUF *b, char* c, uint8_t ssid, uint8_t flags)
 {
      register uint8_t i;
      for (i=0; i<6; i++) 
@@ -75,11 +73,5 @@ static void encode_callsign(FBUF *b, char* c, uint8_t ssid, uint8_t flags)
 }
       
       
-
-
-
-void ax25_addDigi (FBUF *f, const char* c)
-{
-}
 
 
