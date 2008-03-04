@@ -10,6 +10,8 @@
 #include "afsk.h"
 #include "hdlc.h"
 #include "usb.h"
+#include "ax25.h"
+
 
 extern Semaphore cdc_run;    
 extern Stream cdc_instr; 
@@ -30,7 +32,6 @@ ISR(TIMER1_COMPA_vect)
       * count 8 ticks to get to a 1200Hz rate
       */
      if (++txticks == 8) {
-         toggle_bit(USBKEY_LED2);
          afsk_txBitClock();
          txticks = 0;
      }
@@ -115,6 +116,20 @@ void serListener(void)
              fbuf_new(&packet);
              putstr_P(&cdc_outstr, PSTR("Sending 60 bytes test packet: 1234....\n\r"));    
              fbuf_putstr_P(&packet, PSTR("123456789012345678901234567890123456789012345678901234567890"));     
+             fbq_put(outframes, packet);
+         }
+         
+         /*********************************
+          * tx2 : Send AX25 test packet
+          *********************************/
+         else if (strncmp("tx2", buf, 3) == 0)
+         {
+             FBUF packet;    
+             addr_t digis[] = {{NULL,0}};         
+             ax25_encode_frame(&packet, addr("LA7ECA",0), addr("TEST",0), digis, 
+                                        FTYPE_UI, PID_NO_L3, "----------------------------------------------------------------------------------------------------------", 100);
+                                        
+             putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
              fbq_put(outframes, packet);
          }
     }
