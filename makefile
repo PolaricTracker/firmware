@@ -38,7 +38,7 @@
               afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c
 
 # List Assembler source files here.
-	ASRC = 
+	ASRC = setjmp/setjmp.s
 
 # Compiler flags.
 	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -O2 --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
