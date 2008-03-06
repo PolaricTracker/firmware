@@ -125,7 +125,7 @@ static void hdlc_txencoder()
  * It is responsible for computing checksum, bit stuffing and for adding 
  * flags at start and end of frames.
  *******************************************************************************/
- 
+extern Stream cdc_outstr;
 static void hdlc_encode_frames()
 {
      uint16_t crc = 0;
@@ -136,13 +136,14 @@ static void hdlc_encode_frames()
 
      while(!BUFFER_EMPTY)
      {
-         txbyte = fbuf_getChar(&buffer);
+         txbyte = fbuf_getChar(&buffer);        
          crc = _crc_ccitt_update (crc, txbyte);
          hdlc_encode_byte(txbyte, false);
      }
      fbuf_release(&buffer);
-     hdlc_encode_byte(crc, false);     // Send FCS, LSB first?
      hdlc_encode_byte(crc>>8, false);  // MSB
+     hdlc_encode_byte(crc, false);     // Send FCS, LSB first?
+
           
      for (i=0; i<TXTAIL; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
@@ -166,7 +167,9 @@ static void hdlc_encode_byte(uint8_t txbyte, bool flag)
             sequential_ones = 0;     
         }
         else {
-          txbyte >>= 1;       
+          if (!bit_zero)
+             sequential_ones = 0;
+          txbyte >>= 1;     
           outbyte |= (bit_zero << 7); 
         }
      
@@ -176,7 +179,7 @@ static void hdlc_encode_byte(uint8_t txbyte, bool flag)
             outbits = 0;
         }
         else
-            outbyte >>= 1;    
+            outbyte >>= 1;      
      }   
 }
 
