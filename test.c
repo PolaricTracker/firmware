@@ -125,11 +125,11 @@ void serListener(void)
          else if (strncmp("tx2", buf, 3) == 0)
          {
              FBUF packet;    
-             addr_t digis[] = {{NULL,0}};         
-             ax25_encode_frame(&packet, addr("LA7ECA",0), addr("TEST",0), digis, 
-                                        FTYPE_UI, PID_NO_L3, "----------------------------------------------------------------------------------------------------------", 100);
+             addr_t digis[] = {{"LD9TS", 0},{"WIDE0",0},{"TEST",0},{"HACK",0},{"CRACK",0}, {NULL,0}};         
+             ax25_encode_header(&packet, addr("LA7ECA",0), addr("TEST",0), digis, FTYPE_UI, PID_NO_L3);
+             fbuf_putstr_P(&packet, PSTR("aaaabbbbcccc"));
                                         
-             putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
+ //            putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
              fbq_put(outframes, packet);
          }
     }

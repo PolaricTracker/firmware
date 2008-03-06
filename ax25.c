@@ -19,21 +19,19 @@ addr_t addr(char* c, uint8_t s)
  * Encode a new AX25 frame
  **********************************************************************/
  
-void ax25_encode_frame(FBUF* b, addr_t from, 
+void ax25_encode_header(FBUF* b, addr_t from, 
                                 addr_t to,
                                 addr_t digis[],
                                 uint8_t ctrl,
-                                uint8_t pid,
-                                char* data, 
-                                uint8_t data_length)
+                                uint8_t pid)
 {
     register uint8_t i;
     fbuf_new(b);
     encode_addr(b, to.callsign, to.ssid, 0);
     encode_addr(b, from.callsign, from.ssid, 
-                  (digis[0].callsign == NULL ? FLAG_LAST : 0));
-    fbuf_putChar(b, ctrl);       
+                  (digis[0].callsign == NULL ? FLAG_LAST : 0));       
     
+    /* Digipeater field */
     for (i=0; i<7; i++)
     {
         if (digis[i].callsign == NULL)
@@ -42,12 +40,10 @@ void ax25_encode_frame(FBUF* b, addr_t from,
                       (digis[i+1].callsign == NULL ? FLAG_LAST : 0));
     }
     
-    if ((ctrl & 0x01) == 0  ||       // PID and data field, only if I frame
+    fbuf_putChar(b, ctrl);           // CTRL field
+    if ((ctrl & 0x01) == 0  ||       // PID (and data) field, only if I frame
          ctrl == FTYPE_UI)           // or UI frame
-    {
-        fbuf_putChar(b, pid);
-        fbuf_write(b, data, data_length);
-    }   
+       fbuf_putChar(b, pid);        
 }
 
  
