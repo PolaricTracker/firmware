@@ -128,7 +128,7 @@ static void hdlc_txencoder()
 extern Stream cdc_outstr;
 static void hdlc_encode_frames()
 {
-     uint16_t crc = 0;
+     uint16_t crc = 0xffff;
      uint8_t txbyte, i;
    
      for (i=0; i<TXDELAY; i++)
@@ -141,45 +141,39 @@ static void hdlc_encode_frames()
          hdlc_encode_byte(txbyte, false);
      }
      fbuf_release(&buffer);
-     hdlc_encode_byte(crc>>8, false);  // MSB
-     hdlc_encode_byte(crc, false);     // Send FCS, LSB first?
-
-          
+     hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
+     hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
+       
      for (i=0; i<TXTAIL; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 }
 
 
 
-
+/*******************************************************************************
+ * HDLC encode and transmit a single byte. Includes bit stuffing if not flag
+ *******************************************************************************/
 
 static void hdlc_encode_byte(uint8_t txbyte, bool flag)
 {    
      static uint8_t outbits = 0;
-     static uint8_t sequential_ones = 0;
      static uint8_t outbyte;
      
      for (uint8_t i=1; i<8+1; i++)
      { 
-        register uint8_t bit_zero = txbyte & 0x01;
-        if (!flag && bit_zero && ++sequential_ones == 6) {
+        if (!flag && (outbyte & 0x7c) == 0x7c) 
             i--;
-            sequential_ones = 0;     
-        }
+
         else {
-          if (!bit_zero)
-             sequential_ones = 0;
-          txbyte >>= 1;     
-          outbyte |= (bit_zero << 7); 
+            outbyte |= ((txbyte & 0x01) << 7);
+            txbyte >>= 1;  
         }
      
         if (++outbits == 8) {
             putch(outstream, outbyte);
-            outbyte = 0;
             outbits = 0;
         }
-        else
-            outbyte >>= 1;      
+        outbyte >>= 1;      
      }   
 }
 
