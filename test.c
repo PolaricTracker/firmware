@@ -107,29 +107,17 @@ void serListener(void)
              hdlc_test_off();  
          }
          
-         /***************************
-          * tx : Send test packet
-          ***************************/
+         /*********************************
+          * tx : Send AX25 test packet
+          *********************************/
          else if (strncmp("tx", buf, 3) == 0)
          {
-             FBUF packet; 
-             fbuf_new(&packet);
-             putstr_P(&cdc_outstr, PSTR("Sending 60 bytes test packet: 1234....\n\r"));    
-             fbuf_putstr_P(&packet, PSTR("123456789012345678901234567890123456789012345678901234567890"));     
-             fbq_put(outframes, packet);
-         }
-         
-         /*********************************
-          * tx2 : Send AX25 test packet
-          *********************************/
-         else if (strncmp("tx2", buf, 3) == 0)
-         {
              FBUF packet;    
-             addr_t digis[] = {{"LD9TS", 0},{"WIDE0",0},{"TEST",0},{"HACK",0},{"CRACK",0}, {NULL,0}};         
+             addr_t digis[] = {{"LD9TS", 0},{NULL,0}};         
              ax25_encode_header(&packet, addr("LA7ECA",0), addr("TEST",0), digis, FTYPE_UI, PID_NO_L3);
-             fbuf_putstr_P(&packet, PSTR("aaaabbbbcccc"));
+             fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));
                                         
- //            putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
+             putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
              fbq_put(outframes, packet);
          }
     }
