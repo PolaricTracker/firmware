@@ -91,7 +91,7 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
  
 
 /***************************************************************************
- * Send a character (for driver implementations)
+ * Send a character 
  * Puts character into buffer and kicks driver if necessary
  ***************************************************************************/
  
@@ -105,7 +105,7 @@ void _stream_sendByte(Stream *b, const char chr, const bool nonblock)
 
  
 /***************************************************************************
- * Read a character from stream buffer (for driver implementations)
+ * Read a character from stream buffer 
  ***************************************************************************/
     
 char _stream_get(Stream* b, const bool nonblock)
@@ -125,10 +125,10 @@ char _stream_get(Stream* b, const bool nonblock)
 
 
 /***************************************************************************
- * Write a character to stream buffer (for driver implementations)
+ * Write a character to stream buffer 
  ***************************************************************************/
  
-void _stream_put(Stream* b, const char c, bool nonblock)
+void _stream_put(Stream* b, const char c, const bool nonblock)
 {  
     if (nonblock && &b->capacity==0)
        return;
