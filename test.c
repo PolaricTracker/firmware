@@ -72,12 +72,13 @@ void led1(void)
        
 void serListener(void)
 {
-    static char buf[30];
+    static char buf[40];
     
     /* Wait until USB is plugged in */
     sem_down(&cdc_run);
     
-    getstr(&cdc_instr, buf, 30, '\r');
+    /* And wait until some character has been typed */
+    getch(&cdc_instr);
     putstr_P(&cdc_outstr, PSTR("\n\rVelkommen til LA3T AVR test firmware\n\r"));
     while (1) {
          putstr(&cdc_outstr, "cmd: ");     
@@ -93,7 +94,7 @@ void serListener(void)
              sleep(10);
              sscanf(buf+6, " %i", &ch);
              hdlc_test_on((uint8_t) ch);
-             sprintf_P(buf, PSTR("Test signal on: 0x%X\n\r"), ch);
+             sprintf_P(buf, PSTR("Test signal on: 0x%X\n\r\0"), ch);
              putstr(&cdc_outstr, buf );  
   
          }
@@ -113,8 +114,11 @@ void serListener(void)
          else if (strncmp("tx", buf, 3) == 0)
          {
              FBUF packet;    
-             addr_t digis[] = {{"LD9TS", 0},{NULL,0}};         
-             ax25_encode_header(&packet, addr("LA7ECA",0), addr("TEST",0), digis, FTYPE_UI, PID_NO_L3);
+             addr_t from = {"LA7ECA",0};
+             addr_t to   = {"TEST", 0};
+             addr_t digis[] = {{"LD9TS", 0}}; 
+                     
+             ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
              fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));
                                         
              putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
