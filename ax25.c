@@ -1,5 +1,5 @@
 #include "ax25.h"
-
+#include <string.h>
 
 #define AXLEN		7 
 #define TO_POS    1
@@ -10,8 +10,12 @@ static void encode_addr(FBUF *, char*, uint8_t, uint8_t);
 
 
 
-addr_t addr(char* c, uint8_t s) 
-   { addr_t x; x.callsign=c; x.ssid=s; return x;} 
+addr_t* addr(addr_t* x, char* c, uint8_t s) 
+{ 
+   strncpy(x->callsign, c, 7); 
+   x->ssid=s; 
+   return x;
+} 
    
    
    
@@ -19,26 +23,23 @@ addr_t addr(char* c, uint8_t s)
  * Encode a new AX25 frame
  **********************************************************************/
  
-void ax25_encode_header(FBUF* b, addr_t from, 
-                                addr_t to,
-                                addr_t digis[],
-                                uint8_t ctrl,
-                                uint8_t pid)
+void ax25_encode_header(FBUF* b, addr_t* from, 
+                                 addr_t* to,
+                                 addr_t digis[],
+                                 uint8_t ndigis,
+                                 uint8_t ctrl,
+                                 uint8_t pid)
 {
     register uint8_t i;
+    if (ndigis > 7) ndigis = 0;
     fbuf_new(b);
-    encode_addr(b, to.callsign, to.ssid, 0);
-    encode_addr(b, from.callsign, from.ssid, 
-                  (digis[0].callsign == NULL ? FLAG_LAST : 0));       
+    encode_addr(b, to->callsign, to->ssid, 0);
+    encode_addr(b, from->callsign, from->ssid, (ndigis == 0 ? FLAG_LAST : 0));       
     
     /* Digipeater field */
-    for (i=0; i<7; i++)
-    {
-        if (digis[i].callsign == NULL)
-            break;
-        encode_addr(b, digis[i].callsign, digis[i].ssid, 
-                      (digis[i+1].callsign == NULL ? FLAG_LAST : 0));
-    }
+    for (i=0; i<ndigis; i++)
+        encode_addr(b, digis[i].callsign, digis[i].ssid, (i+1==ndigis ? FLAG_LAST : 0));
+
     
     fbuf_putChar(b, ctrl);           // CTRL field
     if ((ctrl & 0x01) == 0  ||       // PID (and data) field, only if I frame

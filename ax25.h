@@ -25,16 +25,17 @@
 
 #define PID_NO_L3     0xf0
 
+
 typedef struct {
-    char *callsign;
+    char callsign[7];
     uint8_t ssid;
 } addr_t;
 
 
 
-addr_t addr(char* c, uint8_t s);
+addr_t* addr(addr_t*, char*, uint8_t); 
 
-void ax25_encode_frame( FBUF*, addr_t, addr_t, addr_t[], 
-                        uint8_t, uint8_t, char*, uint8_t );
+void ax25_encode_header( FBUF*, addr_t*, addr_t*, addr_t[], uint8_t, 
+                        uint8_t, uint8_t );
 
 #endif /* __AX25_H__ */
