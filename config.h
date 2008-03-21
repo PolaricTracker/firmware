@@ -1,73 +1,72 @@
-#include <stdint.h>
+#if !defined __CONFIG_H__
+#define __CONFIG_H__
 
-#define SCALED_F_CPU   (F_CPU / 2)
+#include <avr/eeprom.h>
+#include <avr/pgmspace.h>
+#include "ax25.h"
 
-#define TRUE   (1)
-#define FALSE  (0)
+#if defined __CONFIG_C__
 
-#define	UART_BUF_SIZE	(16)		
+#define DEFINE_PARAM(x, t) \
+     EEMEM t PARAM_##x;       \
+     EEMEM uint8_t PARAM_##x##_CRC
+     
+#define DEFAULT_PARAM(x,t) PROGMEM t PARAM_DEFAULT_##x   
 
+#else
 
-#define FBUF_SLOTS    32
-#define FBUF_SLOTSIZE 16
-
-#define DEFAULT_STACK_SIZE 70
-
-#define AFSK_ENCODER_BUFFER_SIZE 128
-#define AFSK_DECODER_BUFFER_SIZE 128
-#define HDLC_DECODER_QUEUE_SIZE  4
-#define HDLC_ENCODER_QUEUE_SIZE  4
-
-#define DCD_LED_PORT    PORTD
-#define DCD_LED_BIT     PD5
-#define ADF_SCLK_PORT   PORTC
-#define ADF_SCLK_BIT    PC4
-#define ADF_SDATA_PORT  PORTC
-#define ADF_SDATA_BIT   PC2
-#define ADF_SREAD_PORT  PORTC
-#define ADF_SREAD_BIT   PC3
-
-#define ADF_TXRXDATA_PORT PORTB
-#define ADF_TXRXDATA_BIT  PB3
+#define DEFINE_PARAM(x, t); \
+     extern EEMEM t PARAM_##x; \
+     extern PROGMEM t PARAM_DEFAULT_##x 
+     
+#endif
 
 
-/*
- * These are specific to the USB KEY.  
- */
-#define USBKEY_LED1_PORT   PORTD
-#define USBKEY_LED1_BIT    PD4
-#define USBKEY_LED2_PORT   PORTD
-#define USBKEY_LED2_BIT    PD5
-#define USBKEY_LED3_PORT   PORTD
-#define USBKEY_LED3_BIT    PD6
-#define USBKEY_LED4_PORT   PORTD
-#define USBKEY_LED4_BIT    PD7
-
-#define USBKEY_JS_LEFT_PORT  PORTB
-#define USBKEY_JS_LEFT_BIT   PB6
-#define USBKEY_JS_RIGHT_PORT PORTE
-#define USBKEY_JS_RIGHT_BIT  PE4
-#define USBKEY_JS_UP_PORT    PORTB
-#define USBKEY_JS_UP_BIT     PB7
-#define USBKEY_JS_DOWN_PORT  PORTE
-#define USBKEY_JS_DOWN_BIT   PE5
-#define USBKEY_JS_PUSH_PORT  PORTB
-#define USBKEY_JS_PUSH_BIT   PB5
+typedef addr_t __digilist_t[7];  
 
 
-/*
- * Bit fiddling macros
- */
-#define bit_is_set(x)  (x##_PORT) & (x##_BIT)
-#define set_bit(x)     (x##_PORT) |= (1  << (x##_BIT))
-#define clear_bit(x)   (x##_PORT)  &= ~(1 << x##_BIT)
-#define toggle_bit(x)  (x##_PORT) ^= (1 << x##_BIT)
+/***************************************************************
+ * Define parameters:
+ *            Name     Type     
+ ***************************************************************/ 
+           
+DEFINE_PARAM( MYCALL,  addr_t       );
+DEFINE_PARAM( DEST,    addr_t       );
+DEFINE_PARAM( DIGIS,   __digilist_t );
+DEFINE_PARAM( NDIGIS,  uint8_t      );
+DEFINE_PARAM( TXDELAY, uint8_t      );
+DEFINE_PARAM( TXTAIL,  uint8_t      );
 
-#define set_sfr_bit(sfr,bit) (sfr)|=(1<<(bit))
-#define clear_sfr_bit(sfr,bit) (sfr)&=~(1<<(bit))
-#define toggle_sfr_bit(sfr,bit) (sfr)^=(1<<(bit));
 
-/*
- * other
- */
-#define nop()  asm volatile("nop");
+#if defined __CONFIG_C__
+/***************************************************************
+ * Default values for parameters to be stored in program
+ * memory. This MUST be done for each parameter defined above
+ * or the linker will complain.
+ ***************************************************************/
+
+DEFAULT_PARAM(MYCALL, addr_t)       = {"NOCALL",0};
+DEFAULT_PARAM(DEST, addr_t)         = {"NONE", 0};
+DEFAULT_PARAM(DIGIS, __digilist_t)  = {};
+DEFAULT_PARAM( NDIGIS,  uint8_t)    = 0;
+DEFAULT_PARAM( TXDELAY, uint8_t)    = 20;
+DEFAULT_PARAM( TXTAIL,  uint8_t)    = 10;
+
+#endif
+ 
+
+/***************************************************************
+ * Functions/macros for accessing parameters
+ ***************************************************************/
+
+#define GET_PARAM(x, val)      get_param(&PARAM_##x, (val), sizeof(PARAM_##x),(PGM_P) &PARAM_DEFAULT_##x)
+#define SET_PARAM(x, val)      set_param(&PARAM_##x, (val), sizeof(PARAM_##x))
+#define GET_BYTE_PARAM(x)      get_byte_param(&PARAM_##x,(PGM_P) &PARAM_DEFAULT_##x)
+#define SET_BYTE_PARAM(x, val) set_byte_param(&PARAM_##x, ((uint8_t) val))
+
+void    set_param(void*, const void*, uint8_t);
+int     get_param(const void*, void*, uint8_t, PGM_P);
+void    set_byte_param(uint8_t*, uint8_t);
+uint8_t get_byte_param(const uint8_t*, PGM_P);
+
+#endif /* __CONFIG_H__ */
