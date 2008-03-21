@@ -11,7 +11,7 @@
 #include "hdlc.h"
 #include "usb.h"
 #include "ax25.h"
-
+#include "parameters.h"
 
 extern Semaphore cdc_run;    
 extern Stream cdc_instr; 
@@ -111,11 +111,13 @@ void serListener(void)
          /*********************************
           * tx : Send AX25 test packet
           *********************************/
-         else if (strncmp("tx", buf, 3) == 0)
+         else if (strncmp("tx", buf, 2) == 0)
          {
              FBUF packet;    
-             addr_t from = {"LA7ECA",0};
-             addr_t to   = {"TEST", 0};
+             addr_t from, to; 
+             GET_PARAM(MYCALL, &from);
+             GET_PARAM(DEST, &to);
+             
              addr_t digis[] = {{"LD9TS", 0}}; 
                      
              ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
@@ -123,6 +125,18 @@ void serListener(void)
                                         
              putstr_P(&cdc_outstr, PSTR("Sending (AX25 UI) test packet....\n\r"));        
              fbq_put(outframes, packet);
+         }
+         else if (strncmp("set", buf, 3) == 0)
+         {
+             int x = 0;
+             sscanf(buf+3, " %d", &x);
+             SET_BYTE_PARAM(TXDELAY, x); 
+         }
+         else if (strncmp("get", buf, 3) == 0)
+         {
+             uint8_t x = GET_BYTE_PARAM(TXDELAY);
+             sprintf_P(buf, PSTR("TXDELAY is: %d\n\r\0"), x);
+             putstr(&cdc_outstr, buf);
          }
     }
 }
