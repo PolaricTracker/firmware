@@ -33,7 +33,7 @@
               MyUSB/Drivers/USB/LowLevel/LowLevel.c MyUSB/Drivers/USB/HighLevel/USBTask.c \
               MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
               MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
-              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c parameters.c \
+              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c config.c \
               kernel.c timer.c test.c stream.c uart.c  \
               afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c 
 
