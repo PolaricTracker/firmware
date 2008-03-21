@@ -2,7 +2,7 @@
  * AFSK Modulator/Transmitter
  */
  
-#include "config.h"
+#include "defines.h"
 #include <avr/io.h>
 #include <inttypes.h>
 #include <stdlib.h>
@@ -114,12 +114,12 @@ void afsk_txBitClock(void)
     }       
     if ( ! get_bit() ) {
         /* Toggle TX frequency */ 
-        enter_critical();
+//        enter_critical();
         register uint8_t newtop = ((OCR0A >= _TXI_MARK) ? _TXI_SPACE : _TXI_MARK); 
         if (TCNT0 >= newtop)
             TCNT0 = _TXI_MARK - TCNT0 ;
         OCR0A = newtop;
-        leave_critical();
+//        leave_critical();
     }
 }
 

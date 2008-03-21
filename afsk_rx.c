@@ -8,7 +8,7 @@
 #include <avr/interrupt.h>
 #include "kernel.h"
 #include "afsk.h"
-#include "config.h"
+#include "defines.h"
 #include "stream.h"
 
 
@@ -171,7 +171,7 @@ ISR(TIMER2_COMPA_vect)
   static int8_t prev_symbol;
   static uint8_t bit_count = 0;
   static uint8_t octet;
-
+  enter_critical();
   if (valid_symbol) {
     set_bit (DCD_LED);
 

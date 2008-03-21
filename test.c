@@ -1,4 +1,4 @@
-#include "config.h"
+#include "defines.h"
 #include <avr/io.h>
 #include <inttypes.h>
 #include "kernel.h"
@@ -11,7 +11,7 @@
 #include "hdlc.h"
 #include "usb.h"
 #include "ax25.h"
-#include "parameters.h"
+#include "config.h"
 
 extern Semaphore cdc_run;    
 extern Stream cdc_instr; 

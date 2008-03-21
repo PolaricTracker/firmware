@@ -1,7 +1,7 @@
 #include "usb.h"
 #include "kernel.h"
 #include "stream.h"
-#include "config.h"
+#include "defines.h"
 
 #define CDC_BUF_SIZE 16
 

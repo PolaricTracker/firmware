@@ -1,5 +1,5 @@
 
-#include "config.h"
+#include "defines.h"
 #include <avr/io.h>
 #include <avr/signal.h>
 

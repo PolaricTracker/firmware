@@ -4,7 +4,7 @@
  
 #include "kernel.h"
 #include <avr/interrupt.h>
-#include "config.h"
+#include "defines.h"
 
 static TCB root_task;
 static TCB * q_head, * q_end; /* Ready queue */

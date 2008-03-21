@@ -2,7 +2,7 @@
  * Buffers for frames of data.
  */ 
  
-#include "config.h"
+#include "defines.h"
 #include "fbuf.h"
 #include <avr/signal.h>
 #include <avr/pgmspace.h>

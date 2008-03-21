@@ -8,7 +8,7 @@
 
 #include "kernel.h"
 #include "stream.h"
-#include "config.h"
+#include "defines.h"
 
      
 /***************************************************************************
@@ -60,6 +60,8 @@ void putstr_P(Stream *b, const char * addr)
 
 
 
+
+
 /********************************************************************************
  *  Blocking receive to a string buffer. 
  *  Returns when len characters are received or when a marker character 
@@ -71,7 +73,7 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
     register uint8_t i;
     register char x;
     sem_down(&b->mutex); 
-    for (i=0; i<len-1; i++) 
+    for (i=0; i<len; i++) 
     {
        x = getch(b);   
        if (marker != '\0' && x == marker)

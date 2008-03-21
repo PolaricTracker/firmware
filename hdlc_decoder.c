@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <util/crc16.h>
 #include "kernel.h"
-#include "config.h"
+#include "defines.h"
 #include "hdlc.h"
 #include "stream.h"
 #include "fbuf.h"

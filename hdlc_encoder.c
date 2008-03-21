@@ -2,7 +2,7 @@
  * AFSK Modulator/Transmitter
  */
  
-#include "config.h"
+#include "defines.h"
 #include <avr/io.h>
 #include <inttypes.h>
 #include <stdlib.h>

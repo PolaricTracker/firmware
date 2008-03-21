@@ -1,6 +1,6 @@
 #include <avr/io.h>
 #include <math.h>
-#include "config.h"
+#include "defines.h"
 #include "timer.h"
 #include "transceiver.h"
 
