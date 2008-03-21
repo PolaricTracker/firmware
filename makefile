@@ -33,9 +33,9 @@
               MyUSB/Drivers/USB/LowLevel/LowLevel.c MyUSB/Drivers/USB/HighLevel/USBTask.c \
               MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
               MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
-              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c \
-              kernel.c timer.c test.c stream.c uart.c \
-              afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c
+              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c parameters.c \
+              kernel.c timer.c test.c stream.c uart.c  \
+              afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c 
 
 # List Assembler source files here.
 	ASRC = setjmp/setjmp.s
@@ -82,7 +82,7 @@ overallsize:
 
 # Create final output files (.hex, .lss) from ELF output file.
 %.hex: %.elf
-	$(OBJCOPY) -O $(FORMAT) $< $@
+	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
 
 # Create extended listing file from ELF output file.
 %.lss: %.elf
