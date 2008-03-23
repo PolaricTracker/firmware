@@ -8,6 +8,7 @@
 #include "stream.h"
 #include "hdlc.h"
 #include "fbuf.h"
+#include "ax25.h"
 #include "config.h"
 
 static void do_teston(uint8_t,    char**, Stream*);
@@ -15,13 +16,16 @@ static void do_testoff(uint8_t,   char**, Stream*);
 static void do_testpacket(uint8_t,char**, Stream*);
 static void do_txdelay(uint8_t,   char**, Stream*);
 static void do_txtail(uint8_t,    char**, Stream*);
+static void do_mycall(uint8_t,    char**, Stream*);
 
 
-static char buf[40];
+static char buf[40]; 
 extern fbq_t* outframes;  
 
 /**************************************************************************
- * Read and process commands 
+ * Read and process commands .
+ *    Not thread safe. Use in at most one thread, use lock, or allocate
+ *    buf on the stack instead. 
  **************************************************************************/
        
 void cmdProcessor(Stream *in, Stream *out)
@@ -54,6 +58,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_txdelay(argc, argv, out);
          else if (strncmp("txtail",     argv[0], 3) == 0)
              do_txtail(argc, argv, out);
+         else if (strncmp("mycall",     argv[0], 2) == 0)
+             do_mycall(argc, argv, out);    
          else if (strlen(argv[0]) > 1)
              putstr_P(out, PSTR("Unknown command\n\r"));
    }
@@ -124,6 +130,8 @@ static void do_txdelay(uint8_t argc, char** argv, Stream* out)
        putstr(out, buf);
     }
 }
+
+
 static void do_txtail(uint8_t argc, char** argv, Stream* out)
 {
     if (argc > 1) {
@@ -137,4 +145,22 @@ static void do_txtail(uint8_t argc, char** argv, Stream* out)
        putstr(out, buf);
     }
 }
+
+
+static void do_mycall(uint8_t argc, char** argv, Stream* out)
+{
+   addr_t x;
+   char cbuf[11]; 
+   if (argc > 1) {
+      str2addr(&x, argv[1]);
+      SET_PARAM(MYCALL, &x);
+   }
+   else {
+      GET_PARAM(MYCALL, &x);
+      sprintf_P(buf, PSTR("MYCALL is: %s\n\r\0"), addr2str(cbuf, &x));
+      putstr(out, buf);
+   }   
+}
+
+
 
