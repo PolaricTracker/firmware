@@ -16,7 +16,39 @@ addr_t* addr(addr_t* x, char* c, uint8_t s)
    x->ssid=s; 
    return x;
 } 
+
    
+/*************************************************************************
+ * Convert string into AX.25 address field
+ * Format: <callsign>-<ssid> 
+ **************************************************************************/
+
+void str2addr(addr_t* addr, const char* string)
+{
+   uint8_t ssid = 0;
+   int i;
+   for (i=0; i<7 && string[i] != 0; i++) {
+      if (string[i] == '-') {
+         ssid = (uint8_t) atoi( string+i+1 );
+         break;
+      }
+      addr->callsign[i] = string[i];  
+   }
+   addr->callsign[i] = 0;
+   addr->ssid = ssid & 0x0f; 
+}
+
+
+/*************************************************************************
+ * Convert AX.25 address field into string
+ * Format: <callsign>-<ssid> 
+ **************************************************************************/
+
+char* addr2str(char* string, const addr_t* addr)
+{
+    sprintf(string, "%s-%d\0", addr->callsign, addr->ssid);
+    return string;
+}
    
    
 /**********************************************************************
