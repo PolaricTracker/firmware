@@ -11,15 +11,20 @@
 #include "ax25.h"
 #include "config.h"
 
-static void do_teston(uint8_t,    char**, Stream*);
-static void do_testoff(uint8_t,   char**, Stream*);
-static void do_testpacket(uint8_t,char**, Stream*);
-static void do_txdelay(uint8_t,   char**, Stream*);
-static void do_txtail(uint8_t,    char**, Stream*);
-static void do_mycall(uint8_t,    char**, Stream*);
+#define MAXTOKENS 10
+#define BUFSIZE   40
 
+uint8_t tokenize(char*, char*[], uint8_t, char*);
 
-static char buf[40]; 
+static void do_teston    (uint8_t, char**, Stream*);
+static void do_testoff   (uint8_t, char**, Stream*);
+static void do_testpacket(uint8_t, char**, Stream*);
+static void do_txdelay   (uint8_t, char**, Stream*);
+static void do_txtail    (uint8_t, char**, Stream*);
+static void do_mycall    (uint8_t, char**, Stream*);
+static void do_dest      (uint8_t, char**, Stream*);
+
+static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
 
 /**************************************************************************
@@ -30,24 +35,18 @@ extern fbq_t* outframes;
        
 void cmdProcessor(Stream *in, Stream *out)
 {
-    char* save;
-    char* argv[10];
+    char* argv[MAXTOKENS];
     uint8_t argc;
     
-    putstr_P(out, PSTR("\n\rVelkommen til LA3T AVR test firmware\n\r"));
+    putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\n\r"));
     while (1) {
          putstr(out, "cmd: ");     
-         getstr(in, buf, 40, '\r');
+         getstr(in, buf, BUFSIZE, '\r');
          
-         /* Parse input line into argument tokens */
-         argv[0] = strtok_r(buf, " \t\r\n", &save);
-         for (argc=1; argc<10; argc++) 
-         {
-            argv[argc] = strtok_r(NULL, "\t\r\n", &save);
-            if (argv[argc] == NULL) 
-               break;
-         }
+         /* Split input line into argument tokens */
+         argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n");
          
+         /* Select command handler */         
          if (strncmp("teston", argv[0], 6) == 0)
              do_teston(argc, argv, out);
          else if (strncmp("testoff", argv[0], 7) == 0)
@@ -60,23 +59,25 @@ void cmdProcessor(Stream *in, Stream *out)
              do_txtail(argc, argv, out);
          else if (strncmp("mycall",     argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
+         else if (strncmp("dest",     argv[0], 2) == 0)
+             do_dest(argc, argv, out);      
          else if (strlen(argv[0]) > 1)
-             putstr_P(out, PSTR("Unknown command\n\r"));
+             putstr_P(out, PSTR("*** Unknown command\n\r"));
    }
 }
 
 
       
-/***************************************
+/*********************************************
  * teston <byte> : Turn on 	test signal
- ***************************************/
+ *********************************************/
  
 static void do_teston(uint8_t argc, char** argv, Stream* out)
 {
     int ch = 0;
     hdlc_test_off();
     sleep(10);
-    sscanf(argv[1], " %i", &ch);          // FIXME. Check
+    sscanf(argv[1], " %i", &ch);  
     hdlc_test_on((uint8_t) ch);
     sprintf_P(buf, PSTR("Test signal on: 0x%X\n\r\0"), ch);
     putstr(out, buf );  
@@ -84,9 +85,9 @@ static void do_teston(uint8_t argc, char** argv, Stream* out)
 
 
          
-/**********************************
+/*********************************************
  * testoff : Turn off test signal
- **********************************/
+ *********************************************/
  
 static void do_testoff(uint8_t argc, char** argv, Stream* out)
 {
@@ -96,9 +97,9 @@ static void do_testoff(uint8_t argc, char** argv, Stream* out)
 
 
          
-/*********************************
+/*********************************************
  * tx : Send AX25 test packet
- *********************************/
+ *********************************************/
 
 static void do_testpacket(uint8_t argc, char** argv, Stream* out)
 {
@@ -116,7 +117,11 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
 }
 
          
-
+         
+/*********************************************
+ * config: txdelay 
+ *********************************************/
+ 
 static void do_txdelay(uint8_t argc, char** argv, Stream* out)
 {
     if (argc > 1) {
@@ -131,7 +136,11 @@ static void do_txdelay(uint8_t argc, char** argv, Stream* out)
     }
 }
 
-
+         
+/*********************************************
+ * config: txtail 
+ *********************************************/
+ 
 static void do_txtail(uint8_t argc, char** argv, Stream* out)
 {
     if (argc > 1) {
@@ -146,7 +155,11 @@ static void do_txtail(uint8_t argc, char** argv, Stream* out)
     }
 }
 
-
+         
+/*********************************************
+ * config: mycall (sender address)
+ *********************************************/
+ 
 static void do_mycall(uint8_t argc, char** argv, Stream* out)
 {
    addr_t x;
@@ -162,5 +175,42 @@ static void do_mycall(uint8_t argc, char** argv, Stream* out)
    }   
 }
 
+         
+/*********************************************
+ * config: dest (destination address)
+ *********************************************/
+ 
+static void do_dest(uint8_t argc, char** argv, Stream* out)
+{
+   addr_t x;
+   char cbuf[11]; 
+   if (argc > 1) {
+      str2addr(&x, argv[1]);
+      SET_PARAM(DEST, &x);
+   }
+   else {
+      GET_PARAM(DEST, &x);
+      sprintf_P(buf, PSTR("DEST is: %s\n\r\0"), addr2str(cbuf, &x));
+      putstr(out, buf);
+   }   
+}
 
-
+         
+/*********************************************
+ * split input string into tokens
+ *********************************************/
+ 
+uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim)
+{ 
+     register uint8_t ntokens;
+     char* save;
+     
+     tokens[0] = strtok_r(buf, delim, &save);
+     for (ntokens=1; ntokens<maxtokens; ntokens++) 
+     {
+        tokens[ntokens] = strtok_r(NULL, delim, &save);
+        if (tokens[ntokens] == NULL) 
+           break;
+     }
+     return ntokens;
+}
