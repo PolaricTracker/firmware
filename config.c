@@ -8,7 +8,7 @@
   
 void set_param(void* ee_addr, const void* ram_addr, uint8_t size)
 {
-   register uint8_t byte, checksum = 0xff;
+   register uint8_t byte, checksum = 0x0f;
    
    while (!eeprom_is_ready())
       t_yield();
@@ -30,7 +30,8 @@ void set_param(void* ee_addr, const void* ram_addr, uint8_t size)
    
 int get_param(const void* ee_addr, void* ram_addr, uint8_t size, PGM_P default_val)
 {
-   register uint8_t byte, checksum = 0xff, s_checksum = 0;
+   register uint8_t byte, checksum = 0x0f, s_checksum;
+   register void* dest = ram_addr;
    
    while (!eeprom_is_ready())
       t_yield();
@@ -38,10 +39,10 @@ int get_param(const void* ee_addr, void* ram_addr, uint8_t size, PGM_P default_v
    {
        byte = eeprom_read_byte(ee_addr++);
        checksum ^= byte;
-       *((uint8_t*) ram_addr++) = byte;
+       *((uint8_t*) dest++) = byte;
    }
    s_checksum = eeprom_read_byte(ee_addr);
-   if (s_checksum == checksum) {
+   if (s_checksum != checksum) {
       memcpy_P(ram_addr, default_val, size);
       return 1;
    }
