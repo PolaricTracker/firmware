@@ -1,16 +1,18 @@
 #include <stdint.h>
 
-#define SCALED_F_CPU   (F_CPU / 2)
+// #define SCALED_F_CPU   (F_CPU / 2)
+#define SCALED_F_CPU F_CPU
+
 
 #define TRUE   (1)
 #define FALSE  (0)
 
-#define	UART_BUF_SIZE	(16)		
-
-
-#define FBUF_SLOTS    32
-#define FBUF_SLOTSIZE 16
-
+/* 
+ * Buffers, memory management
+ */
+#define UART_BUF_SIZE	(16)		
+#define FBUF_SLOTS         32
+#define FBUF_SLOTSIZE      16
 #define DEFAULT_STACK_SIZE 70
 
 #define AFSK_ENCODER_BUFFER_SIZE 128
@@ -18,14 +20,34 @@
 #define HDLC_DECODER_QUEUE_SIZE  4
 #define HDLC_ENCODER_QUEUE_SIZE  4
 
-#define DCD_LED_PORT    PORTD
-#define DCD_LED_BIT     PD5
 
+/*
+ * LEDS, misc. signals
+ */
+#define DCD_LED_PORT    LED1_PORT
+#define DCD_LED_BIT     LED2_BIT
+
+#define LED1_PORT       PORTA
+#define LED1_BIT        PA7
+#define LED1_DDR        DDRA
+#define LED2_PORT       PORTC
+#define LED2_BIT        PC7
+#define LED2_DDR        DDRC
+#define LED3_PORT       PORTA
+#define LED3_BIT        PA0
+#define LED3_DDR        DDRA
+
+#define BUZZER_PORT     PORTA
+#define BUZZER_BIT      PA6
+#define BUZZER_DDR      DDRA
+
+#define TXDATA_PORT     BUZZER_PORT
+#define TXDATA_BIT      BUZZER_BIT 
 
 /*
  * ADF 7021 specific definitions
  */
-#define ADF7021_XTAL        2400000 
+#define ADF7021_XTAL        6400000 
 #define ADF7021_SCLK_PORT   PORTC
 #define ADF7021_SCLK_DDR    DDRC
 #define ADF7021_SCLK_BIT    PC4
@@ -33,7 +55,7 @@
 #define ADF7021_SDATA_DDR   DDRC
 #define ADF7021_SDATA_BIT   PC2
 #define ADF7021_SREAD_PORT  PORTC
-#define ADF7021_SREAD_PORT  DDRC
+#define ADF7021_SREAD_DDR   DDRC
 #define ADF7021_SREAD_BIT   PC3
 #define ADF7021_SLE_PORT    PORTB
 #define ADF7021_SLE_DDR     DDRB
@@ -44,6 +66,7 @@
 #define ADF7021_MUXOUT_PORT PORTC
 #define ADF7021_MUXOUT_DDR  DDRC
 #define ADF7021_MUXOUT_BIT  PC5
+
 
 
 /*

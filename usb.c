@@ -50,7 +50,7 @@ EVENT_HANDLER(USB_CreateEndpoints)
 	                           ENDPOINT_BANK_SINGLE);
 
 	/* Double green to indicate USB connected and ready */
-	set_bit(USBKEY_LED3);
+	set_bit(LED3);
    enter_critical();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_EnableEndpoint();

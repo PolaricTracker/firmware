@@ -55,9 +55,9 @@ ISR(TIMER1_COMPA_vect)
 void led1(void)
 {
     while (1) {
-          set_bit( USBKEY_LED1 );
+          set_bit( LED1 );
           sleep(5);
-          clear_bit( USBKEY_LED1 );
+          clear_bit( LED1 );
           sleep(95);
     }
 }
@@ -84,26 +84,32 @@ void serListener(void)
 
 
 int main(void) {
-      CLKPR = (1<<7);
-      CLKPR = 1; 
+
+//      CLKPR = (1<<7);
+//      CLKPR = 1; 
+          
       init_kernel(60); 
-      DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
-      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3) | (1<<DDB7); // TX Test 
-    
-     
+      
+      make_output(LED1);
+      make_output(LED2);
+      make_output(LED3);     
+//      DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
+//      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3) | (1<<DDB7); // TX Test 
+  
+   
       TCCR1B = 0x02          /* Pre-scaler for timer0 */             
              | (1<<WGM12);   /* CTC mode */             
       TIMSK1 = 1<<OCIE1A;    /* Interrupt on compare match */
       OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
-     
+   
       sei();
-  
+
       usb_init();         
       outframes = hdlc_init_encoder( afsk_init_encoder() );  
 
       THREAD_START(led1, 70);  
       THREAD_START(serListener, 80);
-      
+    
 
       while(1) 
           { USB_USBTask(); t_yield(); }     

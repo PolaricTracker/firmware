@@ -20,7 +20,7 @@
 
 # MCU name and clock speed
 	MCU = at90usb1287
-        F_CPU = 8000000
+        F_CPU = 4000000
         
 # Output format. Can be [srec|ihex].
     FORMAT = ihex
@@ -34,7 +34,7 @@
               MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
               MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
               MyUSB/Drivers/USB/HighLevel/StdDescriptors.c config.c \
-              kernel.c timer.c test.c stream.c uart.c nmea.c \
+              kernel.c timer.c test.c stream.c uart.c nmea.c  \
               afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c commands.c
 
 # List Assembler source files here.

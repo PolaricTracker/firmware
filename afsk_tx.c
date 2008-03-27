@@ -48,7 +48,7 @@ void afsk_ptt_on()
     OCR0A  = _TXI_MARK;
     TIMSK0 = 1<<OCIE0A;        /* Interrupt on compare match */ 
     transmit = true; 
-    set_bit(USBKEY_LED4);
+    set_bit(LED2);
 }
 
 
@@ -62,8 +62,8 @@ void afsk_ptt_off(void)
     TIMSK0 = 0x00;
     TCCR0A &= ~(1<<COM0A0);           /* Toggle OC0A on compare match: OFF */
     transmit = false; 
-    clear_bit(USBKEY_LED4);            /* LED / PTT */
-    clear_bit(ADF_TXRXDATA);           /* out signal */
+    clear_bit(LED2);                  /* LED / PTT */
+    clear_bit(TXDATA);                /* out signal */
 //  should notify application level 
 }
 
@@ -133,7 +133,7 @@ void afsk_txBitClock(void)
  
 ISR(TIMER0_COMPA_vect)
 {   
-     toggle_bit( ADF_TXRXDATA );
+    toggle_bit( TXDATA );
 } 
 
  
