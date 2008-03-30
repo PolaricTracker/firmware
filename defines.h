@@ -1,15 +1,27 @@
 #include <stdint.h>
 
-// #define SCALED_F_CPU   (F_CPU / 2)
-#define SCALED_F_CPU F_CPU
-
+#define USBKEY_TEST  /* Comment out if compiling for the real Polaric Tracker */
 
 #define TRUE   (1)
 #define FALSE  (0)
 
-/* 
+
+/********************************************
+ * Note: The CPU frequency must be defined
+ * in the makefile
+ ********************************************/
+ 
+#if defined USBKEY_TEST
+#define SCALED_F_CPU   (F_CPU / 2)
+#else
+#define SCALED_F_CPU F_CPU
+#endif
+
+
+/******************************************* 
  * Buffers, memory management
- */
+ *******************************************/
+ 
 #define UART_BUF_SIZE	(16)		
 #define FBUF_SLOTS         32
 #define FBUF_SLOTSIZE      16
@@ -21,11 +33,21 @@
 #define HDLC_ENCODER_QUEUE_SIZE  4
 
 
-/*
+/********************************************
  * LEDS, misc. signals
- */
+ ********************************************/
+ 
 #define DCD_LED_PORT    LED1_PORT
 #define DCD_LED_BIT     LED2_BIT
+
+#define TXDATA_PORT     PORTB
+#define TXDATA_BIT      PB2 
+#define TXDATA_DDR      DDB2
+#define BUZZER_PORT     PORTA
+#define BUZZER_BIT      PA6
+#define BUZZER_DDR      DDRA
+
+#if defined USBKEY_TEST
 
 #define LED1_PORT       PORTA
 #define LED1_BIT        PA7
@@ -37,12 +59,25 @@
 #define LED3_BIT        PA0
 #define LED3_DDR        DDRA
 
-#define BUZZER_PORT     PORTA
-#define BUZZER_BIT      PA6
-#define BUZZER_DDR      DDRA
+#else
 
-#define TXDATA_PORT     BUZZER_PORT
+#define TXDATA_PORT     BUZZER_PORT 
 #define TXDATA_BIT      BUZZER_BIT 
+#define TXDATA_DDR      BUZZER_DDR
+#define LED1_PORT       PORTA
+#define LED1_BIT        PA7
+#define LED1_DDR        DDRA
+#define LED2_PORT       PORTC
+#define LED2_BIT        PC7
+#define LED2_DDR        DDRC
+#define LED3_PORT       PORTA
+#define LED3_BIT        PA0
+#define LED3_DDR        DDRA
+
+#endif
+
+
+
 
 /*
  * ADF 7021 specific definitions
