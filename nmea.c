@@ -33,7 +33,7 @@ typedef struct _PosData {
 } posdata_t;
 
 posdata_t pos;
-
+extern Stream cdc_outstr;  /* FOR DEBUGGING */
 
 
 /**************************************************************************
@@ -51,7 +51,7 @@ void nmeaProcessor(Stream* in)
     
     while (1) {
          getstr(in, buf, BUFSIZE, '\r');
-
+         putstr(&cdc_outstr, buf);         /* ECHO FOR DEBUGGING */
          if (buf[0] != '$')
             continue;
             
@@ -64,8 +64,6 @@ void nmeaProcessor(Stream* in)
             sscanf(buf+i+1, "%X", &c_checksum);
             if (c_checksum != checksum)
                continue;
-               
-            printf("Checksum ok\n");
          }
          
          /* Split input line into tokens */
@@ -99,7 +97,6 @@ static float str2coord(const uint8_t ndeg, const char* str)
 
 static void do_rmc(uint8_t argc, char** argv)
 {
-    printf("RMC argc=%d\n", argc);
     if (argc != 12)                   /* Ignore if wrong format */
        return;
     if (*argv[2] != 'A')              /* Ignore if receiver not in lock */
