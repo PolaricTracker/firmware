@@ -12,10 +12,16 @@
 #include "usb.h"
 #include "ax25.h"
 #include "config.h"
+#include "transceiver.h"
 
-extern Semaphore cdc_run;    
+extern void cmdProcessor(Stream *, Stream *);  /* commands.c */
+extern void nmeaProcessor(Stream*);            /* nmea.c */
+extern Semaphore cdc_run;                      /* usb.c */
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
+extern Stream uart_instr;                      /* uart.c */
+
+Semaphore nmea_run; 
 fbq_t* outframes;  
 
 
@@ -65,9 +71,9 @@ void led1(void)
  
 
 
-      
 /**************************************************************************
  * Read and process commands on USB interface
+ * Read and process nmea messages from GPS
  **************************************************************************/
        
 void usbSerListener(void)
@@ -81,20 +87,26 @@ void usbSerListener(void)
 }
 
 
+void nmeaListener(void)
+{
+    sem_down(&nmea_run);
+    nmeaProcessor(&uart_instr);
+}
+
+
 
 /**************************************************************************
  * Setup the adf7021 tranceiver. 
  *   - We may move this to a separate source file or to config.c ?
  *   - Parts of the setup may be stored in EEPROM?
  **************************************************************************/
-void setup_tranceiver()
+void setup_tranceiver(void)
 {
     adf7021_setup_t setup;
     adf7021_setup_init(&setup);
     adf7021_set_data_rate(&setup, 1200);
     /* More tbd... */
 }
-
 
 
 
@@ -122,6 +134,9 @@ int main(void)
       make_output(LED1);
       make_output(LED2);
       make_output(LED3);
+      make_output(TXDATA);
+      make_output(GPSON); 
+
            
 //      DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
 //      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3) | (1<<DDB7); // TX Test 
@@ -134,12 +149,17 @@ int main(void)
       OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
    
       sei();    
-      usb_init();         
+      usb_init();    
+      uart_init(FALSE);
       outframes = hdlc_init_encoder( afsk_init_encoder() );  
 
       THREAD_START(led1, 70);  
       THREAD_START(usbSerListener, 80);
-    
+     
+      /* GPS */
+        set_bit(GPSON);
+//      sem_init(&nmea_run, 0);
+//      THREAD_START(nmeaListener, 80);
 
       while(1) 
           { USB_USBTask(); t_yield(); }     

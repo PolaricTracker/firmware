@@ -23,6 +23,7 @@ static void do_txdelay   (uint8_t, char**, Stream*);
 static void do_txtail    (uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
+static void do_nmea      (uint8_t, char**, Stream*); /* DEBUGGING */
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -61,6 +62,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_mycall(argc, argv, out);    
          else if (strncmp("dest",     argv[0], 2) == 0)
              do_dest(argc, argv, out);      
+        else if (strncmp("nmea",     argv[0], 2) == 0)
+             do_nmea(argc, argv, out);          
          else if (strlen(argv[0]) > 1)
              putstr_P(out, PSTR("*** Unknown command\n\r"));
    }
@@ -193,6 +196,13 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
       sprintf_P(buf, PSTR("DEST is: %s\n\r\0"), addr2str(cbuf, &x));
       putstr(out, buf);
    }   
+}
+
+extern Semaphore nmea_run; 
+static void do_nmea(uint8_t argc, char** argv, Stream* out)
+{
+  putstr(out, "NMEA LISTEN\n\r");
+  sem_up(&nmea_run);
 }
 
          
