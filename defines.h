@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define USBKEY_TEST  /* Comment out if compiling for the real Polaric Tracker */
+// #define USBKEY_TEST  /* Comment out if compiling for the real Polaric Tracker */
 
 #define TRUE   (1)
 #define FALSE  (0)
@@ -22,7 +22,7 @@
  * Buffers, memory management
  *******************************************/
  
-#define UART_BUF_SIZE	(16)		
+#define UART_BUF_SIZE	   16		
 #define FBUF_SLOTS         32
 #define FBUF_SLOTSIZE      16
 #define DEFAULT_STACK_SIZE 70
@@ -40,12 +40,18 @@
 #define DCD_LED_PORT    LED1_PORT
 #define DCD_LED_BIT     LED2_BIT
 
-#define TXDATA_PORT     PORTB
-#define TXDATA_BIT      PB2 
-#define TXDATA_DDR      DDB2
-#define BUZZER_PORT     PORTA
-#define BUZZER_BIT      PA6
-#define BUZZER_DDR      DDRA
+#define TXDATA_PORT         PORTB
+#define TXDATA_BIT          PB2 
+#define TXDATA_DDR          DDB2
+#define BUZZER_PORT         PORTA
+#define BUZZER_BIT          PA6
+#define BUZZER_DDR          DDRA
+#define EXTERNAL_PA_ON_PORT PORTA  
+#define EXTERNAL_PA_ON_BIT  PA2    
+#define EXTERNAL_PA_ON_DDR  DDRA   
+#define GPSON_PORT          PORTB
+#define GPSON_BIT           PB6
+#define GPSON_DDR           DDRB
 
 #if defined USBKEY_TEST
 
@@ -83,6 +89,7 @@
  * ADF 7021 specific definitions
  */
 #define ADF7021_XTAL        6400000 
+
 #define ADF7021_SCLK_PORT   PORTC
 #define ADF7021_SCLK_DDR    DDRC
 #define ADF7021_SCLK_BIT    PC4
@@ -92,6 +99,7 @@
 #define ADF7021_SREAD_PORT  PORTC
 #define ADF7021_SREAD_DDR   DDRC
 #define ADF7021_SREAD_BIT   PC3
+#define ADF7021_SREAD_PIN   PORTC    /* FIXME */
 #define ADF7021_SLE_PORT    PORTB
 #define ADF7021_SLE_DDR     DDRB
 #define ADF7021_SLE_BIT     PB3
@@ -101,7 +109,7 @@
 #define ADF7021_MUXOUT_PORT PORTC
 #define ADF7021_MUXOUT_DDR  DDRC
 #define ADF7021_MUXOUT_BIT  PC5
-
+#define ADF7021_MUXOUT_PIN  PORTC   /* FIXME */
 
 
 /*

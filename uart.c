@@ -6,7 +6,7 @@
 #include "kernel.h"
 #include "stream.h"
 
-#define USART_BAUD 9600
+#define USART_BAUD 4800
 #define UART_UBRR (SCALED_F_CPU/(16L*USART_BAUD)-1) 
 
 void uart_kickout(void); 
@@ -16,21 +16,21 @@ void uart_kickout(void);
         DRIVER FOR UART
  ************************************/
 
-Stream instr;
-Stream outstr; 
+Stream uart_instr;
+Stream uart_outstr; 
 
 static unsigned char echo;
 
 
 
-void init_UART(const unsigned char e)
+void uart_init(const unsigned char e)
 {
    echo = e; 
 
-   STREAM_INIT( instr, UART_BUF_SIZE );
-   STREAM_INIT( outstr, UART_BUF_SIZE );
+   STREAM_INIT( uart_instr, UART_BUF_SIZE );
+   STREAM_INIT( uart_outstr, UART_BUF_SIZE );
     
-   outstr.kick = uart_kickout; 
+   uart_outstr.kick = uart_kickout; 
 
    // Set baud rate 
    UBRR1 = UART_UBRR;
@@ -46,7 +46,7 @@ void init_UART(const unsigned char e)
 void uart_kickout(void)
 {
    if ((UCSR1A & (1<<UDRE1)))
-       UDR1 = _stream_get(&outstr, true);     
+       UDR1 = _stream_get(&uart_outstr, true);     
 }
 
 
@@ -58,10 +58,10 @@ void uart_kickout(void)
  
 ISR(USART1_RX_vect)
 {
-      register char x = UDR1;       
-      _stream_put(&instr, x, true);
+      register char x = UDR1;   
+      _stream_put(&uart_instr, x, true);
       if ( echo ) 
-         _stream_sendByte(&outstr, x, true);    
+         _stream_sendByte(&uart_outstr, x, true);    
 } 
 
 
@@ -73,7 +73,7 @@ ISR(USART1_RX_vect)
 
 ISR(USART1_TX_vect)
 {
-   if (! _stream_empty(&outstr) ) 
+   if (! _stream_empty(&uart_outstr) ) 
        uart_kickout();
 }
  
