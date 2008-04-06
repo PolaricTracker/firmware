@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include "timer.h"
 #include <math.h>
 #include "defines.h"
 #include "timer.h"
@@ -101,7 +102,10 @@ void adf7021_set_data_rate (adf7021_setup_t *setup, uint16_t data_rate)
 
   /* Set SEQ_CLK to 100kHz */
   setup->clock.seq_clk_divide = ADF7021_XTAL / 100e3;
-
+  
+  /* Set AGC_CLK to 10kHz */
+  setup->clock.agc_clk_divide = ADF7021_XTAL / (setup->clock.seq_clk_divide * 10e3);
+  
   setup->data_rate = data_rate;
 }
 
@@ -140,12 +144,16 @@ void adf7021_set_demodulation (adf7021_setup_t *setup, adf7021_demod_scheme_t sc
 
   setup->demod.scheme = scheme;
 
-  if (scheme == ADF7021_DEMOD_2FSK_CORRELATOR ||
-      scheme == ADF7021_DEMOD_3FSK || 
-      scheme == ADF7021_DEMOD_4FSK) {
-    /* TODO: Setup discriminator bandwidth  */
+  uint32_t k;
+  switch (scheme) {
+  case ADF7021_DEMOD_3FSK:
+    k = 100e3 / (2 * setup->deviation) + 0.5; break;
+  case ADF7021_DEMOD_4FSK: // TODO
+  default:
+    k = 100e3 / setup->deviation + 0.5;
   }
-  
+  setup->demod.discriminator_bw = ((ADF7021_XTAL / setup->clock.dem_clk_divide) * k) / 400e3;
+
   /* Setup post demodulator filter according to table 19 page 34 */
   uint16_t cutoff;
   switch (scheme) {
@@ -185,29 +193,21 @@ void adf7021_set_power (adf7021_setup_t *setup, double dBm, adf7021_pa_ramp_t ra
 }
 
 
-
 void adf7021_init (adf7021_setup_t* s)
 {
   adf7021_enabled = adf7021_tx_enabled = false;
   
-/*   make_output (EXTERNAL_PA_ON); */
+  make_output (EXTERNAL_PA_ON);
   make_output (ADF7021_ON);
   make_output (ADF7021_SCLK);
   make_output (ADF7021_SLE);
   make_output (ADF7021_SDATA);
 
-/*   make_input  (ADF7021_SREAD); */
-
-  
-/*   make_double  (ADF7021_SREAD); */
-/*   make_double  (ADF7021_MUXOUT); */
-
-/*   make_double  (ADF7021_TXRXDATA); */
-/*   make_double  (ADF7021_TXRXCLK); */
-
+  make_input  (ADF7021_SREAD);
+  make_input  (ADF7021_MUXOUT);
   
   /* Just to be on the safe side */
-/*   clear_port (EXTERNAL_PA_ON); */
+  clear_port (EXTERNAL_PA_ON);
   clear_port (ADF7021_ON);
   
   setup = s;
