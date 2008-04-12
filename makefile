@@ -20,7 +20,7 @@
 
 # MCU name and clock speed
 	MCU = at90usb1287
-        F_CPU = 4000000
+        F_CPU = 8000000
         
 # Output format. Can be [srec|ihex].
     FORMAT = ihex

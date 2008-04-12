@@ -1,5 +1,7 @@
-$Id: timer.h,v 1.3 2008-04-12 18:15:38 la7eca Exp $
-
+/*
+ * $Id: timer.h,v 1.4 2008-04-12 18:29:47 la7eca Exp $
+ */
+ 
 #if !defined __TIMER_H__
 #define __TIMER_H__
 
