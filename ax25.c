@@ -1,5 +1,11 @@
+/*
+ * $Id: ax25.c,v 1.8 2008-04-12 18:21:47 la7eca Exp $
+ */
+ 
 #include "ax25.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define AXLEN		7 
 #define TO_POS    1
