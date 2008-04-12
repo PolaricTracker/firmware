@@ -1,4 +1,5 @@
 /*
+ * $Id: afsk_tx.c,v 1.15 2008-04-12 18:20:55 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -10,13 +11,15 @@
 #include "afsk.h"
 #include "kernel.h"
 #include "stream.h"
+#include "transceiver.h"
+
 
 /* Move to config.h or afsk.h */
 #define AFSK_TXTONE_MARK  1200
 #define AFSK_TXTONE_SPACE 2200
 
 /* Internal config */
-#define _PRESCALER0  8
+#define _PRESCALER0  64
 #define _TXI_MARK   ((SCALED_F_CPU / _PRESCALER0 / AFSK_TXTONE_MARK / 2) - 1)
 #define _TXI_SPACE  ((SCALED_F_CPU / _PRESCALER0 / AFSK_TXTONE_SPACE / 2) - 1)
 
@@ -42,13 +45,14 @@ void afsk_ptt_on()
 {
 //  should notify application level?
 
-    TCCR0B = 0x02;             /* Pre-scaler for timer0 = 8x prescaling */             
+    TCCR0B = 0x03;             /* Pre-scaler for timer0 = 64x prescaling */             
     TCCR0A = 0x02;             /* CTC mode */             
     TCCR0A |= (1<<COM0A0);     /* Toggle OC0A on compare match */
     OCR0A  = _TXI_MARK;
     TIMSK0 = 1<<OCIE0A;        /* Interrupt on compare match */ 
     transmit = true; 
-    set_bit(LED2);
+    adf7021_enable_tx();
+    set_port(LED2);
 }
 
 
@@ -62,8 +66,9 @@ void afsk_ptt_off(void)
     TIMSK0 = 0x00;
     TCCR0A &= ~(1<<COM0A0);           /* Toggle OC0A on compare match: OFF */
     transmit = false; 
-    clear_bit(LED2);                  /* LED / PTT */
-    clear_bit(TXDATA);                /* out signal */
+    clear_port(LED2);                 /* LED / PTT */
+    clear_port(TXDATA);               /* out signal */
+    adf7021_disable_tx();
 //  should notify application level 
 }
 
@@ -81,11 +86,11 @@ static uint8_t get_bit(void)
   if (bit_count == 0) 
   {
     /* Turn off TX if buffer is empty (have reached end of frame) */
-    if (_stream_empty(&afsk_tx_stream)) {
+    if (stream_empty(&afsk_tx_stream)) {
         afsk_ptt_off();
         return 1; 
     }   
-    bits = _stream_get (&afsk_tx_stream, true); 
+    bits = stream_get_nb (&afsk_tx_stream); 
     bit_count = 8;    
   } 
   uint8_t bit = bits & 0x01;
@@ -107,7 +112,7 @@ static uint8_t get_bit(void)
 void afsk_txBitClock(void)
 {
     if (!transmit) {
-        if (_stream_empty(&afsk_tx_stream))
+        if (stream_empty(&afsk_tx_stream))
            return;
         else
            afsk_ptt_on();
@@ -133,7 +138,7 @@ void afsk_txBitClock(void)
  
 ISR(TIMER0_COMPA_vect)
 {   
-    toggle_bit( TXDATA );
+    toggle_port( TXDATA );
 } 
 
  
