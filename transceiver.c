@@ -1,11 +1,13 @@
 #include <avr/io.h>
-#include "timer.h"
 #include <math.h>
 #include "defines.h"
 #include "timer.h"
 #include "transceiver.h"
 
 #define MINIMUM_N 23
+
+#include "stream.h"
+extern Stream cdc_outstr;     /* FOR DEBUGGING */
 
 bool adf7021_enabled = false;
 bool adf7021_tx_enabled = false;
@@ -89,7 +91,7 @@ void adf7021_set_data_rate (adf7021_setup_t *setup, uint16_t data_rate)
   /* Set baseband offset frequency between 1MHz and 2MHz */
   setup->clock.bbos_clk_divide = 0;
   while (ADF7021_XTAL / (1 << (setup->clock.bbos_clk_divide + 2)) < 1e6 ||
-	 ADF7021_XTAL / (1 << (setup->clock.bbos_clk_divide + 2)) > 2e6)
+         ADF7021_XTAL / (1 << (setup->clock.bbos_clk_divide + 2)) > 2e6)
     setup->clock.bbos_clk_divide++;
 
   /* Set DEMOD_CLK between 2MHz and 15MHz */
@@ -203,8 +205,13 @@ void adf7021_init (adf7021_setup_t* s)
   make_output (ADF7021_SLE);
   make_output (ADF7021_SDATA);
 
-  make_input  (ADF7021_SREAD);
-  make_input  (ADF7021_MUXOUT);
+  make_input  (ADF7021_SREAD); 
+
+
+  make_input   (ADF7021_MUXOUT);  
+  make_output  (ADF7021_TXRXDATA);
+  make_output  (ADF7021_TXRXCLK); 
+
   
   /* Just to be on the safe side */
   clear_port (EXTERNAL_PA_ON);
@@ -215,20 +222,20 @@ void adf7021_init (adf7021_setup_t* s)
 
 
 void adf7021_power_on ()
-{
-  set_port (ADF7021_ON);
-
+{  
+  set_port (ADF7021_ON);  
+  
   /* Wait for transceiver to become ready */
   ADF7021_MUXOUT_WAIT ();
-
+  
   /* Power down unused parts of the transceiver */
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->power_down))
-    adf7021_write_register (ADF7021_REGISTER_DEREF (setup->power_down));
-
+     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->power_down));
+     
   /* Turn on VCO */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->vco_osc));
   sleep (1); // Minimum 700 µs
-
+  
   /* Turn on TX/RX clock */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->clock));
 
@@ -240,7 +247,7 @@ void adf7021_power_on ()
   /* Set MUXOUT to indicate when filter calibration has completed. */
   setup->rx_n.muxout = ADF7021_MUXOUT_FILTER_CAL_COMPLETE;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
-  
+
   /* Setup IF filter */
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->if_filter_cal))
     /* Will do fine calibration */
@@ -258,7 +265,7 @@ void adf7021_power_on ()
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->swd_word));
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->swd_threshold))
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->swd_threshold));
-
+    
   /* Setup demodulation */
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->mfsk_demod))
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->mfsk_demod));
@@ -276,6 +283,7 @@ void adf7021_power_on ()
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->test_dac));
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->test_mode))
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->test_mode));
+
 }
 
 
@@ -287,10 +295,11 @@ void adf7021_power_off ()
 }
 
 
+
 void adf7021_enable_tx ()
 {
   /* Turn on external PA */
-  set_port (EXTERNAL_PA_ON);
+//  set_port (EXTERNAL_PA_ON);  // FIXME
  
   /* Enable transmit mode */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));
@@ -300,6 +309,7 @@ void adf7021_enable_tx ()
 }
 
 
+
 void adf7021_disable_tx ()
 {
   adf7021_tx_enabled = false;
@@ -307,8 +317,9 @@ void adf7021_disable_tx ()
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
   sleep (setup->ramp_time);
 
-  clear_port (EXTERNAL_PA_ON);
+  clear_port (EXTERNAL_PA_ON);   // FIXME
 }
+
 
 
 static inline void _write_register (uint32_t data)
@@ -333,9 +344,9 @@ static inline void _write_register (uint32_t data)
        "sbrc %D1, 7\n\t"
        "rjmp L_%=\n\t"
        :: "r" (data), "r" (counter),
-	  [sclk_port]  "I" (_SFR_IO_ADDR(ADF7021_SCLK_PORT)),
-	  [sclk_bit]   "I" (ADF7021_SCLK_BIT),
-	  [sdata_port] "I" (_SFR_IO_ADDR(ADF7021_SDATA_PORT)),
+          [sclk_port]  "I" (_SFR_IO_ADDR(ADF7021_SCLK_PORT)),
+          [sclk_bit]   "I" (ADF7021_SCLK_BIT),
+          [sdata_port] "I" (_SFR_IO_ADDR(ADF7021_SDATA_PORT)),
           [sdata_bit]  "I" (ADF7021_SDATA_BIT));
   
   clear_port (ADF7021_SCLK);
@@ -343,11 +354,17 @@ static inline void _write_register (uint32_t data)
   set_port (ADF7021_SLE);
 }
 
+
 void adf7021_write_register (uint32_t data)
 {
+  static char buf[50];
+  sprintf(buf, "WRITE REGISTER %lx\r\n", data); 
+  putstr( &cdc_outstr, buf); 
+
   _write_register (data);
   clear_port (ADF7021_SLE);
 }
+
 
 uint16_t adf7021_read_register (uint32_t readback)
 {
@@ -376,9 +393,9 @@ uint16_t adf7021_read_register (uint32_t readback)
        "rjmp L_%=\n\t"
        : "=&r" (data)
        : "r" (counter),
-	  [sclk_port]  "I" (_SFR_IO_ADDR(ADF7021_SCLK_PORT)),
-	  [sclk_bit]   "I" (ADF7021_SCLK_BIT),
-	  [sread_pin] "I" (_SFR_IO_ADDR(ADF7021_SREAD_PIN)),
+          [sclk_port]  "I" (_SFR_IO_ADDR(ADF7021_SCLK_PORT)),
+          [sclk_bit]   "I" (ADF7021_SCLK_BIT),
+          [sread_pin] "I" (_SFR_IO_ADDR(ADF7021_SREAD_PIN)),
           [sread_bit]  "I" (ADF7021_SREAD_BIT));
 
   /* An 18th clock cycle is needed to complete the readback */
