@@ -1,3 +1,7 @@
+/*
+ * $Id: commands.c,v 1.5 2008-04-12 18:22:44 la7eca Exp $
+ */
+ 
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -10,6 +14,8 @@
 #include "fbuf.h"
 #include "ax25.h"
 #include "config.h"
+#include "transceiver.h"
+
 
 #define MAXTOKENS 10
 #define BUFSIZE   40
@@ -24,6 +30,10 @@ static void do_txtail    (uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
 static void do_nmea      (uint8_t, char**, Stream*); /* DEBUGGING */
+static void do_trx       (uint8_t, char**, Stream*); /* DEBUGGING */
+static void do_txon      (uint8_t, char**, Stream*); /* DEBUGGING */
+static void do_txoff     (uint8_t, char**, Stream*); /* DEBUGGING */
+
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -62,11 +72,45 @@ void cmdProcessor(Stream *in, Stream *out)
              do_mycall(argc, argv, out);    
          else if (strncmp("dest",     argv[0], 2) == 0)
              do_dest(argc, argv, out);      
-        else if (strncmp("nmea",     argv[0], 2) == 0)
-             do_nmea(argc, argv, out);          
+         else if (strncmp("nmea",     argv[0], 2) == 0)
+             do_nmea(argc, argv, out);     
+         else if (strncmp("trx",     argv[0], 2) == 0)
+             do_trx(argc, argv, out);        
+         else if (strncmp("txon",     argv[0], 4) == 0)
+             do_txon(argc, argv, out);        
+         else if (strncmp("txoff",     argv[0], 4) == 0)
+             do_txoff(argc, argv, out);            
          else if (strlen(argv[0]) > 1)
              putstr_P(out, PSTR("*** Unknown command\n\r"));
    }
+}
+
+
+/************************************************
+ * For testing .....
+ ************************************************/
+ 
+extern Semaphore nmea_run; 
+static void do_nmea(uint8_t argc, char** argv, Stream* out)
+{
+  putstr(out, "NMEA LISTEN\n\r");
+  sem_up(&nmea_run);
+}
+
+static void do_trx(uint8_t argc, char** argv, Stream* out)
+{
+   putstr(out, "***** TRX CHIP ON *****\n\r");
+   setup_transceiver();
+}
+static void do_txon(uint8_t argc, char** argv, Stream* out)
+{
+   putstr(out, "***** TX ON *****\n\r");
+   adf7021_enable_tx();
+}
+static void do_txoff(uint8_t argc, char** argv, Stream* out)
+{
+   putstr(out, "***** TX OFF *****\n\r");
+   adf7021_disable_tx();
 }
 
 
@@ -198,14 +242,8 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    }   
 }
 
-extern Semaphore nmea_run; 
-static void do_nmea(uint8_t argc, char** argv, Stream* out)
-{
-  putstr(out, "NMEA LISTEN\n\r");
-  sem_up(&nmea_run);
-}
 
-         
+
 /*********************************************
  * split input string into tokens
  *********************************************/
