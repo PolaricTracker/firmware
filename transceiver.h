@@ -1,3 +1,5 @@
+$Id: transceiver.h,v 1.6 2008-04-12 18:16:35 la7eca Exp $
+
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
 
@@ -544,28 +546,28 @@ static inline uint32_t adf7021_pfd_freq (adf7021_setup_t *setup) {
 
 void adf7021_init (adf7021_setup_t *s);
 
-void adf7021_power_on ();
-void adf7021_power_off ();
+void adf7021_power_on (void);
+void adf7021_power_off (void);
 
-void adf7021_enable_tx ();
-void adf7021_disable_tx ();
+void adf7021_enable_tx (void);
+void adf7021_disable_tx (void);
 
 void adf7021_write_register (uint32_t data);
 uint16_t adf7021_read_register (uint32_t readback);
 
-static inline double adf7021_read_battery_voltage () {
+static inline double adf7021_read_battery_voltage (void) {
   return (double)(adf7021_read_register (ADF7021_READBACK_VOLTAGE) & 0x7f) / 21.1;
 }
 
-static inline double adf7021_read_adc_voltage () {
+static inline double adf7021_read_adc_voltage (void) {
   return (double)(adf7021_read_register (ADF7021_READBACK_EXT_ADC) & 0x7f) / 42.1;
 }
 
-static inline double adf7021_read_temperature () {
+static inline double adf7021_read_temperature (void) {
   return -40.0 + (68.4 - (adf7021_read_register (ADF7021_READBACK_TEMP) & 0x7f)) * 9.32;
 }
 
-double adf7021_read_rssi ();
+double adf7021_read_rssi (void);
 
 
 #endif /* __TRANSCEIVER_H__ */
