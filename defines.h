@@ -1,4 +1,6 @@
-$Id: defines.h,v 1.6 2008-04-12 18:14:22 la7eca Exp $
+/*
+ * $Id: defines.h,v 1.7 2008-04-12 18:18:05 la7eca Exp $ 
+ */
 
 #include <stdint.h>
 #include <stdio.h>

@@ -1,5 +1,6 @@
-$Id: transceiver.h,v 1.6 2008-04-12 18:16:35 la7eca Exp $
-
+/*
+ * $Id: transceiver.h,v 1.7 2008-04-12 18:18:20 la7eca Exp $
+ */
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
 
