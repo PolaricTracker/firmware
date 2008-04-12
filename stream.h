@@ -1,4 +1,5 @@
-/* 
+/*
+ * $Id: stream.h,v 1.7 2008-04-12 18:28:51 la7eca Exp $ 
  * Common stuff for serial communication
  */
 
@@ -25,23 +26,24 @@ typedef struct _Stream
 
 /* API */
 
-
-  
 void   _stream_init(Stream*, char*, const uint8_t);
-char   _stream_get(Stream*, const bool);
-void   _stream_put(Stream*, const char, const bool);
-void   _stream_sendByte(Stream *b, const char, const bool);
+char   stream_get(Stream*);
+void   stream_put(Stream*, const char);
+void   stream_sendByte(Stream *b, const char);
+char   stream_get_nb(Stream*);
+void   stream_put_nb(Stream*, const char);
+void   stream_sendByte_nb(Stream *b, const char);
 
 void   putstr(Stream*, const char *);
 void   putstr_P(Stream *outbuf, const char *);
 void   getstr(Stream*, char*, uint8_t, char);
 
 
-#define getch(s)        _stream_get((s), false)   
-#define putch(s, chr)   _stream_sendByte((s), (chr), false);   
+#define getch(s)        stream_get((s))   
+#define putch(s, chr)   stream_sendByte((s), (chr));   
 
-#define _stream_empty(b)   ((b)->length.cnt == 0)
-#define _stream_full(b)    ((b)->capacity.cnt == 0)
+#define stream_empty(b)   ((b)->length.cnt == 0)
+#define stream_full(b)    ((b)->capacity.cnt == 0)
 
 #define STREAM_INIT(name,size) static char name##_charbuf[(size)];     \
                                _stream_init(&(name), (name##_charbuf), (size));

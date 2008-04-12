@@ -1,4 +1,5 @@
 /*
+ * $Id: stream.c,v 1.9 2008-04-12 18:25:35 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -8,7 +9,6 @@
 
 #include "kernel.h"
 #include "stream.h"
-#include "defines.h"
 
      
 /***************************************************************************
@@ -87,8 +87,8 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
 
 
 /* 
- * The following functions are meant to be called from driver implementations
- * with nonblock=true, or from API functions above with nonblock=false. 
+ * The following functions are in two versions: One blocking to implement
+ * the api, and one nonblocking to be used by driver implementations.
  */
  
 
@@ -97,32 +97,53 @@ void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
  * Puts character into buffer and kicks driver if necessary
  ***************************************************************************/
  
-void _stream_sendByte(Stream *b, const char chr, const bool nonblock)
+void stream_sendByte(Stream *b, const char chr)
 { 
-    bool was_empty = _stream_empty(b);
-    _stream_put(b, chr, nonblock);
+    bool was_empty = stream_empty(b);
+    stream_put(b, chr);
     if (was_empty && b->kick)
         (*b->kick)();
 }
-
+void stream_sendByte_nb(Stream *b, const char chr)
+{ 
+    bool was_empty = stream_empty(b);
+    stream_put_nb(b, chr);
+    if (was_empty && b->kick)
+        (*b->kick)();
+}
  
 /***************************************************************************
  * Read a character from stream buffer 
  ***************************************************************************/
-    
-char _stream_get(Stream* b, const bool nonblock)
-{   
-    if (nonblock && &b->length.cnt==0 )
-       return 0;
-  
-    enter_critical();
-    sem_down(&b->length);
+ 
+inline char _stream_get(Stream* b)
+{
     register uint8_t i = b->index;
     if (++b->index >= b->size) 
         b->index = 0;  
     sem_up(&b->capacity);
-    leave_critical();     
     return b->buf[i];
+}
+    
+char stream_get(Stream* b)
+{   
+    enter_critical();
+    sem_down(&b->length);
+    register char c = _stream_get(b);
+    leave_critical();     
+    return c;
+}
+
+char stream_get_nb(Stream* b)
+{   
+    if (&b->length.cnt==0 )
+       return 0;
+  
+    enter_critical();
+    sem_nb_down(&b->length);
+    register char c = _stream_get(b);
+    leave_critical();     
+    return c;
 }
 
 
@@ -130,20 +151,35 @@ char _stream_get(Stream* b, const bool nonblock)
  * Write a character to stream buffer 
  ***************************************************************************/
  
-void _stream_put(Stream* b, const char c, const bool nonblock)
-{  
-    if (nonblock && &b->capacity==0)
-       return;
-       
-    enter_critical();  
-    sem_down(&b->capacity);
+inline void _stream_put(Stream* b, const char c)
+{
     register uint8_t i = b->index + b->length.cnt; 
     if (i >= b->size)
         i -= b->size; 
     b->buf[i] = c; 
     sem_up(&b->length);
+}
+ 
+void stream_put(Stream* b, const char c)
+{  
+    enter_critical();  
+    sem_down(&b->capacity);
+    _stream_put(b, c);
     leave_critical();
 }
    
+void stream_put_nb(Stream* b, const char c)
+{  
+    if (&b->capacity==0)
+       return;
+       
+    enter_critical();  
+    sem_nb_down(&b->capacity);
+    _stream_put(b,c);
+    leave_critical();
+}
+
+
+
 
 
