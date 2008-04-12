@@ -1,3 +1,9 @@
+$Id: timer.h,v 1.3 2008-04-12 18:15:38 la7eca Exp $
+
+#if !defined __TIMER_H__
+#define __TIMER_H__
+
+
 /*
  * Software timer
  */
@@ -29,3 +35,5 @@ void sleep(uint16_t);
 
 /* Must be called periodically from a timer interrupt handler */
 void timer_tick(void);
+
+#endif
