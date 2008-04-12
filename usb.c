@@ -1,3 +1,7 @@
+/*
+ * $Id: usb.c,v 1.5 2008-04-12 18:27:39 la7eca Exp $
+ */
+ 
 #include "usb.h"
 #include "kernel.h"
 #include "stream.h"
@@ -50,7 +54,7 @@ EVENT_HANDLER(USB_CreateEndpoints)
 	                           ENDPOINT_BANK_SINGLE);
 
 	/* Double green to indicate USB connected and ready */
-	set_bit(LED3);
+	set_port(LED3);
    enter_critical();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_EnableEndpoint();
@@ -130,8 +134,8 @@ void usb_kickout(void)
 {
    enter_critical();
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);	      
-   while ( !_stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
-       Endpoint_Write_Byte( _stream_get(&cdc_outstr, true) );  
+   while ( !stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
+       Endpoint_Write_Byte( stream_get_nb(&cdc_outstr) );  
 
    Endpoint_FIFOCON_Clear();
    leave_critical();    
@@ -153,8 +157,8 @@ ISR(ENDPOINT_PIPE_vect)
 		if ( USB_INT_HasOccurred(ENDPOINT_INT_OUT) ) {
          USB_INT_Clear(ENDPOINT_INT_OUT);
          if (Endpoint_ReadWriteAllowed()){
-             while (Endpoint_BytesInEndpoint() && !_stream_full(&cdc_instr) )
-                 _stream_put(&cdc_instr, Endpoint_Read_Byte(), true);
+             while (Endpoint_BytesInEndpoint() && !stream_full(&cdc_instr) )
+                 stream_put_nb(&cdc_instr, Endpoint_Read_Byte());
              Endpoint_FIFOCON_Clear();
          }   
       }

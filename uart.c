@@ -1,4 +1,7 @@
-
+/*
+ * $Id: uart.c,v 1.9 2008-04-12 18:26:57 la7eca Exp $
+ */
+ 
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/signal.h>
@@ -6,7 +9,7 @@
 #include "kernel.h"
 #include "stream.h"
 
-#define USART_BAUD 4800
+#define USART_BAUD 9600
 #define UART_UBRR (SCALED_F_CPU/(16L*USART_BAUD)-1) 
 
 void uart_kickout(void); 
@@ -31,7 +34,7 @@ void uart_init(const unsigned char e)
    STREAM_INIT( uart_outstr, UART_BUF_SIZE );
     
    uart_outstr.kick = uart_kickout; 
-
+   
    // Set baud rate 
    UBRR1 = UART_UBRR;
   
@@ -46,9 +49,8 @@ void uart_init(const unsigned char e)
 void uart_kickout(void)
 {
    if ((UCSR1A & (1<<UDRE1)))
-       UDR1 = _stream_get(&uart_outstr, true);     
+       UDR1 = stream_get_nb(&uart_outstr);     
 }
-
 
 
 /*******************************************************************************
@@ -59,9 +61,9 @@ void uart_kickout(void)
 ISR(USART1_RX_vect)
 {
       register char x = UDR1;   
-      _stream_put(&uart_instr, x, true);
+      stream_put_nb(&uart_instr, x);
       if ( echo ) 
-         _stream_sendByte(&uart_outstr, x, true);    
+         stream_sendByte_nb(&uart_outstr, x);    
 } 
 
 
@@ -73,7 +75,7 @@ ISR(USART1_RX_vect)
 
 ISR(USART1_TX_vect)
 {
-   if (! _stream_empty(&uart_outstr) ) 
+   if (! stream_empty(&uart_outstr) ) 
        uart_kickout();
 }
  
