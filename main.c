@@ -1,3 +1,7 @@
+/*
+ * $Id: main.c,v 1.3 2008-04-12 18:24:47 la7eca Exp $
+ */
+ 
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -61,9 +65,9 @@ ISR(TIMER1_COMPA_vect)
 void led1(void)
 {
     while (1) {
-          set_bit( LED1 );
+          set_port( LED1 );
           sleep(5);
-          clear_bit( LED1 );
+          clear_port( LED1 );
           sleep(95);
     }
 }
@@ -100,12 +104,43 @@ void nmeaListener(void)
  *   - We may move this to a separate source file or to config.c ?
  *   - Parts of the setup may be stored in EEPROM?
  **************************************************************************/
-void setup_tranceiver(void)
+void setup_transceiver(void)
 {
-    adf7021_setup_t setup;
+    static adf7021_setup_t setup;
     adf7021_setup_init(&setup);
-    adf7021_set_data_rate(&setup, 1200);
-    /* More tbd... */
+    
+    adf7021_set_frequency (&setup, 144.800e6);
+    setup.vco_osc.xosc_enable = true;
+    setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
+    adf7021_set_power (&setup, -13.0, ADF7021_PA_RAMP_OFF);
+    
+    /* Setup tranceiver registers for AFSK - Move this to afsk.h ? */
+    adf7021_set_data_rate (&setup, 1200);
+    adf7021_set_modulation (&setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, 3500);
+    adf7021_set_demodulation (&setup, ADF7021_DEMOD_2FSK_LINEAR);
+    setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
+    adf7021_set_post_demod_filter (&setup, 3500);
+    ADF7021_INIT_REGISTER(setup.test_mode, ADF7021_TEST_MODE_REGISTER);
+    setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
+    setup.test_mode.clk_mux = ADF7021_CLK_MUX_CDR_CLK;
+    /* setup.test_mode.clk_mux = ADF7021_CLK_MUX_TXRX_CLK; */
+    
+    /* Turn it on */
+    adf7021_init (&setup);
+    adf7021_power_on ();
+}
+void setup_transceiver_xx(void)
+{
+   adf7021_write_register( 0x29029C43 );  // 3 
+   adf7021_write_register( 0x969C000 );   // 0
+   adf7021_write_register( 0x21F5011 );   // 1
+   adf7021_write_register( 0x24610C2 );   // 2
+   adf7021_write_register( 0x80170014 );  // 4
+   adf7021_write_register( 0x50A4F66  );  // 6
+   adf7021_write_register( 0x231E9 );     // 9
+   adf7021_write_register( 0x00038 );     // 8
+   adf7021_write_register( 0x0010C );      
+   adf7021_write_register( 0x0000D );  
 }
 
 
@@ -116,16 +151,8 @@ void setup_tranceiver(void)
 
 int main(void) 
 {
-      /*
-       * Set prescaler to get 4 Mhz clock frequency 
-       * The USBKEY has an 8Mhz crystal, so we divide by 2.
-       */
       CLKPR = (1<<7);
-#if defined USBKEY_TEST
-      CLKPR = 1; 
-#else
       CLKPR = 0;
-#endif
      
       /* Start the multi-threading kernel */     
       init_kernel(60); 
@@ -134,14 +161,10 @@ int main(void)
       make_output(LED1);
       make_output(LED2);
       make_output(LED3);
-      make_output(TXDATA);
+//      make_output(TXDATA);
       make_output(GPSON); 
-
-           
-//      DDRD |= (1<<DDD4) | (1<<DDD5) | (1<<DDD6)| (1<<DDD7);    
-//      DDRB |= (1<<DDB0) | (1<<DDB1) | (1<<DDB3) | (1<<DDB7); // TX Test 
-  
-     
+      
+    
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
              | (1<<WGM12);            /* CTC mode */             
@@ -155,11 +178,12 @@ int main(void)
 
       THREAD_START(led1, 70);  
       THREAD_START(usbSerListener, 80);
-     
+    
+      
       /* GPS */
-        set_bit(GPSON);
-//      sem_init(&nmea_run, 0);
-//      THREAD_START(nmeaListener, 80);
+       set_port(GPSON);
+      sem_init(&nmea_run, 0);
+      THREAD_START(nmeaListener, 80);
 
       while(1) 
           { USB_USBTask(); t_yield(); }     
