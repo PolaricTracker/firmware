@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.5 2008-04-12 18:22:44 la7eca Exp $
+ * $Id: commands.c,v 1.6 2008-04-15 21:50:37 la7eca Exp $
  */
  
 #include "defines.h"
@@ -20,7 +20,7 @@
 #define MAXTOKENS 10
 #define BUFSIZE   40
 
-uint8_t tokenize(char*, char*[], uint8_t, char*);
+uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 static void do_teston    (uint8_t, char**, Stream*);
 static void do_testoff   (uint8_t, char**, Stream*);
@@ -33,7 +33,7 @@ static void do_nmea      (uint8_t, char**, Stream*); /* DEBUGGING */
 static void do_trx       (uint8_t, char**, Stream*); /* DEBUGGING */
 static void do_txon      (uint8_t, char**, Stream*); /* DEBUGGING */
 static void do_txoff     (uint8_t, char**, Stream*); /* DEBUGGING */
-
+static void do_ftest     (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -55,7 +55,7 @@ void cmdProcessor(Stream *in, Stream *out)
          getstr(in, buf, BUFSIZE, '\r');
          
          /* Split input line into argument tokens */
-         argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n");
+         argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n", true);
          
          /* Select command handler */         
          if (strncmp("teston", argv[0], 6) == 0)
@@ -79,7 +79,9 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out);        
          else if (strncmp("txoff",     argv[0], 4) == 0)
-             do_txoff(argc, argv, out);            
+             do_txoff(argc, argv, out);    
+         else if (strncmp("ftest",     argv[0], 3) == 0)
+             do_ftest(argc, argv, out);              
          else if (strlen(argv[0]) > 1)
              putstr_P(out, PSTR("*** Unknown command\n\r"));
    }
@@ -111,6 +113,17 @@ static void do_txoff(uint8_t argc, char** argv, Stream* out)
 {
    putstr(out, "***** TX OFF *****\n\r");
    adf7021_disable_tx();
+}
+static void do_ftest(uint8_t argc, char** argv, Stream* out)
+{
+    if (argc > 1) 
+    {
+       float x;
+       str2coord(2, argv[1], &x);
+       char buf[30];
+       sprintf(buf, "x = %f\n", x);
+       putstr(out, buf);
+    }
 }
 
 
@@ -248,17 +261,14 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
  * split input string into tokens
  *********************************************/
  
-uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim)
+uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim, bool merge)
 { 
-     register uint8_t ntokens;
-     char* save;
-     
-     tokens[0] = strtok_r(buf, delim, &save);
-     for (ntokens=1; ntokens<maxtokens; ntokens++) 
+     register uint8_t ntokens = 0;
+     while (ntokens<maxtokens && buf != NULL)
      {
-        tokens[ntokens] = strtok_r(NULL, delim, &save);
-        if (tokens[ntokens] == NULL) 
-           break;
+        tokens[ntokens] = strsep(&buf, delim);
+        if ( buf != NULL && (!merge || *tokens[ntokens] != NULL) )
+           ntokens++;
      }
-     return ntokens;
+     return ntokens+1;
 }
