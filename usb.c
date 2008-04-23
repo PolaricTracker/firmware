@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.5 2008-04-12 18:27:39 la7eca Exp $
+ * $Id: usb.c,v 1.6 2008-04-23 10:44:52 la7eca Exp $
  */
  
 #include "usb.h"
@@ -7,7 +7,7 @@
 #include "stream.h"
 #include "defines.h"
 
-#define CDC_BUF_SIZE 16
+#define CDC_BUF_SIZE 32
 
 /* MyUSB Bug fix */
 #define ENDPOINT_INT_IN     UEIENX, (1 << TXINE) , UEINTX, (1 << TXINI)
@@ -181,7 +181,8 @@ ISR(ENDPOINT_PIPE_vect)
 void usb_init()
 { 
    /* Initialize USB Subsystem */
-	USB_Init(USB_MODE_DEVICE, USB_DEV_OPT_HIGHSPEED | USB_OPT_REG_ENABLED);
+   /* See makefile for mode constraints */
+	USB_Init(USB_DEV_OPT_FULLSPEED | USB_OPT_REG_ENABLED);
    sem_init(&cdc_run, 0);
   
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);
