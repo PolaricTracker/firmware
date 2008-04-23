@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.3 2008-04-12 18:24:47 la7eca Exp $
+ * $Id: main.c,v 1.4 2008-04-23 10:42:10 la7eca Exp $
  */
  
 #include "defines.h"
@@ -19,7 +19,7 @@
 #include "transceiver.h"
 
 extern void cmdProcessor(Stream *, Stream *);  /* commands.c */
-extern void nmeaProcessor(Stream*);            /* nmea.c */
+extern void nmeaProcessor(Stream*, Stream *);  /* nmea.c */
 extern Semaphore cdc_run;                      /* usb.c */
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
@@ -94,55 +94,43 @@ void usbSerListener(void)
 void nmeaListener(void)
 {
     sem_down(&nmea_run);
-    nmeaProcessor(&uart_instr);
+    nmeaProcessor(&uart_instr, &cdc_outstr);
 }
 
 
+adf7021_setup_t trx_setup;
 
 /**************************************************************************
  * Setup the adf7021 tranceiver. 
+
  *   - We may move this to a separate source file or to config.c ?
  *   - Parts of the setup may be stored in EEPROM?
  **************************************************************************/
 void setup_transceiver(void)
 {
-    static adf7021_setup_t setup;
-    adf7021_setup_init(&setup);
+    adf7021_setup_init(&trx_setup);
     
-    adf7021_set_frequency (&setup, 144.800e6);
-    setup.vco_osc.xosc_enable = true;
-    setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
-    adf7021_set_power (&setup, -13.0, ADF7021_PA_RAMP_OFF);
+    adf7021_set_frequency (&trx_setup, 144.800e6);
+    trx_setup.vco_osc.xosc_enable = true;
+    trx_setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
     
-    /* Setup tranceiver registers for AFSK - Move this to afsk.h ? */
-    adf7021_set_data_rate (&setup, 1200);
-    adf7021_set_modulation (&setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, 3500);
-    adf7021_set_demodulation (&setup, ADF7021_DEMOD_2FSK_LINEAR);
-    setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
-    adf7021_set_post_demod_filter (&setup, 3500);
-    ADF7021_INIT_REGISTER(setup.test_mode, ADF7021_TEST_MODE_REGISTER);
-    setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
-    setup.test_mode.clk_mux = ADF7021_CLK_MUX_CDR_CLK;
-    /* setup.test_mode.clk_mux = ADF7021_CLK_MUX_TXRX_CLK; */
+    adf7021_set_data_rate (&trx_setup, 1200);    
+    adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, 3500);
+    adf7021_set_power (&trx_setup, -13.0, ADF7021_PA_RAMP_OFF);
     
-    /* Turn it on */
-    adf7021_init (&setup);
-    adf7021_power_on ();
-}
-void setup_transceiver_xx(void)
-{
-   adf7021_write_register( 0x29029C43 );  // 3 
-   adf7021_write_register( 0x969C000 );   // 0
-   adf7021_write_register( 0x21F5011 );   // 1
-   adf7021_write_register( 0x24610C2 );   // 2
-   adf7021_write_register( 0x80170014 );  // 4
-   adf7021_write_register( 0x50A4F66  );  // 6
-   adf7021_write_register( 0x231E9 );     // 9
-   adf7021_write_register( 0x00038 );     // 8
-   adf7021_write_register( 0x0010C );      
-   adf7021_write_register( 0x0000D );  
-}
+    adf7021_set_demodulation (&trx_setup, ADF7021_DEMOD_2FSK_LINEAR);
+    trx_setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
+    adf7021_set_post_demod_filter (&trx_setup, 3500);
+    ADF7021_INIT_REGISTER(trx_setup.test_mode, ADF7021_TEST_MODE_REGISTER);
+    trx_setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
 
+
+    /* Turn it on */
+    adf7021_init (&trx_setup);
+    adf7021_power_on ();
+
+      
+}
 
 
 /**************************************************************************
@@ -176,14 +164,14 @@ int main(void)
       uart_init(FALSE);
       outframes = hdlc_init_encoder( afsk_init_encoder() );  
 
-      THREAD_START(led1, 70);  
-      THREAD_START(usbSerListener, 80);
+      THREAD_START(led1, 60);  
+      THREAD_START(usbSerListener, 200);
     
       
       /* GPS */
-       set_port(GPSON);
+      clear_port(GPSON);
       sem_init(&nmea_run, 0);
-      THREAD_START(nmeaListener, 80);
+      THREAD_START(nmeaListener, 200);
 
       while(1) 
           { USB_USBTask(); t_yield(); }     

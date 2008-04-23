@@ -12,7 +12,7 @@
 #include "config.h"
 
 
-#define BUFSIZE   70
+#define BUFSIZE   80
 #define MAXTOKENS 16
 
 /* Defined in commands.c */
@@ -24,14 +24,9 @@ static void do_gga  (uint8_t, char**);
 
 static char buf[BUFSIZE];
 
-typedef struct _TimeStamp {
-    uint32_t time;
-    uint8_t  year; 
-    uint8_t  month; 
-    uint8_t  day;
-} timestamp_t;
+typedef uint32_t timestamp_t; // Move to nmea.h
 
-typedef struct _PosData {
+typedef struct _PosData {     // Move to nmea.h  
     float latitude;
     float longitude;
     timestamp_t timestamp;
@@ -47,17 +42,16 @@ extern Stream cdc_outstr;  /* FOR DEBUGGING */
  *    buf on the stack instead. 
  **************************************************************************/
 
-void nmeaProcessor(Stream* in)
+void nmeaProcessor(Stream* in, Stream* out )
 {
     char* argv[16];
     uint8_t argc;
- 
+
     while (1) {
          uint8_t checksum = 0; 
          int c_checksum;
          
          getstr(in, buf, BUFSIZE, '\n');
- //        putstr(&cdc_outstr, buf);         /* ECHO FOR DEBUGGING */
          if (buf[0] != '$')
             continue;
             
@@ -84,6 +78,11 @@ void nmeaProcessor(Stream* in)
    }
 }
 
+
+/****************************************************************
+ * Convert position NMEA fields to float (degrees)
+ ****************************************************************/
+
 void str2coord(const uint8_t ndeg, const char* str, float* coord)
 {
     float minutes;
@@ -96,22 +95,25 @@ void str2coord(const uint8_t ndeg, const char* str, float* coord)
     sscanf(dstring, "%f", coord);      /* Degrees */
     sscanf(str+ndeg, "%f", &minutes);  /* Minutes */
     *coord += (minutes / 60);
-    
-    char buf[30];
 }
 
-
-void nmea2time(const char* timestr, uint32_t* t)
+/*****************************************************************
+ * Convert date/time NMEA fields to 32 bit integer (timestamp)
+ *****************************************************************/
+ 
+void nmea2time( timestamp_t* t, const char* timestr)
 {
     int hour, min, sec;
     sscanf(timestr, "%2u%2u%2u", &hour, &min, &sec);
     *t = (uint32_t) hour * 3600 + min * 60 + sec;
 }
 
-char* time2str(char* buf, uint32_t time)
+
+
+char* time2str(char* buf, timestamp_t time)
 {
     sprintf(buf, "%2u:%2u:%2u", 
-      (uint8_t) (time / 3600), (uint8_t) (time / 60 % 60), (uint8_t) (time % 60) );
+      (uint8_t) (time / 3600 % 24), (uint8_t) (time / 60 % 60), (uint8_t) (time % 60) );
     return buf;
 }
  
@@ -120,18 +122,17 @@ char* time2str(char* buf, uint32_t time)
 static void do_rmc(uint8_t argc, char** argv)
 {
     char buf[60], tbuf[9];
-    
     if (argc != 13)            /* Ignore if wrong format */
        return;
    // if (*argv[2] != 'A')     /* Ignore if receiver not in lock */
    //   return;
    
     /* get timestamp */
-    uint32_t time; 
-    nmea2time(argv[1], &time);
+    timestamp_t time; 
+    nmea2time(&time, argv[1]);
    
     /* get latitude [ddmm.mmmmm] */
-    str2coord(2, argv[3], &pos.latitude);   
+    str2coord(2, argv[3], &pos.latitude);  
     if (*argv[4] == 'S')
         pos.latitude = -pos.latitude;
         
@@ -140,9 +141,9 @@ static void do_rmc(uint8_t argc, char** argv)
     if (*argv[6] == 'W')
         pos.longitude = -pos.longitude;
         
-    sprintf(buf, "TIME: %s, POS: lat=%f, long=%f\r\n", 
+    sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f\r\n"), 
        time2str(tbuf, time), pos.latitude, pos.longitude);
-    putstr(&cdc_outstr, buf);
+//    putstr(&cdc_outstr, buf);
 }
 
 

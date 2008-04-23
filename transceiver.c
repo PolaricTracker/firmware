@@ -1,3 +1,5 @@
+/* $Id: transceiver.c,v 1.8 2008-04-23 10:44:09 la7eca Exp $
+
 #include <avr/io.h>
 #include <math.h>
 #include "defines.h"
@@ -23,6 +25,8 @@ void adf7021_setup_init(adf7021_setup_t *setup) {
   setup->if_filter.calibrate = true;
   setup->if_filter.divider = ADF7021_XTAL / 50e3;
 }
+
+
 
 void adf7021_set_frequency (adf7021_setup_t *setup, uint32_t freq)
 {
@@ -84,6 +88,8 @@ void adf7021_set_frequency (adf7021_setup_t *setup, uint32_t freq)
   setup->tx_n.fractional = (n - floor (n)) * 32768.0 + 0.5;
 }
 
+
+
 void adf7021_set_data_rate (adf7021_setup_t *setup, uint16_t data_rate)
 {
   ADF7021_INIT_REGISTER(setup->clock, ADF7021_CLOCK_REGISTER);
@@ -112,6 +118,8 @@ void adf7021_set_data_rate (adf7021_setup_t *setup, uint16_t data_rate)
 }
 
 
+
+
 void adf7021_set_modulation (adf7021_setup_t *setup, adf7021_modulation_t scheme, uint16_t deviation)
 {
   ADF7021_INIT_REGISTER(setup->modulation, ADF7021_MODULATION_REGISTER);
@@ -125,6 +133,8 @@ void adf7021_set_modulation (adf7021_setup_t *setup, adf7021_modulation_t scheme
 }
 
 
+
+
 void adf7021_set_if_filter_fine_calibration (adf7021_setup_t *setup, double tone_cal_time)
 {
   ADF7021_INIT_REGISTER (setup->if_filter_cal, ADF7021_IF_FILTER_CAL_REGISTER);
@@ -135,10 +145,16 @@ void adf7021_set_if_filter_fine_calibration (adf7021_setup_t *setup, double tone
   setup->if_filter_cal.dwell_time = tone_cal_time * setup->clock.seq_clk_divide;
 }
 
+
+
+
 void adf7021_set_post_demod_filter (adf7021_setup_t *setup, uint16_t cutoff)
 {
   setup->demod.post_demod_bw = (double)(1 << 11) * M_PI * cutoff / (ADF7021_XTAL / setup->clock.dem_clk_divide);
 }
+
+
+
 
 void adf7021_set_demodulation (adf7021_setup_t *setup, adf7021_demod_scheme_t scheme)
 {
@@ -165,6 +181,8 @@ void adf7021_set_demodulation (adf7021_setup_t *setup, adf7021_demod_scheme_t sc
   }
   adf7021_set_post_demod_filter (setup, cutoff);
 }
+
+
 
 
 void adf7021_set_power (adf7021_setup_t *setup, double dBm, adf7021_pa_ramp_t ramp)
@@ -195,6 +213,8 @@ void adf7021_set_power (adf7021_setup_t *setup, double dBm, adf7021_pa_ramp_t ra
 }
 
 
+
+
 void adf7021_init (adf7021_setup_t* s)
 {
   adf7021_enabled = adf7021_tx_enabled = false;
@@ -219,6 +239,8 @@ void adf7021_init (adf7021_setup_t* s)
   
   setup = s;
 }
+
+
 
 
 void adf7021_power_on ()
@@ -287,6 +309,7 @@ void adf7021_power_on ()
 }
 
 
+
 void adf7021_power_off ()
 {
   adf7021_enabled = adf7021_tx_enabled = false;
@@ -302,7 +325,7 @@ void adf7021_enable_tx ()
 //  set_port (EXTERNAL_PA_ON);  // FIXME
  
   /* Enable transmit mode */
-  adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));
+  adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
   sleep (setup->ramp_time);
   
   adf7021_tx_enabled = true;
@@ -317,7 +340,7 @@ void adf7021_disable_tx ()
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
   sleep (setup->ramp_time);
 
-  clear_port (EXTERNAL_PA_ON);   // FIXME
+//  clear_port (EXTERNAL_PA_ON);   // FIXME
 }
 
 
@@ -348,7 +371,6 @@ static inline void _write_register (uint32_t data)
           [sclk_bit]   "I" (ADF7021_SCLK_BIT),
           [sdata_port] "I" (_SFR_IO_ADDR(ADF7021_SDATA_PORT)),
           [sdata_bit]  "I" (ADF7021_SDATA_BIT));
-  
   clear_port (ADF7021_SCLK);
   clear_port (ADF7021_SDATA);
   set_port (ADF7021_SLE);
@@ -357,8 +379,8 @@ static inline void _write_register (uint32_t data)
 
 void adf7021_write_register (uint32_t data)
 {
-  static char buf[50];
-  sprintf(buf, "WRITE REGISTER %lx\r\n", data); 
+  char buf[50];
+  sprintf(buf, "WRITE REGISTER %lx\r\n", (uint32_t) data); 
   putstr( &cdc_outstr, buf); 
 
   _write_register (data);
