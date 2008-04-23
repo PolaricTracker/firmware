@@ -9,7 +9,7 @@
 		#include "usb_descriptors.h"
 
 		#include <MyUSB/Drivers/USB/USB.h>                // USB Functionality
-		#include <MyUSB/Drivers/USBKEY/Bicolour.h>        // Bicolour LEDs driver for the USBKEY
+
 
 	/* Macros: */
 		#define GET_LINE_CODING              0x21
