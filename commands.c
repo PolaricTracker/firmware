@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.6 2008-04-15 21:50:37 la7eca Exp $
+ * $Id: commands.c,v 1.7 2008-04-23 10:41:35 la7eca Exp $
  */
  
 #include "defines.h"
@@ -18,7 +18,7 @@
 
 
 #define MAXTOKENS 10
-#define BUFSIZE   40
+#define BUFSIZE   60
 
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
@@ -29,11 +29,10 @@ static void do_txdelay   (uint8_t, char**, Stream*);
 static void do_txtail    (uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
-static void do_nmea      (uint8_t, char**, Stream*); /* DEBUGGING */
-static void do_trx       (uint8_t, char**, Stream*); /* DEBUGGING */
+static void do_nmea      (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
+static void do_trx       (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
 static void do_txon      (uint8_t, char**, Stream*); /* DEBUGGING */
 static void do_txoff     (uint8_t, char**, Stream*); /* DEBUGGING */
-static void do_ftest     (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -51,12 +50,12 @@ void cmdProcessor(Stream *in, Stream *out)
     
     putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\n\r"));
     while (1) {
-         putstr(out, "cmd: ");     
+         putstr(out, "cmd: ");    
          getstr(in, buf, BUFSIZE, '\r');
          
          /* Split input line into argument tokens */
          argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n", true);
-         
+
          /* Select command handler */         
          if (strncmp("teston", argv[0], 6) == 0)
              do_teston(argc, argv, out);
@@ -73,19 +72,17 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("dest",     argv[0], 2) == 0)
              do_dest(argc, argv, out);      
          else if (strncmp("nmea",     argv[0], 2) == 0)
-             do_nmea(argc, argv, out);     
+             do_nmea(argc, argv, out, in);     
          else if (strncmp("trx",     argv[0], 2) == 0)
-             do_trx(argc, argv, out);        
+             do_trx(argc, argv, out, in);        
          else if (strncmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out);        
          else if (strncmp("txoff",     argv[0], 4) == 0)
-             do_txoff(argc, argv, out);    
-         else if (strncmp("ftest",     argv[0], 3) == 0)
-             do_ftest(argc, argv, out);              
+             do_txoff(argc, argv, out);                 
          else if (strlen(argv[0]) > 1)
              putstr_P(out, PSTR("*** Unknown command\n\r"));
    }
-}
+}   
 
 
 /************************************************
@@ -93,37 +90,29 @@ void cmdProcessor(Stream *in, Stream *out)
  ************************************************/
  
 extern Semaphore nmea_run; 
-static void do_nmea(uint8_t argc, char** argv, Stream* out)
+static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-  putstr(out, "NMEA LISTEN\n\r");
+  putstr_P(out, PSTR("***** NMEA LISTEN *****\n\r"));
   sem_up(&nmea_run);
+  
+  /* And wait until some character has been typed */
+  getch(in);
 }
 
-static void do_trx(uint8_t argc, char** argv, Stream* out)
+static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-   putstr(out, "***** TRX CHIP ON *****\n\r");
+   putstr_P(out, PSTR("***** TRX CHIP ON *****\n\r"));
    setup_transceiver();
 }
 static void do_txon(uint8_t argc, char** argv, Stream* out)
 {
-   putstr(out, "***** TX ON *****\n\r");
+   putstr_P(out, PSTR("***** TX ON *****\n\r"));
    adf7021_enable_tx();
 }
 static void do_txoff(uint8_t argc, char** argv, Stream* out)
 {
-   putstr(out, "***** TX OFF *****\n\r");
+   putstr_P(out, PSTR("***** TX OFF *****\n\r"));
    adf7021_disable_tx();
-}
-static void do_ftest(uint8_t argc, char** argv, Stream* out)
-{
-    if (argc > 1) 
-    {
-       float x;
-       str2coord(2, argv[1], &x);
-       char buf[30];
-       sprintf(buf, "x = %f\n", x);
-       putstr(out, buf);
-    }
 }
 
 
