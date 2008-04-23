@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.8 2008-04-23 10:44:09 la7eca Exp $
+/* $Id: transceiver.c,v 1.9 2008-04-23 10:49:37 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
