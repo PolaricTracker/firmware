@@ -1,4 +1,5 @@
 /* 
+ * $Id: kernel.h,v 1.7 2008-04-30 08:45:20 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 
@@ -32,10 +33,10 @@ typedef struct _sem {
 
 
 /* Kernel API */
-void init_kernel(uint8_t);
-void _t_start( void(*)(void) , TCB*, uint8_t); 
+void init_kernel(uint16_t);
+void _t_start( void(*)(void) , TCB*, uint16_t); 
 void t_yield(void);
-void sem_init(Semaphore*, uint8_t);
+void sem_init(Semaphore*, uint16_t);
 void sem_down(Semaphore*);
 void sem_up(Semaphore*);
 bool sem_nb_down(Semaphore*);

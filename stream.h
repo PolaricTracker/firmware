@@ -1,5 +1,5 @@
 /*
- * $Id: stream.h,v 1.7 2008-04-12 18:28:51 la7eca Exp $ 
+ * $Id: stream.h,v 1.8 2008-04-30 08:49:57 la7eca Exp $ 
  * Common stuff for serial communication
  */
 
@@ -26,7 +26,7 @@ typedef struct _Stream
 
 /* API */
 
-void   _stream_init(Stream*, char*, const uint8_t);
+void   _stream_init(Stream*, char*, const uint16_t);
 char   stream_get(Stream*);
 void   stream_put(Stream*, const char);
 void   stream_sendByte(Stream *b, const char);
@@ -36,7 +36,7 @@ void   stream_sendByte_nb(Stream *b, const char);
 
 void   putstr(Stream*, const char *);
 void   putstr_P(Stream *outbuf, const char *);
-void   getstr(Stream*, char*, uint8_t, char);
+void   getstr(Stream*, char*, uint16_t, char);
 
 
 #define getch(s)        stream_get((s))   

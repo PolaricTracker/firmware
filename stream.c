@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.9 2008-04-12 18:25:35 la7eca Exp $
+ * $Id: stream.c,v 1.10 2008-04-30 08:49:27 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -17,7 +17,7 @@
  *   s - buffer size.
  ***************************************************************************/     
  
-void _stream_init(Stream* b, char* bdata, const uint8_t s)
+void _stream_init(Stream* b, char* bdata, const uint16_t s)
 {
     b->buf = bdata; 
     b->size = s; 
@@ -68,9 +68,9 @@ void putstr_P(Stream *b, const char * addr)
  *  is received. The marker is not returned in the receive buffer. 
  ********************************************************************************/
  
-void getstr(Stream *b, char* addr, const uint8_t len, const char marker)
+void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
 { 
-    register uint8_t i;
+    register uint16_t i;
     register char x;
     sem_down(&b->mutex); 
     for (i=0; i<len; i++) 
@@ -118,7 +118,7 @@ void stream_sendByte_nb(Stream *b, const char chr)
  
 inline char _stream_get(Stream* b)
 {
-    register uint8_t i = b->index;
+    register uint16_t i = b->index;
     if (++b->index >= b->size) 
         b->index = 0;  
     sem_up(&b->capacity);
@@ -153,7 +153,7 @@ char stream_get_nb(Stream* b)
  
 inline void _stream_put(Stream* b, const char c)
 {
-    register uint8_t i = b->index + b->length.cnt; 
+    register uint16_t i = b->index + b->length.cnt; 
     if (i >= b->size)
         i -= b->size; 
     b->buf[i] = c; 

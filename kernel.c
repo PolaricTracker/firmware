@@ -17,7 +17,7 @@ void *stack;
  * Initialise a Dijkstra semaphore
  **********************************************************************************/
  
-void sem_init(Semaphore* s, uint8_t cnt)
+void sem_init(Semaphore* s, uint16_t cnt)
 {
    s->cnt = cnt; 
    s->qfirst = s->qlast = NULL;
@@ -28,7 +28,7 @@ void sem_init(Semaphore* s, uint8_t cnt)
  * Set the semaphore to any (non-negative) value
  *********************************************************************************/
 
-void sem_set(Semaphore* s, uint8_t cnt)
+void sem_set(Semaphore* s, uint16_t cnt)
   { enter_critical(); s->cnt = cnt; leave_critical(); }
 
 
@@ -61,7 +61,7 @@ void sem_down(Semaphore* s)
    {
        if (setjmp(q_head->env) == 0) 
        { 
-          enter_critical()
+          enter_critical();
           if (s->qfirst == NULL)
               s->qlast = s->qfirst = q_head; 
           else
@@ -72,11 +72,11 @@ void sem_down(Semaphore* s)
           q_head = x; 
           s->qlast->next = NULL;
           leave_critical();
-          longjmp(q_head->env, 1);    
+          longjmp(x->env, 1);    
        }
    }
    else
-       s->cnt--;
+       { s->cnt--; }
 }
 
 
@@ -127,7 +127,7 @@ void t_yield()
  *  as argument. 
  ****************************************************************************/
 
-void _t_start(void (*task)(), TCB * tcb, uint8_t stsize)
+void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
 {
     if (setjmp(q_head->env) == 0)
     {
@@ -168,7 +168,7 @@ void _t_start(void (*task)(), TCB * tcb, uint8_t stsize)
  * allocated to the root task, i.e. the already running thread. 
  ****************************************************************************/
  
-void init_kernel(uint8_t stsize) 
+void init_kernel(uint16_t stsize) 
 {  
         enter_critical();
         q_head = q_end = &root_task;
