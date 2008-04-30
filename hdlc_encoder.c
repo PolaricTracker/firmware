@@ -13,9 +13,9 @@
 #include "kernel.h"
 #include "timer.h"
 #include "stream.h"
+#include "config.h"
 #include <util/crc16.h>
 		          
-uint8_t txbytes; 
 
 // Buffers
 FBQ encoder_queue; 
@@ -28,11 +28,8 @@ static uint8_t testbyte;
 
 #define BUFFER_EMPTY (fbuf_eof(&buffer))            
 
-enum {TXOFF, TXPRE, TXPACKET, TXPOST} txState; 
 
 /* FIXME: Those should be parameters stored in EEPROM ! */
-#define TXDELAY 60
-#define TXTAIL 40
 #define PERSISTENCE 100
 #define SLOTTIME    50
 
@@ -46,10 +43,10 @@ fbq_t* hdlc_init_encoder(stream_t* os)
 {
    outstream = os;
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
-   THREAD_START( hdlc_txencoder, DEFAULT_STACK_SIZE );
+   THREAD_START( hdlc_txencoder, 200 );
    
    sem_init(&test, 0);
-   THREAD_START( hdlc_testsignal, DEFAULT_STACK_SIZE);
+   THREAD_START( hdlc_testsignal, 200);
    return &encoder_queue;
 }		
 
@@ -130,8 +127,10 @@ static void hdlc_encode_frames()
 {
      uint16_t crc = 0xffff;
      uint8_t txbyte, i;
+     uint8_t txdelay = GET_BYTE_PARAM(TXDELAY);
+     uint8_t txtail  = GET_BYTE_PARAM(TXTAIL);
    
-     for (i=0; i<TXDELAY; i++)
+     for (i=0; i<txdelay; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 
      while(!BUFFER_EMPTY)
@@ -144,7 +143,7 @@ static void hdlc_encode_frames()
      hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
      hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
        
-     for (i=0; i<TXTAIL; i++)
+     for (i=0; i<txtail; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 }
 
