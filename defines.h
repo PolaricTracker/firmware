@@ -1,12 +1,12 @@
 /*
- * $Id: defines.h,v 1.7 2008-04-12 18:18:05 la7eca Exp $ 
+ * $Id: defines.h,v 1.8 2008-04-30 08:44:02 la7eca Exp $ 
  */
 
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
 
-#define USBKEY_TEST  /* Comment out if compiling for the real Polaric Tracker */
+// #define USBKEY_TEST  /* Comment out if compiling for the real Polaric Tracker */
 
 #define TRUE   (1)
 #define FALSE  (0)
@@ -65,7 +65,7 @@
 #define UART_OUT_BIT        3
 #define UART_OUT_DDR        DDRD
 
-#if defined USBKEY_TEST
+#if defined USBKEY_TEST 
 
 #define LED1_PORT       USBKEY_LED1_PORT
 #define LED1_BIT        USBKEY_LED1_BIT
@@ -79,9 +79,9 @@
 
 #else
 
-#define TXDATA_PORT     BUZZER_PORT 
-#define TXDATA_BIT      BUZZER_BIT 
-#define TXDATA_DDR      BUZZER_DDR
+#define TXDATA_PORT     ADF7021_TXRXDATA_PORT
+#define TXDATA_BIT      ADF7021_TXRXDATA_BIT
+#define TXDATA_DDR      ADF7021_TXRXDATA_DDR
 #define LED1_PORT       PORTA
 #define LED1_BIT        7
 #define LED1_DDR        DDRA

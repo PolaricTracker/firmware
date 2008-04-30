@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.7 2008-04-23 10:41:35 la7eca Exp $
+ * $Id: commands.c,v 1.8 2008-04-30 08:46:18 la7eca Exp $
  */
  
 #include "defines.h"
@@ -89,12 +89,14 @@ void cmdProcessor(Stream *in, Stream *out)
  * For testing .....
  ************************************************/
  
-extern Semaphore nmea_run; 
+Semaphore nmea_run; 
+
 static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
   putstr_P(out, PSTR("***** NMEA LISTEN *****\n\r"));
   sem_up(&nmea_run);
-  
+  t_yield();
+
   /* And wait until some character has been typed */
   getch(in);
 }
@@ -124,6 +126,7 @@ static void do_txoff(uint8_t argc, char** argv, Stream* out)
 static void do_teston(uint8_t argc, char** argv, Stream* out)
 {
     int ch = 0;
+    putstr(out, "*** Teston ***\r\n");
     hdlc_test_off();
     sleep(10);
     sscanf(argv[1], " %i", &ch);  
@@ -157,7 +160,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
     GET_PARAM(MYCALL, &from);
     GET_PARAM(DEST, &to);
     
-    addr_t digis[] = {{"LD9TS", 0}}; 
+    addr_t digis[] = {{"WIDE2", 2}}; 
             
     ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
