@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.9 2008-04-23 10:49:37 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.10 2008-04-30 08:52:20 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -9,7 +9,6 @@
 #define MINIMUM_N 23
 
 #include "stream.h"
-extern Stream cdc_outstr;     /* FOR DEBUGGING */
 
 bool adf7021_enabled = false;
 bool adf7021_tx_enabled = false;
@@ -326,9 +325,8 @@ void adf7021_enable_tx ()
  
   /* Enable transmit mode */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
-  sleep (setup->ramp_time);
-  
   adf7021_tx_enabled = true;
+//  sleep (setup->ramp_time);   // FIXME  
 }
 
 
@@ -336,11 +334,10 @@ void adf7021_enable_tx ()
 void adf7021_disable_tx ()
 {
   adf7021_tx_enabled = false;
-
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
-  sleep (setup->ramp_time);
-
+  
 //  clear_port (EXTERNAL_PA_ON);   // FIXME
+//  sleep (setup->ramp_time);      // FIXME
 }
 
 
@@ -379,10 +376,6 @@ static inline void _write_register (uint32_t data)
 
 void adf7021_write_register (uint32_t data)
 {
-  char buf[50];
-  sprintf(buf, "WRITE REGISTER %lx\r\n", (uint32_t) data); 
-  putstr( &cdc_outstr, buf); 
-
   _write_register (data);
   clear_port (ADF7021_SLE);
 }
