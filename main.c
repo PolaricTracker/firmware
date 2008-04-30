@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.4 2008-04-23 10:42:10 la7eca Exp $
+ * $Id: main.c,v 1.5 2008-04-30 08:48:43 la7eca Exp $
  */
  
 #include "defines.h"
@@ -25,8 +25,10 @@ extern Stream cdc_instr;
 extern Stream cdc_outstr;
 extern Stream uart_instr;                      /* uart.c */
 
-Semaphore nmea_run; 
+extern Semaphore nmea_run; 
 fbq_t* outframes;  
+
+
 
 
 /***************************************************************************
@@ -90,12 +92,14 @@ void usbSerListener(void)
     cmdProcessor(&cdc_instr, &cdc_outstr);
 }
 
-
+     
 void nmeaListener(void)
 {
     sem_down(&nmea_run);
     nmeaProcessor(&uart_instr, &cdc_outstr);
 }
+
+
 
 
 adf7021_setup_t trx_setup;
@@ -115,8 +119,8 @@ void setup_transceiver(void)
     trx_setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
     
     adf7021_set_data_rate (&trx_setup, 1200);    
-    adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, 3500);
-    adf7021_set_power (&trx_setup, -13.0, ADF7021_PA_RAMP_OFF);
+    adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, 2750);
+    adf7021_set_power (&trx_setup, 13.0, ADF7021_PA_RAMP_OFF);
     
     adf7021_set_demodulation (&trx_setup, ADF7021_DEMOD_2FSK_LINEAR);
     trx_setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
@@ -127,10 +131,9 @@ void setup_transceiver(void)
 
     /* Turn it on */
     adf7021_init (&trx_setup);
-    adf7021_power_on ();
-
-      
+    adf7021_power_on ();   
 }
+
 
 
 /**************************************************************************
@@ -149,9 +152,9 @@ int main(void)
       make_output(LED1);
       make_output(LED2);
       make_output(LED3);
-//      make_output(TXDATA);
+      make_output(TXDATA);
       make_output(GPSON); 
-      
+      set_port(GPSON);
     
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
@@ -160,19 +163,18 @@ int main(void)
       OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
    
       sei();    
-      usb_init();    
-      uart_init(FALSE);
-      outframes = hdlc_init_encoder( afsk_init_encoder() );  
-
+      outframes =  hdlc_init_encoder( afsk_init_encoder() );  
       THREAD_START(led1, 60);  
-      THREAD_START(usbSerListener, 200);
-    
-      
+                  
       /* GPS */
-      clear_port(GPSON);
+      uart_init(FALSE);
+//      clear_port(GPSON); // BUG: GPS og USB spiller ikke i lag. 
       sem_init(&nmea_run, 0);
       THREAD_START(nmeaListener, 200);
-
+      
+      usb_init();    
+      THREAD_START(usbSerListener, 200);
+      
       while(1) 
           { USB_USBTask(); t_yield(); }     
            /* The MCU should be set in idle mode here, if possible */
