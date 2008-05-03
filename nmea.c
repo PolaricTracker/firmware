@@ -33,6 +33,8 @@ typedef struct _PosData {     // Move to nmea.h
 } posdata_t;
 
 posdata_t pos;
+bool monitor_pos, monitor_raw; 
+
 extern Stream cdc_outstr;  /* FOR DEBUGGING */
 
 
@@ -46,7 +48,8 @@ void nmeaProcessor(Stream* in, Stream* out )
 {
     char* argv[16];
     uint8_t argc;
-
+ 
+    monitor_pos = monitor_raw = false; 
     while (1) {
          uint8_t checksum = 0; 
          int c_checksum;
@@ -54,7 +57,7 @@ void nmeaProcessor(Stream* in, Stream* out )
          getstr(in, buf, BUFSIZE, '\n');
          if (buf[0] != '$')
             continue;
-            
+
          /* Checksum (optional) */
          uint8_t i;
          for (i=1; i<BUFSIZE && buf[i] !='*' && buf[i] != 0 ; i++) 
@@ -66,6 +69,12 @@ void nmeaProcessor(Stream* in, Stream* out )
                continue;
          } 
          
+         /* If requested, show raw NMEA packet on screen */
+         if (monitor_raw) {
+             putstr(out, buf);
+             putstr(out, "\n");
+         }
+        
          /* Split input line into tokens */
          argc = tokenize(buf, argv, MAXTOKENS, ",", false);   
          
@@ -78,7 +87,22 @@ void nmeaProcessor(Stream* in, Stream* out )
    }
 }
 
+/****************************************************************
+ * Monitoring control
+ *   nmea_mon_pos - valid GPRMC position reports
+ *   nmea_mon_raw - NMEA packets  
+ *   nmea_mon_off - turn it all off
+ ****************************************************************/
 
+void nmea_mon_pos(void)
+   { monitor_pos = true; }
+void nmea_mon_raw(void)
+   { monitor_raw = true; }
+void nmea_mon_off(void)
+   { monitor_pos = monitor_raw = false; }
+   
+   
+   
 /****************************************************************
  * Convert position NMEA fields to float (degrees)
  ****************************************************************/
@@ -118,6 +142,9 @@ char* time2str(char* buf, timestamp_t time)
 }
  
 
+/****************************************************************
+ * Handle RMC line
+ ****************************************************************/
 
 static void do_rmc(uint8_t argc, char** argv)
 {
@@ -126,7 +153,7 @@ static void do_rmc(uint8_t argc, char** argv)
        return;
    // if (*argv[2] != 'A')     /* Ignore if receiver not in lock */
    //   return;
-   
+
     /* get timestamp */
     timestamp_t time; 
     nmea2time(&time, argv[1]);
@@ -140,10 +167,13 @@ static void do_rmc(uint8_t argc, char** argv)
     str2coord(3, argv[5], &pos.longitude);  
     if (*argv[6] == 'W')
         pos.longitude = -pos.longitude;
-        
-    sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f\r\n"), 
-       time2str(tbuf, time), pos.latitude, pos.longitude);
-//    putstr(&cdc_outstr, buf);
+    
+    /* If requested, show position on screen */    
+    if (monitor_pos) {
+        sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f\r\n"), 
+          time2str(tbuf, time), pos.latitude, pos.longitude);
+        putstr(&cdc_outstr, buf);
+    }
 }
 
 
