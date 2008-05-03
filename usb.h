@@ -7,7 +7,6 @@
 		#include <avr/pgmspace.h>
 
 		#include "usb_descriptors.h"
-
 		#include <MyUSB/Drivers/USB/USB.h>                // USB Functionality
 
 
@@ -17,6 +16,7 @@
 		#define SET_CONTROL_LINE_STATE       0x22
 
 	/* Event Handlers: */
+      HANDLES_EVENT(USB_Reset);
 		HANDLES_EVENT(USB_Connect);
 		HANDLES_EVENT(USB_Disconnect);
 		HANDLES_EVENT(USB_CreateEndpoints);
