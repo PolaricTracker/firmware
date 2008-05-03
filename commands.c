@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.8 2008-04-30 08:46:18 la7eca Exp $
+ * $Id: commands.c,v 1.9 2008-05-03 19:38:16 la7eca Exp $
  */
  
 #include "defines.h"
@@ -71,7 +71,7 @@ void cmdProcessor(Stream *in, Stream *out)
              do_mycall(argc, argv, out);    
          else if (strncmp("dest",     argv[0], 2) == 0)
              do_dest(argc, argv, out);      
-         else if (strncmp("nmea",     argv[0], 2) == 0)
+         else if (strncmp("gps",     argv[0], 3) == 0)
              do_nmea(argc, argv, out, in);     
          else if (strncmp("trx",     argv[0], 2) == 0)
              do_trx(argc, argv, out, in);        
@@ -92,13 +92,31 @@ void cmdProcessor(Stream *in, Stream *out)
 Semaphore nmea_run; 
 
 static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
-{
-  putstr_P(out, PSTR("***** NMEA LISTEN *****\n\r"));
-  sem_up(&nmea_run);
-  t_yield();
+{                                                                                                            
+  if (strncmp("on", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** GPS ON *****\n\r"));
+      clear_port(GPSON);
+      return;
+  }
+/*  if (strncmp("off", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** GPS OFF *****\n\r"));
+      set_port(GPSON);
+      return;
+  }  */
+  if (strncmp("nmea", argv[1], 1) == 0) {
+      putstr_P(out, PSTR("***** NMEA PACKETS *****\n\r"));
+      nmea_mon_raw();
+  } 
+  else if (strncmp("pos", argv[1], 3) == 0){
+      putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\n\r"));
+      nmea_mon_pos();
+  } 
+  else
+     return;
 
   /* And wait until some character has been typed */
   getch(in);
+  nmea_mon_off();
 }
 
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
@@ -126,7 +144,7 @@ static void do_txoff(uint8_t argc, char** argv, Stream* out)
 static void do_teston(uint8_t argc, char** argv, Stream* out)
 {
     int ch = 0;
-    putstr(out, "*** Teston ***\r\n");
+    putstr(out, "*** Test signal on ***\r\n");
     hdlc_test_off();
     sleep(10);
     sscanf(argv[1], " %i", &ch);  
