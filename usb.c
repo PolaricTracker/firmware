@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.6 2008-04-23 10:44:52 la7eca Exp $
+ * $Id: usb.c,v 1.7 2008-05-03 19:42:16 la7eca Exp $
  */
  
 #include "usb.h"
@@ -7,7 +7,7 @@
 #include "stream.h"
 #include "defines.h"
 
-#define CDC_BUF_SIZE 32
+#define CDC_BUF_SIZE 64
 
 /* MyUSB Bug fix */
 #define ENDPOINT_INT_IN     UEIENX, (1 << TXINE) , UEINTX, (1 << TXINI)
@@ -37,34 +37,44 @@ EVENT_HANDLER(USB_Disconnect)
 }
 
 
+EVENT_HANDLER(USB_Reset)
+{
+	/* Select the control endpoint */
+	Endpoint_SelectEndpoint(ENDPOINT_CONTROLEP);
+
+	/* Enable the endpoint SETUP interrupt ISR for the control endpoint */
+	USB_INT_Enable(ENDPOINT_INT_SETUP);
+}
+
+
 
 EVENT_HANDLER(USB_CreateEndpoints)
 {
 	/* Setup CDC Notification, Rx and Tx Endpoints */
 	Endpoint_ConfigureEndpoint(CDC_NOTIFICATION_EPNUM, EP_TYPE_INTERRUPT,
-		                       ENDPOINT_DIR_IN, CDC_NOTIFICATION_EPSIZE,
+		                        ENDPOINT_DIR_IN, CDC_NOTIFICATION_EPSIZE,
 	                           ENDPOINT_BANK_SINGLE);
 
 	Endpoint_ConfigureEndpoint(CDC_TX_EPNUM, EP_TYPE_BULK,
-		                       ENDPOINT_DIR_IN, CDC_TXRX_EPSIZE,
+		                        ENDPOINT_DIR_IN, CDC_TXRX_EPSIZE,
 	                           ENDPOINT_BANK_SINGLE);
 
 	Endpoint_ConfigureEndpoint(CDC_RX_EPNUM, EP_TYPE_BULK,
-		                       ENDPOINT_DIR_OUT, CDC_TXRX_EPSIZE,
+		                        ENDPOINT_DIR_OUT, CDC_TXRX_EPSIZE,
 	                           ENDPOINT_BANK_SINGLE);
 
-	/* Double green to indicate USB connected and ready */
+	/* LED to indicate USB connected and ready */
 	set_port(LED3);
    enter_critical();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_EnableEndpoint();
-   USB_INT_Enable( ENDPOINT_INT_OUT );
+   USB_INT_Enable( ENDPOINT_INT_OUT ); 
+   
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);
    Endpoint_EnableEndpoint();   	 
-   USB_INT_Enable( ENDPOINT_INT_IN );   
-	sem_up(&cdc_run);
-   leave_critical();
-   
+   USB_INT_Enable( ENDPOINT_INT_IN );    
+   sem_up(&cdc_run);    
+   leave_critical();    
 }
 
 
@@ -76,7 +86,7 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 	uint8_t* LineCodingData = (uint8_t*)&LineCoding;
 
 	Endpoint_Ignore_Word();
-   
+
 	/* Process CDC specific control requests */
 	switch (Request)
 	{
@@ -133,10 +143,9 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 void usb_kickout(void)
 {
    enter_critical();
-   Endpoint_SelectEndpoint(CDC_TX_EPNUM);	      
+   Endpoint_SelectEndpoint(CDC_TX_EPNUM);	     
    while ( !stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
        Endpoint_Write_Byte( stream_get_nb(&cdc_outstr) );  
-
    Endpoint_FIFOCON_Clear();
    leave_critical();    
 }
@@ -148,7 +157,14 @@ void usb_kickout(void)
 
 ISR(ENDPOINT_PIPE_vect)
 {   
-   enter_critical();           
+
+	if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
+	{
+		Endpoint_ClearEndpointInterrupt(ENDPOINT_CONTROLEP);
+		USB_USBTask();
+		USB_INT_Clear(ENDPOINT_INT_SETUP);
+	}     
+   
 	if (Endpoint_HasEndpointInterrupted(CDC_RX_EPNUM))
 	{
 		Endpoint_ClearEndpointInterrupt(CDC_RX_EPNUM);
@@ -172,7 +188,6 @@ ISR(ENDPOINT_PIPE_vect)
            usb_kickout(); 
       }
    } 
-   leave_critical();  
 }
 
   
@@ -182,7 +197,7 @@ void usb_init()
 { 
    /* Initialize USB Subsystem */
    /* See makefile for mode constraints */
-	USB_Init(USB_DEV_OPT_FULLSPEED | USB_OPT_REG_ENABLED);
+	USB_Init( USB_OPT_REG_ENABLED);
    sem_init(&cdc_run, 0);
   
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);

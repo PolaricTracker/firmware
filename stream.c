@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.10 2008-04-30 08:49:27 la7eca Exp $
+ * $Id: stream.c,v 1.11 2008-05-03 19:41:20 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -22,7 +22,7 @@ void _stream_init(Stream* b, char* bdata, const uint16_t s)
     b->buf = bdata; 
     b->size = s; 
     b->index=0; 
-    sem_init(&b->mutex,1);
+    sem_init(&b->mutex, 1);
     sem_init(&b->length, 0);
     sem_init(&b->capacity, s-1); 
 }      
@@ -70,9 +70,9 @@ void putstr_P(Stream *b, const char * addr)
  
 void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
 { 
-    register uint16_t i;
-    register char x;
-    sem_down(&b->mutex); 
+    uint16_t i;
+    char x;
+//    sem_down(&b->mutex); // Vranglås på grunn av dette?  
     for (i=0; i<len; i++) 
     {
        x = getch(b);   
@@ -81,7 +81,7 @@ void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
        addr[i] = x;  
     }
     addr[i] = '\0';   
-    sem_up(&b->mutex);
+//    sem_up(&b->mutex);
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.5 2008-04-30 08:48:43 la7eca Exp $
+ * $Id: main.c,v 1.6 2008-05-03 19:39:28 la7eca Exp $
  */
  
 #include "defines.h"
@@ -29,7 +29,8 @@ extern Semaphore nmea_run;
 fbq_t* outframes;  
 
 
-
+void dummy(void)
+ {t_yield(); }
 
 /***************************************************************************
  * Main clock interrupt routine. Provides clock ticks for software timers
@@ -39,7 +40,6 @@ fbq_t* outframes;
 ISR(TIMER1_COMPA_vect) 
 {
      static uint8_t ticks, txticks; 
-     
      /*
       * count 8 ticks to get to a 1200Hz rate
       */
@@ -65,12 +65,12 @@ ISR(TIMER1_COMPA_vect)
  *************************************************************************/
  
 void led1(void)
-{
+{       
     while (1) {
-          set_port( LED1 );
-          sleep(5);
-          clear_port( LED1 );
-          sleep(95);
+        set_port( LED1 );
+        sleep(5);
+        clear_port( LED1 );
+        sleep(95);
     }
 }
  
@@ -95,7 +95,6 @@ void usbSerListener(void)
      
 void nmeaListener(void)
 {
-    sem_down(&nmea_run);
     nmeaProcessor(&uart_instr, &cdc_outstr);
 }
 
@@ -165,17 +164,15 @@ int main(void)
       sei();    
       outframes =  hdlc_init_encoder( afsk_init_encoder() );  
       THREAD_START(led1, 60);  
-                  
+                
       /* GPS */
       uart_init(FALSE);
-//      clear_port(GPSON); // BUG: GPS og USB spiller ikke i lag. 
-      sem_init(&nmea_run, 0);
       THREAD_START(nmeaListener, 200);
-      
+
       usb_init();    
       THREAD_START(usbSerListener, 200);
-      
+
       while(1) 
-          { USB_USBTask(); t_yield(); }     
+          { t_yield(); }     
            /* The MCU should be set in idle mode here, if possible */
 }
