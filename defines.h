@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.8 2008-04-30 08:44:02 la7eca Exp $ 
+ * $Id: defines.h,v 1.9 2008-05-06 08:59:59 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -37,6 +37,15 @@
 #define AFSK_DECODER_BUFFER_SIZE 128
 #define HDLC_DECODER_QUEUE_SIZE  4
 #define HDLC_ENCODER_QUEUE_SIZE  4
+
+
+/********************************************
+ * LED blinking
+ ********************************************/
+ 
+#define BLINK_NORMAL        { blink_length = 5, blink_interval = 95; }
+#define BLINK_GPS_SEARCHING { blink_length = 45, blink_interval = 45; }
+
 
 
 /********************************************
