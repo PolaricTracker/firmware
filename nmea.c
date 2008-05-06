@@ -10,32 +10,23 @@
 #include "fbuf.h"
 #include "ax25.h"
 #include "config.h"
+#include "nmea.h"
 
 
-#define BUFSIZE   80
-#define MAXTOKENS 16
+#define NMEA_BUFSIZE   80
+#define NMEA_MAXTOKENS 16
 
 /* Defined in commands.c */
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 /* Local handlers */
-static void do_rmc  (uint8_t, char**);
-static void do_gga  (uint8_t, char**);
+static void do_rmc  (uint8_t, char**, Stream*);
+static void do_gga  (uint8_t, char**, Stream*);
 
-static char buf[BUFSIZE];
+static char buf[NMEA_BUFSIZE];
 
-typedef uint32_t timestamp_t; // Move to nmea.h
-
-typedef struct _PosData {     // Move to nmea.h  
-    float latitude;
-    float longitude;
-    timestamp_t timestamp;
-} posdata_t;
-
-posdata_t pos;
-bool monitor_pos, monitor_raw; 
-
-extern Stream cdc_outstr;  /* FOR DEBUGGING */
+static posdata_t pos;
+static bool monitor_pos, monitor_raw; 
 
 
 /**************************************************************************
@@ -54,13 +45,13 @@ void nmeaProcessor(Stream* in, Stream* out )
          uint8_t checksum = 0; 
          int c_checksum;
          
-         getstr(in, buf, BUFSIZE, '\n');
+         getstr(in, buf, NMEA_BUFSIZE, '\n');
          if (buf[0] != '$')
             continue;
 
          /* Checksum (optional) */
          uint8_t i;
-         for (i=1; i<BUFSIZE && buf[i] !='*' && buf[i] != 0 ; i++) 
+         for (i=1; i<NMEA_BUFSIZE && buf[i] !='*' && buf[i] != 0 ; i++) 
             checksum ^= buf[i];
          if (buf[i] == '*') {
             buf[i] = 0;
@@ -76,13 +67,13 @@ void nmeaProcessor(Stream* in, Stream* out )
          }
         
          /* Split input line into tokens */
-         argc = tokenize(buf, argv, MAXTOKENS, ",", false);   
+         argc = tokenize(buf, argv, NMEA_MAXTOKENS, ",", false);   
          
          /* Select command handler */    
          if (strcmp("RMC", argv[0]+3) == 0)
-             do_rmc(argc, argv);
+             do_rmc(argc, argv, out);
          else if (strcmp("GGA", argv[0]+3) == 0)
-             do_gga(argc, argv);
+             do_gga(argc, argv, out);
 
    }
 }
@@ -102,12 +93,18 @@ void nmea_mon_off(void)
    { monitor_pos = monitor_raw = false; }
    
    
+/****************************************************************
+ * Get current position info
+ ****************************************************************/
+posdata_t getPos() 
+   { return pos; }
+    
    
 /****************************************************************
  * Convert position NMEA fields to float (degrees)
  ****************************************************************/
 
-void str2coord(const uint8_t ndeg, const char* str, float* coord)
+static void str2coord(const uint8_t ndeg, const char* str, float* coord)
 {
     float minutes;
     char dstring[ndeg+1];
@@ -121,11 +118,12 @@ void str2coord(const uint8_t ndeg, const char* str, float* coord)
     *coord += (minutes / 60);
 }
 
+
 /*****************************************************************
  * Convert date/time NMEA fields to 32 bit integer (timestamp)
  *****************************************************************/
  
-void nmea2time( timestamp_t* t, const char* timestr)
+static void nmea2time( timestamp_t* t, const char* timestr)
 {
     int hour, min, sec;
     sscanf(timestr, "%2u%2u%2u", &hour, &min, &sec);
@@ -141,18 +139,44 @@ char* time2str(char* buf, timestamp_t time)
     return buf;
 }
  
+ 
+ 
+/****************************************************************
+ * handle changes in GPS lock - mainly change LED blinking
+ ****************************************************************/
+ 
+extern uint8_t blink_length, blink_interval;
+static bool is_locked;
 
+void notify_lock(bool lock)
+{
+   if (!lock && was_lock) 
+       BLINK_GPS_SEARCHING
+   else if (lock && !was_lock) 
+       BLINK_NORMAL
+   is_locked = lock;
+}
+
+bool gps_is_locked()
+   { return is_locked; }
+   
+         
+       
 /****************************************************************
  * Handle RMC line
  ****************************************************************/
 
-static void do_rmc(uint8_t argc, char** argv)
+static void do_rmc(uint8_t argc, char** argv, Stream *out)
 {
     char buf[60], tbuf[9];
     if (argc != 13)            /* Ignore if wrong format */
        return;
-   // if (*argv[2] != 'A')     /* Ignore if receiver not in lock */
-   //   return;
+    if (*argv[2] != 'A') { 
+      notify_lock(false);      /* Ignore if receiver not in lock */
+      return;
+    }
+    else
+      notify_lock(true);
 
     /* get timestamp */
     timestamp_t time; 
@@ -172,13 +196,13 @@ static void do_rmc(uint8_t argc, char** argv)
     if (monitor_pos) {
         sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f\r\n"), 
           time2str(tbuf, time), pos.latitude, pos.longitude);
-        putstr(&cdc_outstr, buf);
+        putstr(out, buf);
     }
 }
 
 
 
-static void do_gga(uint8_t argc, char** argv)
+static void do_gga(uint8_t argc, char** argv, Stream *out)
 {
     /* TBD if needed */
 }
