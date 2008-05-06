@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.9 2008-05-03 19:38:16 la7eca Exp $
+ * $Id: commands.c,v 1.10 2008-05-06 09:01:13 la7eca Exp $
  */
  
 #include "defines.h"
@@ -33,9 +33,13 @@ static void do_nmea      (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
 static void do_trx       (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
 static void do_txon      (uint8_t, char**, Stream*); /* DEBUGGING */
 static void do_txoff     (uint8_t, char**, Stream*); /* DEBUGGING */
+static void do_freq      (uint8_t, char**, Stream*);
+static void do_power     (uint8_t, char**, Stream*);
+static void do_deviation (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
+
 
 /**************************************************************************
  * Read and process commands .
@@ -69,8 +73,14 @@ void cmdProcessor(Stream *in, Stream *out)
              do_txtail(argc, argv, out);
          else if (strncmp("mycall",     argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
-         else if (strncmp("dest",     argv[0], 2) == 0)
-             do_dest(argc, argv, out);      
+         else if (strncmp("dest",     argv[0], 3) == 0)
+             do_dest(argc, argv, out);    
+         else if (strncmp("freq", argv[0], 2) == 0)
+             do_freq(argc, argv, out);  
+         else if (strncmp("power", argv[0], 2) == 0)
+             do_power(argc, argv, out);     
+         else if (strncmp("deviation", argv[0], 3) == 0)
+             do_deviation(argc, argv, out);               
          else if (strncmp("gps",     argv[0], 3) == 0)
              do_nmea(argc, argv, out, in);     
          else if (strncmp("trx",     argv[0], 2) == 0)
@@ -86,7 +96,7 @@ void cmdProcessor(Stream *in, Stream *out)
 
 
 /************************************************
- * For testing .....
+ * For testing of GPS .....
  ************************************************/
  
 Semaphore nmea_run; 
@@ -97,12 +107,12 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
       putstr_P(out, PSTR("***** GPS ON *****\n\r"));
       clear_port(GPSON);
       return;
-  }
-/*  if (strncmp("off", argv[1], 2) == 0) {
+  } 
+  if (strncmp("off", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS OFF *****\n\r"));
       set_port(GPSON);
       return;
-  }  */
+  }  
   if (strncmp("nmea", argv[1], 1) == 0) {
       putstr_P(out, PSTR("***** NMEA PACKETS *****\n\r"));
       nmea_mon_raw();
@@ -119,11 +129,24 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   nmea_mon_off();
 }
 
+
+/************************************************
+ * Turn on transceiver chip.....
+ ************************************************/
+ 
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-   putstr_P(out, PSTR("***** TRX CHIP ON *****\n\r"));
-   setup_transceiver();
+   if (strncmp("on", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** TRX CHIP ON *****\n\r"));
+      setup_transceiver();
+   }
 }
+
+
+/************************************************
+ * For testing of transmitter .....
+ ************************************************/
+
 static void do_txon(uint8_t argc, char** argv, Stream* out)
 {
    putstr_P(out, PSTR("***** TX ON *****\n\r"));
@@ -138,7 +161,7 @@ static void do_txoff(uint8_t argc, char** argv, Stream* out)
 
       
 /*********************************************
- * teston <byte> : Turn on 	test signal
+ * teston <byte> : Turn on test signal
  *********************************************/
  
 static void do_teston(uint8_t argc, char** argv, Stream* out)
@@ -265,6 +288,62 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    }   
 }
 
+
+/*********************************************
+ * config: transceiver frequency
+ *********************************************/
+ 
+static void do_freq(uint8_t argc, char** argv, Stream* out)
+{
+    uint32_t x = 0;
+    if (argc > 1) {
+       sscanf(argv[1], " %ld", &x);
+       x *= 1000;   
+       SET_PARAM(TRX_FREQ, &x);
+    } 
+    else {
+       GET_PARAM(TRX_FREQ, &x);
+       sprintf_P(buf, PSTR("FREQ is: %ld kHz\n\r\0"), x/1000);
+       putstr(out, buf);
+    }
+}
+
+
+/*********************************************
+ * config: transmitter power (dBm)
+ *********************************************/
+ 
+static void do_power(uint8_t argc, char** argv, Stream* out)
+{
+    double x = 0;
+    if (argc > 1) {
+       sscanf(argv[1], " %lf", &x);  
+       SET_PARAM(TRX_TXPOWER, &x);
+    } 
+    else {
+       GET_PARAM(TRX_TXPOWER, &x);
+       sprintf_P(buf, PSTR("POWER is: %lf dBm\n\r\0"), x);
+       putstr(out, buf);
+    }
+}
+
+/*********************************************
+ * config: AFSK modulation deviation
+ *********************************************/
+ 
+static void do_deviation(uint8_t argc, char** argv, Stream* out)
+{
+    uint16_t x = 0;
+    if (argc > 1) {
+       sscanf(argv[1], " %d", &x);  
+       SET_PARAM(TRX_AFSK_DEV, &x);
+    } 
+    else {
+       GET_PARAM(TRX_AFSK_DEV, &x);
+       sprintf_P(buf, PSTR("DEVIATION is: %d\n\r\0"), x);
+       putstr(out, buf);
+    }
+}
 
 
 /*********************************************
