@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.6 2008-05-03 19:39:28 la7eca Exp $
+ * $Id: main.c,v 1.7 2008-05-06 09:02:43 la7eca Exp $
  */
  
 #include "defines.h"
@@ -17,20 +17,18 @@
 #include "ax25.h"
 #include "config.h"
 #include "transceiver.h"
+#include "nmea.h"
+
 
 extern void cmdProcessor(Stream *, Stream *);  /* commands.c */
-extern void nmeaProcessor(Stream*, Stream *);  /* nmea.c */
 extern Semaphore cdc_run;                      /* usb.c */
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
 extern Stream uart_instr;                      /* uart.c */
 
-extern Semaphore nmea_run; 
 fbq_t* outframes;  
 
 
-void dummy(void)
- {t_yield(); }
 
 /***************************************************************************
  * Main clock interrupt routine. Provides clock ticks for software timers
@@ -63,14 +61,16 @@ ISR(TIMER1_COMPA_vect)
 /*************************************************************************
  * Heartbeat LED blink. 
  *************************************************************************/
+uint8_t blink_length, blink_interval;
  
 void led1(void)
 {       
+    BLINK_NORMAL;
     while (1) {
         set_port( LED1 );
-        sleep(5);
+        sleep(blink_length);
         clear_port( LED1 );
-        sleep(95);
+        sleep(blink_interval);
     }
 }
  
@@ -111,15 +111,22 @@ adf7021_setup_t trx_setup;
  **************************************************************************/
 void setup_transceiver(void)
 {
-    adf7021_setup_init(&trx_setup);
+    uint32_t freq; 
+    double power; 
+    uint16_t dev;
     
-    adf7021_set_frequency (&trx_setup, 144.800e6);
+    GET_PARAM(TRX_FREQ, &freq);
+    GET_PARAM(TRX_TXPOWER, &power);
+    GET_PARAM(TRX_AFSK_DEV, &dev);
+    
+    adf7021_setup_init(&trx_setup);
+    adf7021_set_frequency (&trx_setup, freq);
     trx_setup.vco_osc.xosc_enable = true;
     trx_setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
     
     adf7021_set_data_rate (&trx_setup, 1200);    
-    adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, 2750);
-    adf7021_set_power (&trx_setup, 13.0, ADF7021_PA_RAMP_OFF);
+    adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, dev);
+    adf7021_set_power (&trx_setup, power, ADF7021_PA_RAMP_OFF);
     
     adf7021_set_demodulation (&trx_setup, ADF7021_DEMOD_2FSK_LINEAR);
     trx_setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
@@ -173,6 +180,6 @@ int main(void)
       THREAD_START(usbSerListener, 200);
 
       while(1) 
-          { t_yield(); }     
-           /* The MCU should be set in idle mode here, if possible */
+         { t_yield(); }     
+          /* The MCU should be set in idle mode here, if possible */
 }
