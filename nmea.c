@@ -150,9 +150,9 @@ static bool is_locked;
 
 void notify_lock(bool lock)
 {
-   if (!lock && was_lock) 
+   if (!lock && is_locked) 
        BLINK_GPS_SEARCHING
-   else if (lock && !was_lock) 
+   else if (lock && !is_locked) 
        BLINK_NORMAL
    is_locked = lock;
 }
