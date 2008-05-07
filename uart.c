@@ -1,5 +1,5 @@
 /*
- * $Id: uart.c,v 1.10 2008-05-03 19:41:45 la7eca Exp $
+ * $Id: uart.c,v 1.11 2008-05-07 18:01:51 la7eca Exp $
  */
  
 #include "defines.h"
@@ -12,42 +12,53 @@
 #define USART_BAUD 9600
 #define UART_UBRR (SCALED_F_CPU/(16L*USART_BAUD)-1) 
 
-void uart_kickout(void); 
+
+static void uart_kickout(void); 
 
 
 /************************************
         DRIVER FOR UART
  ************************************/
 
-Stream uart_instr;
-Stream uart_outstr; 
+static Stream uart_instr;
+static Stream uart_outstr; 
 
-static unsigned char echo;
+static bool echo;
 
 
 
-void uart_init(const unsigned char e)
+Stream* uart_tx_init()
 {
-   echo = e; 
-
-   STREAM_INIT( uart_instr, UART_BUF_SIZE );
    STREAM_INIT( uart_outstr, UART_BUF_SIZE );
-    
    uart_outstr.kick = uart_kickout; 
    
    // Set baud rate 
    UBRR1 = UART_UBRR;
-  
+   // Set frame format to 8 data bits, no parity, and 1stop bit
+   UCSR1C |= (1<<UCSZ10) | (1<<UCSZ11);
+     
    // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
-   UCSR1B = (1<<RXCIE1)|(1<<TXCIE1)| (1<<RXEN1)|(1<<TXEN1);
+   UCSR1B = (1<<TXCIE1)| (1<<TXEN1);
+   return &uart_outstr;
+}
+
+Stream* uart_rx_init(bool e)
+{
+   echo = e; 
+   STREAM_INIT( uart_instr, UART_BUF_SIZE );    
+   
+   // Set baud rate 
+   UBRR1 = UART_UBRR;
    // Set frame format to 8 data bits, no parity, and 1stop bit
    UCSR1C = (1<<UCSZ10) | (1<<UCSZ11);
-}               
+     
+   // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
+   UCSR1B |= (1<<RXCIE1) | (1<<RXEN1);
+   return &uart_instr;
+}
 
 
-
-
-void uart_kickout(void)
+static void uart_kickout(void)
 {
    enter_critical();
    if ((UCSR1A & (1<<UDRE1)))
