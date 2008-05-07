@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.10 2008-05-06 09:01:13 la7eca Exp $
+ * $Id: commands.c,v 1.11 2008-05-07 17:59:41 la7eca Exp $
  */
  
 #include "defines.h"
@@ -15,11 +15,14 @@
 #include "ax25.h"
 #include "config.h"
 #include "transceiver.h"
+#include "gps.h"
 
 
 #define MAXTOKENS 10
 #define BUFSIZE   60
 
+
+void setup_transceiver(void);
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 static void do_teston    (uint8_t, char**, Stream*);
@@ -31,8 +34,8 @@ static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
 static void do_nmea      (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
 static void do_trx       (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
-static void do_txon      (uint8_t, char**, Stream*); /* DEBUGGING */
-static void do_txoff     (uint8_t, char**, Stream*); /* DEBUGGING */
+static void do_txon      (uint8_t, char**, Stream*);             /* DEBUGGING */
+static void do_txoff     (uint8_t, char**, Stream*);             /* DEBUGGING */
 static void do_freq      (uint8_t, char**, Stream*);
 static void do_power     (uint8_t, char**, Stream*);
 static void do_deviation (uint8_t, char**, Stream*);
@@ -115,18 +118,18 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   }  
   if (strncmp("nmea", argv[1], 1) == 0) {
       putstr_P(out, PSTR("***** NMEA PACKETS *****\n\r"));
-      nmea_mon_raw();
+      gps_mon_raw();
   } 
   else if (strncmp("pos", argv[1], 3) == 0){
       putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\n\r"));
-      nmea_mon_pos();
+      gps_mon_pos();
   } 
   else
      return;
 
   /* And wait until some character has been typed */
   getch(in);
-  nmea_mon_off();
+  gps_mon_off();
 }
 
 
@@ -143,6 +146,7 @@ static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 }
 
 
+
 /************************************************
  * For testing of transmitter .....
  ************************************************/
@@ -152,6 +156,7 @@ static void do_txon(uint8_t argc, char** argv, Stream* out)
    putstr_P(out, PSTR("***** TX ON *****\n\r"));
    adf7021_enable_tx();
 }
+
 static void do_txoff(uint8_t argc, char** argv, Stream* out)
 {
    putstr_P(out, PSTR("***** TX OFF *****\n\r"));

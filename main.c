@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.7 2008-05-06 09:02:43 la7eca Exp $
+ * $Id: main.c,v 1.8 2008-05-07 18:00:14 la7eca Exp $
  */
  
 #include "defines.h"
@@ -17,14 +17,12 @@
 #include "ax25.h"
 #include "config.h"
 #include "transceiver.h"
-#include "nmea.h"
+#include "gps.h"
 
-
-extern void cmdProcessor(Stream *, Stream *);  /* commands.c */
-extern Semaphore cdc_run;                      /* usb.c */
+/* usb.c */
+extern Semaphore cdc_run;   
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
-extern Stream uart_instr;                      /* uart.c */
 
 fbq_t* outframes;  
 
@@ -79,7 +77,6 @@ void led1(void)
 
 /**************************************************************************
  * Read and process commands on USB interface
- * Read and process nmea messages from GPS
  **************************************************************************/
        
 void usbSerListener(void)
@@ -92,19 +89,12 @@ void usbSerListener(void)
     cmdProcessor(&cdc_instr, &cdc_outstr);
 }
 
-     
-void nmeaListener(void)
-{
-    nmeaProcessor(&uart_instr, &cdc_outstr);
-}
-
-
 
 
 adf7021_setup_t trx_setup;
 
 /**************************************************************************
- * Setup the adf7021 tranceiver. 
+ * Setup the adf7021 tranceiver. la4o.net/#
 
  *   - We may move this to a separate source file or to config.c ?
  *   - Parts of the setup may be stored in EEPROM?
@@ -159,8 +149,7 @@ int main(void)
       make_output(LED2);
       make_output(LED3);
       make_output(TXDATA);
-      make_output(GPSON); 
-      set_port(GPSON);
+      make_output(EXTERNAL_PA_ON);
     
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
@@ -173,8 +162,7 @@ int main(void)
       THREAD_START(led1, 60);  
                 
       /* GPS */
-      uart_init(FALSE);
-      THREAD_START(nmeaListener, 200);
+      gps_init(&cdc_outstr);
 
       usb_init();    
       THREAD_START(usbSerListener, 200);
