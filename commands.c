@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.11 2008-05-07 17:59:41 la7eca Exp $
+ * $Id: commands.c,v 1.12 2008-05-17 23:34:25 la7eca Exp $
  */
  
 #include "defines.h"
@@ -32,16 +32,21 @@ static void do_txdelay   (uint8_t, char**, Stream*);
 static void do_txtail    (uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
-static void do_nmea      (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
-static void do_trx       (uint8_t, char**, Stream*, Stream* in); /* DEBUGGING */
-static void do_txon      (uint8_t, char**, Stream*);             /* DEBUGGING */
-static void do_txoff     (uint8_t, char**, Stream*);             /* DEBUGGING */
+static void do_symbol    (uint8_t, char**, Stream*);
+static void do_nmea      (uint8_t, char**, Stream*, Stream* in);
+static void do_trx       (uint8_t, char**, Stream*, Stream* in);
+static void do_txon      (uint8_t, char**, Stream*);            
+static void do_txoff     (uint8_t, char**, Stream*);            
+static void do_tracker   (uint8_t, char**, Stream*, Stream* in);
 static void do_freq      (uint8_t, char**, Stream*);
 static void do_power     (uint8_t, char**, Stream*);
 static void do_deviation (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
+
+extern void tracker_on();
+extern void tracker_off();
 
 
 /**************************************************************************
@@ -59,6 +64,7 @@ void cmdProcessor(Stream *in, Stream *out)
     while (1) {
          putstr(out, "cmd: ");    
          getstr(in, buf, BUFSIZE, '\r');
+
          
          /* Split input line into argument tokens */
          argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n", true);
@@ -78,6 +84,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_mycall(argc, argv, out);    
          else if (strncmp("dest",     argv[0], 3) == 0)
              do_dest(argc, argv, out);    
+         else if (strncmp("symbol",   argv[0], 3) == 0)
+             do_symbol(argc, argv, out);               
          else if (strncmp("freq", argv[0], 2) == 0)
              do_freq(argc, argv, out);  
          else if (strncmp("power", argv[0], 2) == 0)
@@ -86,8 +94,10 @@ void cmdProcessor(Stream *in, Stream *out)
              do_deviation(argc, argv, out);               
          else if (strncmp("gps",     argv[0], 3) == 0)
              do_nmea(argc, argv, out, in);     
-         else if (strncmp("trx",     argv[0], 2) == 0)
+         else if (strncmp("trx",     argv[0], 3) == 0)
              do_trx(argc, argv, out, in);        
+         else if (strncmp("tracker", argv[0], 3) == 0)
+             do_tracker(argc, argv, out, in);
          else if (strncmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out);        
          else if (strncmp("txoff",     argv[0], 4) == 0)
@@ -108,12 +118,12 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {                                                                                                            
   if (strncmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS ON *****\n\r"));
-      clear_port(GPSON);
+      gps_on();
       return;
   } 
   if (strncmp("off", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS OFF *****\n\r"));
-      set_port(GPSON);
+      gps_off();
       return;
   }  
   if (strncmp("nmea", argv[1], 1) == 0) {
@@ -140,9 +150,36 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    if (strncmp("on", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** TRX CHIP ON *****\n\r"));
+      putstr_P(out, PSTR("***** TRX CHIP INIT *****\n\r"));
       setup_transceiver();
    }
+}
+
+
+/************************************************
+ * For testing of tracker .....
+ ************************************************/
+
+static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+  if (argc < 2)
+  {
+      if (GET_BYTE_PARAM(TRACKER_ON))
+          putstr_P(out, PSTR("Tracker is ON\r\n"));
+      else
+          putstr_P(out, PSTR("Tracker is OFF\r\n"));
+      return;
+  }
+  if (strncmp("on", argv[1], 2) == 0) {   
+      putstr_P(out, PSTR("***** TRACKER ON *****\n\r"));
+      tracker_on();
+  }  
+  if (strncmp("off", argv[1], 2) == 0) {     
+      putstr_P(out, PSTR("***** TRACKER OFF *****\n\r"));
+      tracker_off();
+  }
+  else 
+      return;
 }
 
 
@@ -172,7 +209,7 @@ static void do_txoff(uint8_t argc, char** argv, Stream* out)
 static void do_teston(uint8_t argc, char** argv, Stream* out)
 {
     int ch = 0;
-    putstr(out, "*** Test signal on ***\r\n");
+    putstr(out, "**** TEST SIGNAL ON ****\r\n");
     hdlc_test_off();
     sleep(10);
     sscanf(argv[1], " %i", &ch);  
@@ -183,13 +220,14 @@ static void do_teston(uint8_t argc, char** argv, Stream* out)
 
 
          
+
 /*********************************************
  * testoff : Turn off test signal
  *********************************************/
  
 static void do_testoff(uint8_t argc, char** argv, Stream* out)
 {
-    putstr_P(out, PSTR("Test signal off\n\r"));  
+    putstr_P(out, PSTR("**** TEST SIGNAL OFF ****\n\r"));  
     hdlc_test_off();  
 }
 
@@ -293,6 +331,22 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    }   
 }
 
+/*********************************************
+ * config: symbol (APRS symbol/symbol table)
+ *********************************************/
+ 
+static void do_symbol(uint8_t argc, char** argv, Stream* out)
+{
+   if (argc > 2) {
+      SET_BYTE_PARAM(SYMBOL_TABLE, *argv[1]);
+      SET_BYTE_PARAM(SYMBOL, *argv[2]);
+   }
+   else {
+      sprintf_P(buf, PSTR("SYMTABLE/SYMBOL is: %c %c\n\r\0"), 
+           GET_BYTE_PARAM(SYMBOL_TABLE), GET_BYTE_PARAM(SYMBOL));
+      putstr(out, buf);
+   }   
+}
 
 /*********************************************
  * config: transceiver frequency
@@ -351,9 +405,16 @@ static void do_deviation(uint8_t argc, char** argv, Stream* out)
 }
 
 
-/*********************************************
- * split input string into tokens
- *********************************************/
+/****************************************************************************
+ * split input string into tokens - returns number of tokens found
+ *
+ * ARGUMENTS: 
+ *   buf       - text buffer to tokenize
+ *   tokens    - array in which to store pointers to tokens
+ *   maxtokens - maximum number of tokens to scan for
+ *   delim     - characters which can be used as delimiters between tokens
+ *   merge     - if true, merge empty tokens
+ ****************************************************************************/
  
 uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim, bool merge)
 { 
