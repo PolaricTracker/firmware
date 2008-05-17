@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.10 2008-04-30 08:52:20 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.11 2008-05-17 23:38:18 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -218,6 +218,7 @@ void adf7021_init (adf7021_setup_t* s)
 {
   adf7021_enabled = adf7021_tx_enabled = false;
   
+  make_output (PD3OUT);
   make_output (EXTERNAL_PA_ON);
   make_output (ADF7021_ON);
   make_output (ADF7021_SCLK);
@@ -235,6 +236,7 @@ void adf7021_init (adf7021_setup_t* s)
   /* Just to be on the safe side */
   clear_port (EXTERNAL_PA_ON);
   clear_port (ADF7021_ON);
+  set_port (PD3OUT);
   
   setup = s;
 }
@@ -313,6 +315,8 @@ void adf7021_power_off ()
 {
   adf7021_enabled = adf7021_tx_enabled = false;
   clear_port (EXTERNAL_PA_ON);
+  set_port (PD3OUT);
+
   clear_port (ADF7021_ON);
 }
 
@@ -322,7 +326,8 @@ void adf7021_enable_tx ()
 {
   /* Turn on external PA */
 //  set_port (EXTERNAL_PA_ON);  // FIXME
- 
+//  clear_port(PD3OUT);
+   
   /* Enable transmit mode */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
   adf7021_tx_enabled = true;
@@ -335,9 +340,10 @@ void adf7021_disable_tx ()
 {
   adf7021_tx_enabled = false;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
-  
-//  clear_port (EXTERNAL_PA_ON);   // FIXME
-//  sleep (setup->ramp_time);      // FIXME
+
+//  set_port (PD3OUT);  
+//  clear_port (EXTERNAL_PA_ON);     // FIXME
+//  sleep (setup->ramp_time);        // FIXME
 }
 
 
