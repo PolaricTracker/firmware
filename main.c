@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.8 2008-05-07 18:00:14 la7eca Exp $
+ * $Id: main.c,v 1.9 2008-05-17 23:37:50 la7eca Exp $
  */
  
 #include "defines.h"
@@ -94,8 +94,7 @@ void usbSerListener(void)
 adf7021_setup_t trx_setup;
 
 /**************************************************************************
- * Setup the adf7021 tranceiver. la4o.net/#
-
+ * Setup the adf7021 tranceiver.
  *   - We may move this to a separate source file or to config.c ?
  *   - Parts of the setup may be stored in EEPROM?
  **************************************************************************/
@@ -149,7 +148,6 @@ int main(void)
       make_output(LED2);
       make_output(LED3);
       make_output(TXDATA);
-      make_output(EXTERNAL_PA_ON);
     
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
@@ -161,9 +159,11 @@ int main(void)
       outframes =  hdlc_init_encoder( afsk_init_encoder() );  
       THREAD_START(led1, 60);  
                 
-      /* GPS */
+      /* GPS and tracking */
       gps_init(&cdc_outstr);
+      tracker_init();
 
+      /* USB */
       usb_init();    
       THREAD_START(usbSerListener, 200);
 

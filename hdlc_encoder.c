@@ -1,4 +1,5 @@
 /*
+ * $Id: hdlc_encoder.c,v 1.14 2008-05-17 23:36:45 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -122,14 +123,15 @@ static void hdlc_txencoder()
  * It is responsible for computing checksum, bit stuffing and for adding 
  * flags at start and end of frames.
  *******************************************************************************/
-extern Stream cdc_outstr;
+ 
 static void hdlc_encode_frames()
 {
      uint16_t crc = 0xffff;
      uint8_t txbyte, i;
      uint8_t txdelay = GET_BYTE_PARAM(TXDELAY);
      uint8_t txtail  = GET_BYTE_PARAM(TXTAIL);
-   
+     
+     fbuf_reset(&buffer);
      for (i=0; i<txdelay; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 

@@ -20,9 +20,10 @@
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 /* Defined in uart.c */
-Stream* uart_tx_init();
-Stream* uart_rx_init();
+Stream* uart_tx_init(void);
+Stream* uart_rx_init(bool);
 
+posdata_t current_pos; 
 
 /* Local handlers */
 static void do_rmc        (uint8_t, char**, Stream*);
@@ -30,11 +31,11 @@ static void do_gga        (uint8_t, char**, Stream*);
 static void nmeaListener  (void); 
 
 static char buf[NMEA_BUFSIZE];
-
 static Semaphore wait_gps; /* FIXME: Use condition variable instead */
-static posdata_t pos;
 static bool monitor_pos, monitor_raw; 
 static Stream *in, *out; 
+static bool is_locked = true;
+extern uint8_t blink_length, blink_interval;
 
 
 void gps_init(Stream *outstr)
@@ -48,8 +49,14 @@ void gps_init(Stream *outstr)
     set_port(GPSON);
 }
 
-
-
+void gps_off()
+{ 
+   set_port(GPSON);
+   is_locked = false; 
+   BLINK_NORMAL; 
+}
+ 
+ 
 
 /**************************************************************************
  * Read and process NMEA sentences.
@@ -113,21 +120,16 @@ void gps_mon_raw(void)
 void gps_mon_off(void)
    { monitor_pos = monitor_raw = false; }
    
-   
-/****************************************************************
- * Get current position info
- ****************************************************************/
-posdata_t* gps_getPos() 
-   { return &pos; }
+
     
    
 /****************************************************************
  * Convert position NMEA fields to float (degrees)
  ****************************************************************/
 
-static void str2coord(const uint8_t ndeg, const char* str, float* coord)
+static void str2coord(const uint8_t ndeg, const char* str, double* coord)
 {
-    float minutes;
+    double minutes;
     char dstring[ndeg+1];
 
     /* Format [ddmm.mmmmm] */
@@ -165,19 +167,16 @@ char* time2str(char* buf, timestamp_t time)
 /****************************************************************
  * handle changes in GPS lock - mainly change LED blinking
  ****************************************************************/
- 
-extern uint8_t blink_length, blink_interval;
-static bool is_locked = true;
 
 static void notify_lock(bool lock)
 {
-   if (!lock && is_locked) {
+   if (!lock && is_locked) 
+       BLINK_GPS_SEARCHING
+   else if (lock && !is_locked) {
        sem_up(&wait_gps);     
        /* FIXME: should use cond.notifyAll() instead */ 
-       BLINK_GPS_SEARCHING
-   }
-   else if (lock && !is_locked) 
        BLINK_NORMAL
+   }
    is_locked = lock;
 }
 
@@ -211,19 +210,19 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     nmea2time(&time, argv[1]);
    
     /* get latitude [ddmm.mmmmm] */
-    str2coord(2, argv[3], &pos.latitude);  
+    str2coord(2, argv[3], &current_pos.latitude);  
     if (*argv[4] == 'S')
-        pos.latitude = -pos.latitude;
+        current_pos.latitude = -current_pos.latitude;
         
      /* get longitude [dddmm.mmmmm] */
-    str2coord(3, argv[5], &pos.longitude);  
+    str2coord(3, argv[5], &current_pos.longitude);  
     if (*argv[6] == 'W')
-        pos.longitude = -pos.longitude;
+        current_pos.longitude = -current_pos.longitude;
     
     /* If requested, show position on screen */    
     if (monitor_pos) {
         sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f\r\n"), 
-          time2str(tbuf, time), pos.latitude, pos.longitude);
+          time2str(tbuf, time), current_pos.latitude, current_pos.longitude);
         putstr(out, buf);
     }
 }
