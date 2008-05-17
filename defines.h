@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.9 2008-05-06 08:59:59 la7eca Exp $ 
+ * $Id: defines.h,v 1.10 2008-05-17 23:32:57 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -73,6 +73,10 @@
 #define UART_OUT_PORT       PORTD
 #define UART_OUT_BIT        3
 #define UART_OUT_DDR        DDRD
+
+#define PD3OUT_PORT        PORTD
+#define PD3OUT_BIT         3
+#define PD3OUT_DDR         DDRD
 
 #if defined USBKEY_TEST 
 
