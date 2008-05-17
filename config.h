@@ -23,6 +23,7 @@
 
 
 typedef addr_t __digilist_t[7];  
+typedef char comment[40];
 
 
 /***************************************************************
@@ -30,17 +31,20 @@ typedef addr_t __digilist_t[7];
  *            Name     Type     
  ***************************************************************/ 
            
-DEFINE_PARAM( MYCALL,       addr_t       );
-DEFINE_PARAM( DEST,         addr_t       );
-DEFINE_PARAM( DIGIS,        __digilist_t );
-DEFINE_PARAM( NDIGIS,       uint8_t      );
-DEFINE_PARAM( TXDELAY,      uint8_t      );
-DEFINE_PARAM( TXTAIL,       uint8_t      );
-DEFINE_PARAM( TRX_FREQ,     uint32_t     );
-DEFINE_PARAM( TRX_TXPOWER,  double        );
-DEFINE_PARAM( TRX_AFSK_DEV, uint16_t     );
-
-
+DEFINE_PARAM( MYCALL,             addr_t       );
+DEFINE_PARAM( DEST,               addr_t       );
+DEFINE_PARAM( DIGIS,              __digilist_t );
+DEFINE_PARAM( NDIGIS,             uint8_t      );
+DEFINE_PARAM( TXDELAY,            uint8_t      );
+DEFINE_PARAM( TXTAIL,             uint8_t      );
+DEFINE_PARAM( TRX_FREQ,           uint32_t     );
+DEFINE_PARAM( TRX_TXPOWER,        double       );
+DEFINE_PARAM( TRX_AFSK_DEV,       uint16_t     );
+DEFINE_PARAM( TRACKER_ON,         uint8_t      );
+DEFINE_PARAM( TRACKER_SLEEP_TIME, uint16_t     ); 
+DEFINE_PARAM( SYMBOL,             uint8_t      );
+DEFINE_PARAM( SYMBOL_TABLE,       uint8_t      );
+DEFINE_PARAM( REPORT_COMMENT,     comment      );
 
 #if defined __CONFIG_C__
 /***************************************************************
@@ -49,15 +53,20 @@ DEFINE_PARAM( TRX_AFSK_DEV, uint16_t     );
  * or the linker will complain.
  ***************************************************************/
 
-DEFAULT_PARAM( MYCALL, addr_t)         = {"NOCALL",0};
-DEFAULT_PARAM( DEST, addr_t)           = {"NONE", 0};
-DEFAULT_PARAM( DIGIS, __digilist_t)    = {};
-DEFAULT_PARAM( NDIGIS,  uint8_t)       = 0;
-DEFAULT_PARAM( TXDELAY, uint8_t)       = 20;
-DEFAULT_PARAM( TXTAIL,  uint8_t)       = 10;
-DEFAULT_PARAM( TRX_FREQ, uint32_t)     = 144.800e6;
-DEFAULT_PARAM( TRX_TXPOWER, double)    = -13.0;
-DEFAULT_PARAM( TRX_AFSK_DEV, uint16_t) = 3500;
+DEFAULT_PARAM( MYCALL, addr_t)               = {"NOCALL",0};
+DEFAULT_PARAM( DEST, addr_t)                 = {"NONE", 0};
+DEFAULT_PARAM( DIGIS, __digilist_t)          = {};
+DEFAULT_PARAM( NDIGIS,  uint8_t)             = 0;
+DEFAULT_PARAM( TXDELAY, uint8_t)             = 20;
+DEFAULT_PARAM( TXTAIL,  uint8_t)             = 10;
+DEFAULT_PARAM( TRX_FREQ, uint32_t)           = 144.800e6;
+DEFAULT_PARAM( TRX_TXPOWER, double)          = -13.0;
+DEFAULT_PARAM( TRX_AFSK_DEV, uint16_t)       = 3500;
+DEFAULT_PARAM( TRACKER_ON, uint8_t)          = 0;
+DEFAULT_PARAM( TRACKER_SLEEP_TIME, uint16_t) = 6000; // 60 sec.
+DEFAULT_PARAM( SYMBOL, uint8_t)              = '.';
+DEFAULT_PARAM( SYMBOL_TABLE, uint8_t)        = '/';
+DEFAULT_PARAM( REPORT_COMMENT, comment )     = "";
 
 #endif
  
