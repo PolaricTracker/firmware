@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.h,v 1.7 2008-04-30 08:45:20 la7eca Exp $
+ * $Id: kernel.h,v 1.8 2008-05-19 08:36:31 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 
@@ -40,7 +40,9 @@ void sem_init(Semaphore*, uint16_t);
 void sem_down(Semaphore*);
 void sem_up(Semaphore*);
 bool sem_nb_down(Semaphore*);
+bool t_is_idle();
 
+ 
 /*
  * Convenience macro for creating and starting threads. 
  * n is the function to be run as a separate thread. 
