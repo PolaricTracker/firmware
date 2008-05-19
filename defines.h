@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.10 2008-05-17 23:32:57 la7eca Exp $ 
+ * $Id: defines.h,v 1.11 2008-05-19 08:36:05 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -54,7 +54,7 @@
  
 #define TXDATA_PORT         PORTB
 #define TXDATA_BIT          2 
-#define TXDATA_DDR          DDRB
+#define TXDATA_DDR          DDRBbit_is_set
 #define BUZZER_PORT         PORTA
 #define BUZZER_BIT          6
 #define BUZZER_DDR          DDRA
@@ -77,6 +77,12 @@
 #define PD3OUT_PORT        PORTD
 #define PD3OUT_BIT         3
 #define PD3OUT_DDR         DDRD
+
+#define BUTTON_PORT        PORTD
+#define BUTTON_BIT         1
+#define BUTTON_DDR         DDRD
+#define BUTTON_PIN         PIND
+
 
 #if defined USBKEY_TEST 
 
