@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.h,v 1.8 2008-05-19 08:36:31 la7eca Exp $
+ * $Id: kernel.h,v 1.9 2008-05-19 20:44:26 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 
@@ -24,11 +24,16 @@ typedef struct _TCB {
 
 
 /*
- * Dijkstra semaphore. For synchronisation.
+ * Condition variable and Dijkstra counting semaphore. 
+ * For synchronisation.
  */
+typedef struct _cond {
+    TCB *qfirst, *qlast;
+} Cond;
+
 typedef struct _sem {
     uint16_t cnt; 
-    TCB * qfirst, *qlast; 
+    Cond waiters;
 } Semaphore;
 
 
@@ -36,11 +41,16 @@ typedef struct _sem {
 void init_kernel(uint16_t);
 void _t_start( void(*)(void) , TCB*, uint16_t); 
 void t_yield(void);
+bool t_is_idle();
+
+void cond_init(Cond* c);
+void wait(Cond* c);
+void notify(Cond* c);
+void notifyAll(Cond* c);
 void sem_init(Semaphore*, uint16_t);
 void sem_down(Semaphore*);
 void sem_up(Semaphore*);
 bool sem_nb_down(Semaphore*);
-bool t_is_idle();
 
  
 /*
