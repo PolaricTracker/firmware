@@ -31,7 +31,7 @@ static void do_gga        (uint8_t, char**, Stream*);
 static void nmeaListener  (void); 
 
 static char buf[NMEA_BUFSIZE];
-static Semaphore wait_gps; /* FIXME: Use condition variable instead */
+static Cond wait_gps; 
 static bool monitor_pos, monitor_raw; 
 static Stream *in, *out; 
 static bool is_locked = true;
@@ -40,7 +40,7 @@ extern uint8_t blink_length, blink_interval;
 
 void gps_init(Stream *outstr)
 {
-    sem_init(&wait_gps, 0); 
+    cond_init(&wait_gps); 
     monitor_pos = monitor_raw = false; 
     in = uart_rx_init(FALSE);
     out = outstr;
@@ -173,8 +173,7 @@ static void notify_lock(bool lock)
    if (!lock && is_locked) 
        BLINK_GPS_SEARCHING
    else if (lock && !is_locked) {
-       sem_up(&wait_gps);     
-       /* FIXME: should use cond.notifyAll() instead */ 
+       notifyAll(&wait_gps);     
        BLINK_NORMAL
    }
    is_locked = lock;
@@ -185,7 +184,7 @@ bool gps_is_locked()
    
 void gps_wait_lock()
    { while (!is_locked)
-       sem_down(&wait_gps); }         
+       wait(&wait_gps); }         
   
   
        
