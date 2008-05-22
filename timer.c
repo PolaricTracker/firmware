@@ -8,7 +8,7 @@
 
 /* List of running timers */
 static Timer * _timers;
-
+static void timer_remove(Timer*);
 
 
 /********************************************************************
@@ -18,9 +18,10 @@ static Timer * _timers;
  
 void timer_set(Timer* t, uint16_t ticks) 
 {
-    sem_init(&t->kick, 0);
+    cond_init(&t->kick);
 
     enter_critical();
+    t->callback = NULL;
     t->count = ticks;
     t->prev = NULL;
     t->next = _timers;
@@ -32,12 +33,22 @@ void timer_set(Timer* t, uint16_t ticks)
 
 
 /********************************************************************
- * Block the calling thread until the timer expire. 
+ * Cancel a running timer
+ *  Note that waiters (blocked threads) are notified, while callback
+ *  functions are not called.
  ********************************************************************/
  
-void timer_wait(Timer* t) 
-   { sem_down(&t->kick); }
-
+void timer_cancel(Timer* t)
+{
+    enter_critical();
+    if (t->count != 0) {
+       timer_remove(t);
+       notifyAll(&t->kick);
+       t->callback = NULL;
+       t->count = 0;
+    }
+    leave_critical();
+}
 
 
 /********************************************************************
@@ -64,25 +75,36 @@ void timer_tick()
     register Timer *t;
     for (t = _timers; t != NULL;) 
     {
+        enter_critical();
         if ( --(t->count) == 0) 
         {
              /* Remove t from the list of running timers and
               * kick the waiting thread
               */
-             enter_critical();
-             if (t->next != NULL)
-                 t->next->prev = t->prev; 
-             if (t->prev != NULL) 
-                 t->prev->next = t->next; 
-             else { if (t->next == NULL)
-                    _timers = NULL;
-                 else
-                    _timers = t->next; 
-             }          
-             leave_critical();
-             sem_up(&t->kick);
+             timer_remove(t);
+             notifyAll(&t->kick);
+             if (t->callback != NULL)
+                (*t->callback)();
         }
+        leave_critical();
         t = t->next; 
     }
 }
+
+
+
+static void timer_remove(Timer* t)
+{
+     if (t->next != NULL)
+         t->next->prev = t->prev; 
+     if (t->prev != NULL) 
+         t->prev->next = t->next; 
+     else { if (t->next == NULL)
+            _timers = NULL;
+         else
+            _timers = t->next; 
+     }  
+}
+
+
 

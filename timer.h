@@ -1,5 +1,5 @@
 /*
- * $Id: timer.h,v 1.4 2008-04-12 18:29:47 la7eca Exp $
+ * $Id: timer.h,v 1.5 2008-05-22 20:12:52 la7eca Exp $
  */
  
 #if !defined __TIMER_H__
@@ -23,7 +23,8 @@
  */
 typedef struct _timer
 {
-    Semaphore kick; 
+    Cond kick; 
+    void (*callback)(void);
     uint16_t count; 
     struct _timer * next, * prev; 
 } Timer;
@@ -31,9 +32,11 @@ typedef struct _timer
 
 /* Timer API */
 void timer_set(Timer*, uint16_t);
-void timer_wait(Timer*);
 void sleep(uint16_t);
+void timer_cancel(Timer*);
 
+#define timer_callback(t, cb) { (t)->callback = cb; }
+#define timer_wait(t)         { wait( &(t)->kick ); }
 
 /* Must be called periodically from a timer interrupt handler */
 void timer_tick(void);
