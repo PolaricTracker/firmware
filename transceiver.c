@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.11 2008-05-17 23:38:18 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.12 2008-05-22 20:16:46 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -186,7 +186,7 @@ void adf7021_set_demodulation (adf7021_setup_t *setup, adf7021_demod_scheme_t sc
 
 void adf7021_set_power (adf7021_setup_t *setup, double dBm, adf7021_pa_ramp_t ramp)
 {
-  setup->modulation.pa_level = (uint8_t)(dBm * (1 / ADF7021_PA_LEVEL_STEP) + 0.5) + 1;
+  setup->modulation.pa_level = (uint8_t)((dBm + 16) * ADF7021_PA_LEVEL_STEP) - 1;
   setup->modulation.pa_ramp = ramp;
   
   if (dBm > 10)
@@ -342,7 +342,7 @@ void adf7021_disable_tx ()
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
 
 //  set_port (PD3OUT);  
-//  clear_port (EXTERNAL_PA_ON);     // FIXME
+//    clear_port (EXTERNAL_PA_ON);    // FIXME
 //  sleep (setup->ramp_time);        // FIXME
 }
 
