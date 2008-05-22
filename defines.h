@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.11 2008-05-19 08:36:05 la7eca Exp $ 
+ * $Id: defines.h,v 1.12 2008-05-22 20:12:02 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -52,9 +52,9 @@
  * LEDS, misc. signals
  ********************************************/
  
-#define TXDATA_PORT         PORTB
-#define TXDATA_BIT          2 
-#define TXDATA_DDR          DDRBbit_is_set
+#define CPUBUSY_PORT        BUZZER_PORT
+#define CPUBUSY_BIT         BUZZER_BIT
+#define CPUBUSY_DDR         BUZZER_DDR
 #define BUZZER_PORT         PORTA
 #define BUZZER_BIT          6
 #define BUZZER_DDR          DDRA
@@ -86,6 +86,9 @@
 
 #if defined USBKEY_TEST 
 
+#define TXDATA_PORT     PORTB
+#define TXDATA_BIT      2 
+#define TXDATA_DDR      DDRB
 #define LED1_PORT       USBKEY_LED1_PORT
 #define LED1_BIT        USBKEY_LED1_BIT
 #define LED1_DDR        USBKEY_LED1_DDR
