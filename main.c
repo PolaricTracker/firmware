@@ -1,11 +1,12 @@
 /*
- * $Id: main.c,v 1.9 2008-05-17 23:37:50 la7eca Exp $
+ * $Id: main.c,v 1.10 2008-05-22 20:15:26 la7eca Exp $
  */
  
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <inttypes.h>
 #include "kernel.h"
 #include "timer.h"
@@ -18,6 +19,7 @@
 #include "config.h"
 #include "transceiver.h"
 #include "gps.h"
+
 
 /* usb.c */
 extern Semaphore cdc_run;   
@@ -53,6 +55,30 @@ ISR(TIMER1_COMPA_vect)
      }  
 }
 
+
+/*************************************************************************
+ * Handler for on/off button
+ *************************************************************************/
+ 
+Timer button_timer;
+#define BUTTON_TIME 100
+
+void onoff_handler()
+{
+   toggle_port(LED2);
+}
+
+
+ISR(INT1_vect)
+{ 
+    nop();
+    if (!pin_is_high(BUTTON)) {
+       timer_set(&button_timer, BUTTON_TIME);
+       timer_callback(&button_timer, onoff_handler);
+    }   
+    else
+       timer_cancel(&button_timer);
+}
 
 
 
@@ -113,7 +139,7 @@ void setup_transceiver(void)
     trx_setup.vco_osc.xosc_enable = true;
     trx_setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
     
-    adf7021_set_data_rate (&trx_setup, 1200);    
+    adf7021_set_data_rate (&trx_setup, 13200);    
     adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, dev);
     adf7021_set_power (&trx_setup, power, ADF7021_PA_RAMP_OFF);
     
@@ -149,6 +175,11 @@ int main(void)
       make_output(LED3);
       make_output(TXDATA);
     
+      /* Button */
+      make_input(BUTTON);
+      EICRA = (1<<ISC10);
+      EIMSK = (1<<INT1);
+    
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
              | (1<<WGM12);            /* CTC mode */             
@@ -168,6 +199,15 @@ int main(void)
       THREAD_START(usbSerListener, 200);
 
       while(1) 
-         { t_yield(); }     
-          /* The MCU should be set in idle mode here, if possible */
+      {  
+           if (t_is_idle()) {
+              clear_port(CPUBUSY);
+              /* Enter idle mode or sleep mode here */
+              sleep_mode();
+           }
+           else {
+              set_port(CPUBUSY);
+              t_yield(); 
+           }
+      }     
 }
