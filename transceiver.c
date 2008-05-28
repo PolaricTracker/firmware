@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.12 2008-05-22 20:16:46 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.13 2008-05-28 14:18:54 la7dja Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -105,7 +105,7 @@ void adf7021_set_data_rate (adf7021_setup_t *setup, uint16_t data_rate)
     setup->clock.dem_clk_divide++;
 
   /* Set CDR_CLK to 32 * data_rate */
-  setup->clock.cdr_clk_divide = ADF7021_XTAL / setup->clock.dem_clk_divide / (data_rate * 32);
+  setup->clock.cdr_clk_divide = ADF7021_XTAL / setup->clock.dem_clk_divide / (data_rate * 32L);
 
   /* Set SEQ_CLK to 100kHz */
   setup->clock.seq_clk_divide = ADF7021_XTAL / 100e3;
