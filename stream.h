@@ -1,5 +1,5 @@
 /*
- * $Id: stream.h,v 1.8 2008-04-30 08:49:57 la7eca Exp $ 
+ * $Id: stream.h,v 1.9 2008-05-30 22:44:24 la7eca Exp $ 
  * Common stuff for serial communication
  */
 
@@ -15,7 +15,7 @@
 
 typedef struct _Stream
 {
-    Semaphore mutex, length, capacity;
+    Semaphore length, capacity;
     void (*kick)(void);
     uint16_t size, index; 
     char* buf; 
