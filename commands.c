@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.12 2008-05-17 23:34:25 la7eca Exp $
+ * $Id: commands.c,v 1.13 2008-05-30 22:38:40 la7eca Exp $
  */
  
 #include "defines.h"
@@ -45,8 +45,8 @@ static void do_deviation (uint8_t, char**, Stream*);
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
 
-extern void tracker_on();
-extern void tracker_off();
+extern void tracker_on(void);
+extern void tracker_off(void);
 
 
 /**************************************************************************
@@ -54,16 +54,18 @@ extern void tracker_off();
  *    Not thread safe. Use in at most one thread, use lock, or allocate
  *    buf on the stack instead. 
  **************************************************************************/
+
+void readLine(Stream*, Stream*, char*, const uint16_t); // Move to stream.h
        
 void cmdProcessor(Stream *in, Stream *out)
 {
     char* argv[MAXTOKENS];
     uint8_t argc;
     
-    putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\n\r"));
+    putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n\r\n"));
     while (1) {
          putstr(out, "cmd: ");    
-         getstr(in, buf, BUFSIZE, '\r');
+         readLine(in, out, buf, BUFSIZE);
 
          
          /* Split input line into argument tokens */
@@ -104,6 +106,7 @@ void cmdProcessor(Stream *in, Stream *out)
              do_txoff(argc, argv, out);                 
          else if (strlen(argv[0]) > 1)
              putstr_P(out, PSTR("*** Unknown command\n\r"));
+         putstr(out,"\n\r");         
    }
 }   
 
@@ -117,21 +120,21 @@ Semaphore nmea_run;
 static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {                                                                                                            
   if (strncmp("on", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** GPS ON *****\n\r"));
+      putstr_P(out, PSTR("***** GPS ON *****\r\n"));
       gps_on();
       return;
   } 
   if (strncmp("off", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** GPS OFF *****\n\r"));
+      putstr_P(out, PSTR("***** GPS OFF *****\r\n"));
       gps_off();
       return;
   }  
   if (strncmp("nmea", argv[1], 1) == 0) {
-      putstr_P(out, PSTR("***** NMEA PACKETS *****\n\r"));
+      putstr_P(out, PSTR("***** NMEA PACKETS *****\r\n"));
       gps_mon_raw();
   } 
   else if (strncmp("pos", argv[1], 3) == 0){
-      putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\n\r"));
+      putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\r\n"));
       gps_mon_pos();
   } 
   else
@@ -139,19 +142,24 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 
   /* And wait until some character has been typed */
   getch(in);
+  getch(in);
   gps_mon_off();
 }
 
 
 /************************************************
- * Turn on transceiver chip.....
+ * Turn on/off transceiver chip.....
  ************************************************/
  
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    if (strncmp("on", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** TRX CHIP INIT *****\n\r"));
-      setup_transceiver();
+      putstr_P(out, PSTR("***** TRX CHIP ON *****\r\n"));
+      adf7021_power_on ();
+   }
+   if (strncmp("off", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** TRX CHIP OFF *****\r\n"));
+      adf7021_power_off ();
    }
 }
 
@@ -171,15 +179,13 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
       return;
   }
   if (strncmp("on", argv[1], 2) == 0) {   
-      putstr_P(out, PSTR("***** TRACKER ON *****\n\r"));
+      putstr_P(out, PSTR("***** TRACKER ON *****\r\n"));
       tracker_on();
   }  
   if (strncmp("off", argv[1], 2) == 0) {     
-      putstr_P(out, PSTR("***** TRACKER OFF *****\n\r"));
+      putstr_P(out, PSTR("***** TRACKER OFF *****\r\n"));
       tracker_off();
   }
-  else 
-      return;
 }
 
 
@@ -190,13 +196,13 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
 
 static void do_txon(uint8_t argc, char** argv, Stream* out)
 {
-   putstr_P(out, PSTR("***** TX ON *****\n\r"));
+   putstr_P(out, PSTR("***** TX ON *****\r\n"));
    adf7021_enable_tx();
 }
 
 static void do_txoff(uint8_t argc, char** argv, Stream* out)
 {
-   putstr_P(out, PSTR("***** TX OFF *****\n\r"));
+   putstr_P(out, PSTR("***** TX OFF *****\r\n"));
    adf7021_disable_tx();
 }
 
@@ -214,7 +220,7 @@ static void do_teston(uint8_t argc, char** argv, Stream* out)
     sleep(10);
     sscanf(argv[1], " %i", &ch);  
     hdlc_test_on((uint8_t) ch);
-    sprintf_P(buf, PSTR("Test signal on: 0x%X\n\r\0"), ch);
+    sprintf_P(buf, PSTR("Test signal on: 0x%X\r\n\0"), ch);
     putstr(out, buf );  
 }
 
@@ -227,7 +233,7 @@ static void do_teston(uint8_t argc, char** argv, Stream* out)
  
 static void do_testoff(uint8_t argc, char** argv, Stream* out)
 {
-    putstr_P(out, PSTR("**** TEST SIGNAL OFF ****\n\r"));  
+    putstr_P(out, PSTR("**** TEST SIGNAL OFF ****\r\n"));  
     hdlc_test_off();  
 }
 
@@ -248,7 +254,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
             
     ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
-    putstr_P(out, PSTR("Sending (AX25 UI) test packet....\n\r"));        
+    putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));        
     fbq_put(outframes, packet);
 }
 
@@ -267,7 +273,7 @@ static void do_txdelay(uint8_t argc, char** argv, Stream* out)
     } 
     else {
        uint8_t x = GET_BYTE_PARAM(TXDELAY);
-       sprintf_P(buf, PSTR("TXDELAY is: %d\n\r\0"), x);
+       sprintf_P(buf, PSTR("TXDELAY is: %d\r\n\0"), x);
        putstr(out, buf);
     }
 }
@@ -286,7 +292,7 @@ static void do_txtail(uint8_t argc, char** argv, Stream* out)
     } 
     else {
        uint8_t x = GET_BYTE_PARAM(TXTAIL);
-       sprintf_P(buf, PSTR("TXTAIL is: %d\n\r\0"), x);
+       sprintf_P(buf, PSTR("TXTAIL is: %d\r\n\0"), x);
        putstr(out, buf);
     }
 }
@@ -306,7 +312,7 @@ static void do_mycall(uint8_t argc, char** argv, Stream* out)
    }
    else {
       GET_PARAM(MYCALL, &x);
-      sprintf_P(buf, PSTR("MYCALL is: %s\n\r\0"), addr2str(cbuf, &x));
+      sprintf_P(buf, PSTR("MYCALL is: %s\r\n\0"), addr2str(cbuf, &x));
       putstr(out, buf);
    }   
 }
@@ -326,7 +332,7 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    }
    else {
       GET_PARAM(DEST, &x);
-      sprintf_P(buf, PSTR("DEST is: %s\n\r\0"), addr2str(cbuf, &x));
+      sprintf_P(buf, PSTR("DEST is: %s\r\n\0"), addr2str(cbuf, &x));
       putstr(out, buf);
    }   
 }
@@ -342,7 +348,7 @@ static void do_symbol(uint8_t argc, char** argv, Stream* out)
       SET_BYTE_PARAM(SYMBOL, *argv[2]);
    }
    else {
-      sprintf_P(buf, PSTR("SYMTABLE/SYMBOL is: %c %c\n\r\0"), 
+      sprintf_P(buf, PSTR("SYMTABLE/SYMBOL is: %c %c\r\n\0"), 
            GET_BYTE_PARAM(SYMBOL_TABLE), GET_BYTE_PARAM(SYMBOL));
       putstr(out, buf);
    }   
@@ -362,7 +368,7 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
     } 
     else {
        GET_PARAM(TRX_FREQ, &x);
-       sprintf_P(buf, PSTR("FREQ is: %ld kHz\n\r\0"), x/1000);
+       sprintf_P(buf, PSTR("FREQ is: %ld kHz\r\n\0"), x/1000);
        putstr(out, buf);
     }
 }
@@ -376,12 +382,12 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
 {
     double x = 0;
     if (argc > 1) {
-       sscanf(argv[1], " %lf", &x);  
+       sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_TXPOWER, &x);
     } 
     else {
        GET_PARAM(TRX_TXPOWER, &x);
-       sprintf_P(buf, PSTR("POWER is: %lf dBm\n\r\0"), x);
+       sprintf_P(buf, PSTR("POWER is: %f dBm\r\n\0"), x);
        putstr(out, buf);
     }
 }
@@ -399,7 +405,7 @@ static void do_deviation(uint8_t argc, char** argv, Stream* out)
     } 
     else {
        GET_PARAM(TRX_AFSK_DEV, &x);
-       sprintf_P(buf, PSTR("DEVIATION is: %d\n\r\0"), x);
+       sprintf_P(buf, PSTR("DEVIATION is: %d\r\n\0"), x);
        putstr(out, buf);
     }
 }
