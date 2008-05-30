@@ -1,5 +1,5 @@
 /*
- * $Id: transceiver.h,v 1.7 2008-04-12 18:18:20 la7eca Exp $
+ * $Id: transceiver.h,v 1.8 2008-05-30 22:37:41 la7eca Exp $
  */
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
@@ -125,7 +125,7 @@ enum {
   ADF7021_R_COSINE_ALPHA_0_7
 };
 
-#define ADF7021_PA_LEVEL_STEP (62.0/29.0)
+#define ADF7021_PA_LEVEL_STEP (63.0/29.0)
 
 typedef struct _adf7021_modulation_register {
   unsigned address : 4;
