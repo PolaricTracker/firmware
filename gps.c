@@ -91,7 +91,7 @@ static void nmeaListener()
          /* If requested, show raw NMEA packet on screen */
          if (monitor_raw) {
              putstr(out, buf);
-             putstr(out, "\n");
+             putstr(out, "\r\n");
          }
         
          /* Split input line into tokens */
