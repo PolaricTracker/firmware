@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.10 2008-05-22 20:15:26 la7eca Exp $
+ * $Id: main.c,v 1.11 2008-05-30 22:40:16 la7eca Exp $
  */
  
 #include "defines.h"
@@ -38,6 +38,7 @@ fbq_t* outframes;
 ISR(TIMER1_COMPA_vect) 
 {
      static uint8_t ticks, txticks; 
+     
      /*
       * count 8 ticks to get to a 1200Hz rate
       */
@@ -62,12 +63,33 @@ ISR(TIMER1_COMPA_vect)
  
 Timer button_timer;
 #define BUTTON_TIME 100
+static bool txon = false;
+static Cond onoff;
 
-void onoff_handler()
+void onoff_thread()
 {
-   toggle_port(LED2);
+   cond_init(&onoff);
+   while  (true) {
+   wait(&onoff);
+
+   if (txon) {
+       clear_port(LED2);
+       adf7021_disable_tx();
+       adf7021_power_off();
+       txon = false;
+   }
+   else {
+       set_port(LED2);
+       adf7021_power_on ();
+       sleep(50);
+       adf7021_enable_tx();
+       txon = true;
+   }
+   }    
 }
 
+void onoff_handler()
+{ notify(&onoff); }
 
 ISR(INT1_vect)
 { 
@@ -139,7 +161,7 @@ void setup_transceiver(void)
     trx_setup.vco_osc.xosc_enable = true;
     trx_setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
     
-    adf7021_set_data_rate (&trx_setup, 13200);    
+    adf7021_set_data_rate (&trx_setup, 4400);    
     adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, dev);
     adf7021_set_power (&trx_setup, power, ADF7021_PA_RAMP_OFF);
     
@@ -149,10 +171,8 @@ void setup_transceiver(void)
     ADF7021_INIT_REGISTER(trx_setup.test_mode, ADF7021_TEST_MODE_REGISTER);
     trx_setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
 
-
-    /* Turn it on */
     adf7021_init (&trx_setup);
-    adf7021_power_on ();   
+//    adf7021_power_on ();   
 }
 
 
@@ -173,8 +193,7 @@ int main(void)
       make_output(LED1);
       make_output(LED2);
       make_output(LED3);
-      make_output(TXDATA);
-    
+      
       /* Button */
       make_input(BUTTON);
       EICRA = (1<<ISC10);
@@ -189,6 +208,10 @@ int main(void)
       sei();    
       outframes =  hdlc_init_encoder( afsk_init_encoder() );  
       THREAD_START(led1, 60);  
+                
+      /* Transceiver setup */
+      setup_transceiver(); 
+      THREAD_START(onoff_thread, 60);
                 
       /* GPS and tracking */
       gps_init(&cdc_outstr);
