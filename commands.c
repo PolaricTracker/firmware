@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.13 2008-05-30 22:38:40 la7eca Exp $
+ * $Id: commands.c,v 1.14 2008-06-01 21:55:15 la7eca Exp $
  */
  
 #include "defines.h"
@@ -66,7 +66,6 @@ void cmdProcessor(Stream *in, Stream *out)
     while (1) {
          putstr(out, "cmd: ");    
          readLine(in, out, buf, BUFSIZE);
-
          
          /* Split input line into argument tokens */
          argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n", true);
@@ -103,10 +102,12 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out);        
          else if (strncmp("txoff",     argv[0], 4) == 0)
-             do_txoff(argc, argv, out);                 
-         else if (strlen(argv[0]) > 1)
-             putstr_P(out, PSTR("*** Unknown command\n\r"));
-         putstr(out,"\n\r");         
+             do_txoff(argc, argv, out);                      
+         else if (strlen(argv[0]) > 0)
+             putstr_P(out, PSTR("*** Unknown command\r\n"));
+         else
+             continue;
+         putstr(out,"\r\n");         
    }
 }   
 
@@ -155,6 +156,7 @@ static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    if (strncmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TRX CHIP ON *****\r\n"));
+      setup_transceiver();
       adf7021_power_on ();
    }
    if (strncmp("off", argv[1], 2) == 0) {
@@ -411,6 +413,7 @@ static void do_deviation(uint8_t argc, char** argv, Stream* out)
 }
 
 
+
 /****************************************************************************
  * split input string into tokens - returns number of tokens found
  *
@@ -425,11 +428,13 @@ static void do_deviation(uint8_t argc, char** argv, Stream* out)
 uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim, bool merge)
 { 
      register uint8_t ntokens = 0;
-     while (ntokens<maxtokens && buf != NULL)
+     while (ntokens<maxtokens)
      {
-        tokens[ntokens] = strsep(&buf, delim);
-        if ( buf != NULL && (!merge || *tokens[ntokens] != NULL) )
+        tokens[ntokens] = strsep(&buf, delim);          /* ER DENNE KORREKT? */
+        if ( buf == NULL)
+            break;
+        if (!merge || *tokens[ntokens] != '\0') 
            ntokens++;
      }
-     return ntokens+1;
+     return (merge && *tokens[ntokens] == '\0' ? ntokens : ntokens+1);
 }
