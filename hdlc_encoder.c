@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.14 2008-05-17 23:36:45 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.15 2008-06-01 21:56:37 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -44,10 +44,10 @@ fbq_t* hdlc_init_encoder(stream_t* os)
 {
    outstream = os;
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
-   THREAD_START( hdlc_txencoder, 200 );
+   THREAD_START( hdlc_txencoder, 100 );
    
    sem_init(&test, 0);
-   THREAD_START( hdlc_testsignal, 200);
+   THREAD_START( hdlc_testsignal, 100);
    return &encoder_queue;
 }		
 
@@ -92,13 +92,16 @@ static void hdlc_testsignal()
  
 static void hdlc_txencoder()
 { 
+   int i;
+   sleep(200);
+
    while (true)  
    {
       /* Get frame from buffer-queue when available. 
        * This is a blocking call.
-       */     
-      buffer = fbq_get(&encoder_queue);    
-
+       */ 
+      buffer = fbq_get(&encoder_queue); 
+         
       /* Wait until channel is free 
        * P-persistence algorithm 
        */
