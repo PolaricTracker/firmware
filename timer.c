@@ -42,10 +42,10 @@ void timer_cancel(Timer* t)
 {
     enter_critical();
     if (t->count != 0) {
-       timer_remove(t);
-       notifyAll(&t->kick);
        t->callback = NULL;
        t->count = 0;
+       timer_remove(t);
+       notifyAll(&t->kick);
     }
     leave_critical();
 }
@@ -99,11 +99,9 @@ static void timer_remove(Timer* t)
          t->next->prev = t->prev; 
      if (t->prev != NULL) 
          t->prev->next = t->next; 
-     else { if (t->next == NULL)
-            _timers = NULL;
-         else
+     else if (_timers == t) 
             _timers = t->next; 
-     }  
+
 }
 
 
