@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.11 2008-05-30 22:40:16 la7eca Exp $
+ * $Id: main.c,v 1.12 2008-06-01 21:57:28 la7eca Exp $
  */
  
 #include "defines.h"
@@ -7,6 +7,7 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
+#include <avr/wdt.h>
 #include <inttypes.h>
 #include "kernel.h"
 #include "timer.h"
@@ -28,6 +29,12 @@ extern Stream cdc_outstr;
 
 fbq_t* outframes;  
 
+
+#define soft_reset()        \
+do {                        \
+    wdt_enable(WDTO_15MS);  \
+    for(;;)  { }            \
+} while(0)
 
 
 /***************************************************************************
@@ -61,45 +68,46 @@ ISR(TIMER1_COMPA_vect)
  * Handler for on/off button
  *************************************************************************/
  
-Timer button_timer;
-#define BUTTON_TIME 100
-static bool txon = false;
-static Cond onoff;
-
-void onoff_thread()
-{
-   cond_init(&onoff);
-   while  (true) {
-   wait(&onoff);
-
-   if (txon) {
-       clear_port(LED2);
-       adf7021_disable_tx();
-       adf7021_power_off();
-       txon = false;
-   }
-   else {
-       set_port(LED2);
-       adf7021_power_on ();
-       sleep(50);
-       adf7021_enable_tx();
-       txon = true;
-   }
-   }    
-}
+#define BUTTON_TIME 200
+static Timer button_timer;
+static bool is_off = false;
 
 void onoff_handler()
-{ notify(&onoff); }
+{
+    if (is_off) {
+       is_off = false;
+       soft_reset(); 
+    }
+    else {
+       /* External devices should be turned off. Todo: USB */
+       adf7021_power_off();
+       gps_off();
+       is_off = true; 
+    } 
+    sleepmode();
+}  
+
+void sleepmode()
+{
+    if (is_off)
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    else
+        set_sleep_mode(SLEEP_MODE_IDLE);        
+}
+
 
 ISR(INT1_vect)
 { 
     nop();
     if (!pin_is_high(BUTTON)) {
+       set_sleep_mode(SLEEP_MODE_IDLE);
        timer_set(&button_timer, BUTTON_TIME);
        timer_callback(&button_timer, onoff_handler);
     }   
-    else
+    else {
        timer_cancel(&button_timer);
+       sleepmode();
+    }
 }
 
 
@@ -111,6 +119,11 @@ uint8_t blink_length, blink_interval;
  
 void led1(void)
 {       
+    set_port(LED1);
+    set_port(LED2);
+    sleep(100);
+    clear_port(LED1);
+    clear_port(LED2);
     BLINK_NORMAL;
     while (1) {
         set_port( LED1 );
@@ -172,7 +185,6 @@ void setup_transceiver(void)
     trx_setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
 
     adf7021_init (&trx_setup);
-//    adf7021_power_on ();   
 }
 
 
@@ -185,7 +197,11 @@ int main(void)
 {
       CLKPR = (1<<7);
       CLKPR = 0;
-     
+      
+      /* Disable watchdog timer */
+      MCUSR = 0;
+      wdt_disable();
+    
       /* Start the multi-threading kernel */     
       init_kernel(60); 
       
@@ -206,13 +222,13 @@ int main(void)
       OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
    
       sei();    
-      outframes =  hdlc_init_encoder( afsk_init_encoder() );  
-      THREAD_START(led1, 60);  
                 
       /* Transceiver setup */
       setup_transceiver(); 
-      THREAD_START(onoff_thread, 60);
-                
+     
+      /* HDLC and AFSK setup */
+      outframes =  hdlc_init_encoder( afsk_init_encoder() );            
+     
       /* GPS and tracking */
       gps_init(&cdc_outstr);
       tracker_init();
@@ -220,7 +236,9 @@ int main(void)
       /* USB */
       usb_init();    
       THREAD_START(usbSerListener, 200);
-
+      
+      THREAD_START(led1, 70);  
+      
       while(1) 
       {  
            if (t_is_idle()) {
