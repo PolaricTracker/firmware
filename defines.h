@@ -1,12 +1,13 @@
 /*
- * $Id: defines.h,v 1.12 2008-05-22 20:12:02 la7eca Exp $ 
+ * $Id: defines.h,v 1.13 2008-06-01 21:54:18 la7eca Exp $ 
  */
 
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
 
-// #define USBKEY_TEST  /* Comment out if compiling for the real Polaric Tracker */
+// #define USBKEY_TEST  /* Define if compiling for the USBKEY */
+// #define USE_TXPIN_OC /* Define if using OC3A pin for modulation */
 
 #define TRUE   (1)
 #define FALSE  (0)
@@ -83,6 +84,9 @@
 #define BUTTON_DDR         DDRD
 #define BUTTON_PIN         PIND
 
+#define OC3A_PORT          PORTC
+#define OC3A_BIT           6
+#define OC3A_DDR           DDRC
 
 #if defined USBKEY_TEST 
 
