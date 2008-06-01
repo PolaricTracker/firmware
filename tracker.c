@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.1 2008-05-17 23:38:57 la7eca Exp $
+ * $Id: tracker.c,v 1.2 2008-06-01 21:59:08 la7eca Exp $
  */
  
 #include "defines.h"
@@ -7,6 +7,7 @@
 #include "gps.h"
 #include "config.h"
 #include "timer.h"
+#include "math.h"
 
 
 Semaphore tracker_run;
@@ -30,7 +31,7 @@ static void report_position(posdata_t*);
 void tracker_init()
 {
     sem_init(&tracker_run, 0);
-    THREAD_START(trackerThread, 300);
+    THREAD_START(trackerThread, 200);
     if (GET_BYTE_PARAM(TRACKER_ON)) 
        sem_up(&tracker_run);  
 }
@@ -59,20 +60,25 @@ static void trackerThread(void)
     uint16_t t;
     while (true) 
     {
+       sleep(100); /* Seems to stop it from crashing (like in hdlc_encoder) */
        sem_down(&tracker_run);       
        while (GET_BYTE_PARAM(TRACKER_ON)) 
        {
            gps_on();
            sleep(200);
            gps_wait_lock();   
-           set_port(LED2);
-        
+           
            if (should_update(&prev_pos, &current_pos))
            {
-               report_position(&current_pos);
-               prev_pos = current_pos;
+             adf7021_power_on();   
+             sleep(100); 
+             report_position(&current_pos);
+             prev_pos = current_pos;
+             sleep(100);
+             adf7021_power_off(); 
            }
            gps_off();
+           
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
            sleep(t);       
        }
@@ -113,7 +119,7 @@ static void report_position(posdata_t* pos)
     double latf = fabs(pos->latitude);
     double longf = fabs(pos->longitude);
     sprintf(latd, "%02d%05.2f%c", (int)latf, (latf - (int)latf) * 60, lat_sn);
-    sprintf(longd, "%03d%05.2f%c", (int)longf, (longf - (int)longf) * 60, long_we);
+    sprintf(longd, "%03d%05.2f%c", (int)longf, (longf - (int)longf) * 60, long_we);about:
  
     /* Create packet header */
     GET_PARAM(MYCALL, &from);
@@ -126,7 +132,8 @@ static void report_position(posdata_t* pos)
     fbuf_putstr (&packet, latd);
     fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));
     fbuf_putstr (&packet, longd);
-    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));         
+    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));    
+    fbuf_putstr(&packet, "Polaric Tracker");     
  
     /* Send packet */
     fbq_put(outframes, packet);
