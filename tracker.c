@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.2 2008-06-01 21:59:08 la7eca Exp $
+ * $Id: tracker.c,v 1.3 2008-06-06 21:41:40 la7eca Exp $
  */
  
 #include "defines.h"
@@ -57,20 +57,26 @@ void tracker_off()
  
 static void trackerThread(void)
 {
+    sleep(100); /* Seems to stop it from crashing (like in hdlc_encoder) */
     uint16_t t;
     while (true) 
     {
-       sleep(100); /* Seems to stop it from crashing (like in hdlc_encoder) */
        sem_down(&tracker_run);       
        while (GET_BYTE_PARAM(TRACKER_ON)) 
        {
-           gps_on();
-           sleep(200);
+          /*
+           * Turn on GPS and wait for position fix. 
+           * OOPS: Should there be a timeout on this? 
+           */
+           gps_on();     
+           sleep(200);   
            gps_wait_lock();   
            
+           /* Send report if criteria are satisfied */
            if (should_update(&prev_pos, &current_pos))
            {
-             adf7021_power_on();   
+             adf7021_power_on(); 
+             gps_off(); /* GPS serial data interfere with modulation */  
              sleep(100); 
              report_position(&current_pos);
              prev_pos = current_pos;
@@ -119,7 +125,7 @@ static void report_position(posdata_t* pos)
     double latf = fabs(pos->latitude);
     double longf = fabs(pos->longitude);
     sprintf(latd, "%02d%05.2f%c", (int)latf, (latf - (int)latf) * 60, lat_sn);
-    sprintf(longd, "%03d%05.2f%c", (int)longf, (longf - (int)longf) * 60, long_we);about:
+    sprintf(longd, "%03d%05.2f%c", (int)longf, (longf - (int)longf) * 60, long_we);
  
     /* Create packet header */
     GET_PARAM(MYCALL, &from);
@@ -130,9 +136,9 @@ static void report_position(posdata_t* pos)
     /* APRS Packet content */
     fbuf_putChar(&packet, '!');
     fbuf_putstr (&packet, latd);
-    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));
+    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));
     fbuf_putstr (&packet, longd);
-    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));    
+    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));    
     fbuf_putstr(&packet, "Polaric Tracker");     
  
     /* Send packet */
