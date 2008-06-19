@@ -1,6 +1,15 @@
 /*
- * $Id: main.c,v 1.12 2008-06-01 21:57:28 la7eca Exp $
+ * $Id: main.c,v 1.13 2008-06-19 18:40:00 la7eca Exp $
+ *
+ * Polaric tracker main program.
+ * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
+ * Copyright (C) 2008 Øyvind Hanssen la7eca@hans.priv.no 
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 
+ * or a compatible license. See <http://www.gnu.org/licenses/>.
  */
+ 
  
 #include "defines.h"
 #include <avr/io.h>
@@ -81,6 +90,9 @@ void onoff_handler()
     else {
        /* External devices should be turned off. Todo: USB */
        adf7021_power_off();
+       clear_port(LED1);
+       clear_port(LED2);
+       clear_port(LED3);
        gps_off();
        is_off = true; 
     } 
