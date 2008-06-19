@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.13 2008-06-01 21:54:18 la7eca Exp $ 
+ * $Id: defines.h,v 1.14 2008-06-19 18:35:13 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -44,8 +44,9 @@
  * LED blinking
  ********************************************/
  
-#define BLINK_NORMAL        { blink_length = 5, blink_interval = 95; }
-#define BLINK_GPS_SEARCHING { blink_length = 45, blink_interval = 45; }
+extern uint8_t blink_length, blink_interval;
+#define BLINK_NORMAL        { blink_length = 5; blink_interval = 95; }
+#define BLINK_GPS_SEARCHING { blink_length = 45; blink_interval = 45; }
 
 
 
@@ -78,6 +79,9 @@
 #define PD3OUT_PORT        PORTD
 #define PD3OUT_BIT         3
 #define PD3OUT_DDR         DDRD
+#define PD0OUT_PORT        PORTD
+#define PD0OUT_BIT         0
+#define PD0OUT_DDR         DDRD
 
 #define BUTTON_PORT        PORTD
 #define BUTTON_BIT         1

@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.h,v 1.9 2008-05-19 20:44:26 la7eca Exp $
+ * $Id: kernel.h,v 1.10 2008-06-19 18:35:34 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 
@@ -41,7 +41,7 @@ typedef struct _sem {
 void init_kernel(uint16_t);
 void _t_start( void(*)(void) , TCB*, uint16_t); 
 void t_yield(void);
-bool t_is_idle();
+bool t_is_idle(void);
 
 void cond_init(Cond* c);
 void wait(Cond* c);
