@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.15 2008-06-01 21:56:37 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.16 2008-06-19 18:40:49 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -16,6 +16,7 @@
 #include "stream.h"
 #include "config.h"
 #include <util/crc16.h>
+#include "transceiver.h"
 		          
 
 // Buffers
@@ -38,13 +39,14 @@ static void hdlc_txencoder(void);
 static void hdlc_testsignal(void);
 static void hdlc_encode_frames(void);
 static void hdlc_encode_byte(uint8_t, bool);
+static void wait_channel_ready(void);
 
    
 fbq_t* hdlc_init_encoder(stream_t* os)
 {
    outstream = os;
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
-   THREAD_START( hdlc_txencoder, 100 );
+   THREAD_START( hdlc_txencoder, 120 );
    
    sem_init(&test, 0);
    THREAD_START( hdlc_testsignal, 100);
@@ -80,8 +82,6 @@ static void hdlc_testsignal()
 
 
 
-#define afsk_channel_ready(t) true
-
 /*******************************************************************************
  * Transmit a frame.
  *
@@ -92,7 +92,6 @@ static void hdlc_testsignal()
  
 static void hdlc_txencoder()
 { 
-   int i;
    sleep(200);
 
    while (true)  
@@ -106,8 +105,7 @@ static void hdlc_txencoder()
        * P-persistence algorithm 
        */
       for (;;) {
-        while ( !afsk_channel_ready(0) )  // FIXME
-           t_yield(); 
+        wait_channel_ready(); 
         int r  = rand(); 
         if (r > PERSISTENCE * 255)
             sleep(SLOTTIME); 
@@ -118,6 +116,15 @@ static void hdlc_txencoder()
    }
 }
    
+
+static void wait_channel_ready()
+{
+    double sqlevel; 
+    GET_PARAM(TRX_SQUELCH, &sqlevel);
+    adf7021_wait_enabled();
+    while (adf7021_read_rssi() > sqlevel) 
+       sleep(5);
+}
 
 
 
