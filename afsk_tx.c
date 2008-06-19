@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.16 2008-05-26 21:51:04 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.17 2008-06-19 18:43:29 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -133,8 +133,7 @@ void afsk_txBitClock(void)
 
 /******************************************************************************
  * Simple method of generating a clock signal at 1200 and 2200 Hz. 
- * This is output to ADF TXRXCLK pin. Note: If we can use the OC1A pin  
- * we dont need this interrupt handler at all! 
+ * This is output to ADF TXRXCLK pin. 
  ******************************************************************************/
  
 ISR(TIMER3_COMPA_vect)
