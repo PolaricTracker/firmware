@@ -41,6 +41,7 @@ DEFINE_PARAM( TRX_FREQ,           uint32_t     );
 DEFINE_PARAM( TRX_CALIBRATE,      int          );
 DEFINE_PARAM( TRX_TXPOWER,        double       );
 DEFINE_PARAM( TRX_AFSK_DEV,       uint16_t     );
+DEFINE_PARAM( TRX_SQUELCH,        double       );
 DEFINE_PARAM( TRACKER_ON,         uint8_t      );
 DEFINE_PARAM( TRACKER_SLEEP_TIME, uint16_t     ); 
 DEFINE_PARAM( SYMBOL,             uint8_t      );
@@ -64,11 +65,12 @@ DEFAULT_PARAM( TRX_FREQ, uint32_t)           = 144.800e6;
 DEFAULT_PARAM( TRX_CALIBRATE, int)           = 0;
 DEFAULT_PARAM( TRX_TXPOWER, double)          = -13.0;
 DEFAULT_PARAM( TRX_AFSK_DEV, uint16_t)       = 3500;
+DEFAULT_PARAM( TRX_SQUELCH, double)          = -100;
 DEFAULT_PARAM( TRACKER_ON, uint8_t)          = 0;
 DEFAULT_PARAM( TRACKER_SLEEP_TIME, uint16_t) = 3000; // 30 sec.
 DEFAULT_PARAM( SYMBOL, uint8_t)              = '.';
 DEFAULT_PARAM( SYMBOL_TABLE, uint8_t)        = '/';
-DEFAULT_PARAM( REPORT_COMMENT, comment )     = "Polaric Tracker 0.2";
+DEFAULT_PARAM( REPORT_COMMENT, comment )     = "Polaric Tracker";
 
 #endif
  
