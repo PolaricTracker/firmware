@@ -44,7 +44,7 @@ void gps_init(Stream *outstr)
     monitor_pos = monitor_raw = false; 
     in = uart_rx_init(FALSE);
     out = outstr;
-    THREAD_START(nmeaListener, 200);
+    THREAD_START(nmeaListener, 270);
     make_output(GPSON); 
     set_port(GPSON);
 }
@@ -74,9 +74,16 @@ static void nmeaListener()
          int c_checksum;
          
          getstr(in, buf, NMEA_BUFSIZE, '\n');
+
          if (buf[0] != '$')
             continue;
-
+         
+         /* If requested, show raw NMEA packet on screen */
+         if (monitor_raw) {
+             putstr(out, buf);
+             putstr(out, "\n");
+         }
+         
          /* Checksum (optional) */
          uint8_t i;
          for (i=1; i<NMEA_BUFSIZE && buf[i] !='*' && buf[i] != 0 ; i++) 
@@ -84,26 +91,21 @@ static void nmeaListener()
          if (buf[i] == '*') {
             buf[i] = 0;
             sscanf(buf+i+1, "%X", &c_checksum);
-            if (c_checksum != checksum)
+            if (c_checksum != checksum) 
                continue;
          } 
-         
-         /* If requested, show raw NMEA packet on screen */
-         if (monitor_raw) {
-             putstr(out, buf);
-             putstr(out, "\r\n");
-         }
         
          /* Split input line into tokens */
-         argc = tokenize(buf, argv, NMEA_MAXTOKENS, ",", false);   
-         
+         argc = tokenize(buf, argv, NMEA_MAXTOKENS, ",", false);           
+
          /* Select command handler */    
-         if (strcmp("RMC", argv[0]+3) == 0)
+         if (strncmp("RMC", argv[0]+3, 3) == 0)
              do_rmc(argc, argv, out);
-         else if (strcmp("GGA", argv[0]+3) == 0)
+         else if (strncmp("GGA", argv[0]+3, 3) == 0)
              do_gga(argc, argv, out);
    }
 }
+
 
 
 /****************************************************************
@@ -170,9 +172,9 @@ char* time2str(char* buf, timestamp_t time)
 
 static void notify_lock(bool lock)
 {
-   if (!lock && is_locked) 
+   if (!lock) 
        BLINK_GPS_SEARCHING
-   else if (lock && !is_locked) {
+   else if (!is_locked) {
        notifyAll(&wait_gps);     
        BLINK_NORMAL
    }
@@ -183,8 +185,13 @@ bool gps_is_locked()
    { return is_locked; }
    
 void gps_wait_lock()
-   { while (!is_locked)
-       wait(&wait_gps); }         
+{ 
+    notify_lock(false); /* OOPS: Is this a good idea? */
+    sleep(200);
+    if (!is_locked)
+       wait(&wait_gps);
+
+}         
   
   
        
@@ -197,6 +204,7 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     char buf[60], tbuf[9];
     if (argc != 13)            /* Ignore if wrong format */
        return;
+
     if (*argv[2] != 'A') { 
       notify_lock(false);      /* Ignore if receiver not in lock */
       return;
@@ -227,6 +235,10 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
 }
 
 
+/* 
+ * FIXME: I noen situasjoner slutter GPS å sende RMC rapporter. 
+ * Derfor er det mulig vi trenger GGA eller GLL. 
+ */
 
 static void do_gga(uint8_t argc, char** argv, Stream *out)
 {

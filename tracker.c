@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.3 2008-06-06 21:41:40 la7eca Exp $
+ * $Id: tracker.c,v 1.4 2008-06-19 18:38:58 la7eca Exp $
  */
  
 #include "defines.h"
@@ -31,7 +31,7 @@ static void report_position(posdata_t*);
 void tracker_init()
 {
     sem_init(&tracker_run, 0);
-    THREAD_START(trackerThread, 200);
+    THREAD_START(trackerThread, 240);
     if (GET_BYTE_PARAM(TRACKER_ON)) 
        sem_up(&tracker_run);  
 }
@@ -69,21 +69,24 @@ static void trackerThread(void)
            * OOPS: Should there be a timeout on this? 
            */
            gps_on();     
-           sleep(200);   
            gps_wait_lock();   
            
            /* Send report if criteria are satisfied */
            if (should_update(&prev_pos, &current_pos))
            {
-             adf7021_power_on(); 
-             gps_off(); /* GPS serial data interfere with modulation */  
-             sleep(100); 
-             report_position(&current_pos);
-             prev_pos = current_pos;
-             sleep(100);
-             adf7021_power_off(); 
+              adf7021_power_on(); 
+              gps_off(); /* GPS serial data interfere with modulation */  
+              sleep(100); 
+              report_position(&current_pos);
+              prev_pos = current_pos;
+             
+              /* FIXME: It is probably better to wait to all packets are
+               * actually sent (empty queue) */
+              sleep(600);
+              adf7021_power_off(); 
            }
-           gps_off();
+           else
+              gps_off();
            
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
            sleep(t);       
