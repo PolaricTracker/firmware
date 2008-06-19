@@ -1,5 +1,5 @@
 /*
- * $Id: ax25.c,v 1.8 2008-04-12 18:21:47 la7eca Exp $
+ * $Id: ax25.c,v 1.9 2008-06-19 18:42:57 la7eca Exp $
  */
  
 #include "ax25.h"
@@ -38,7 +38,7 @@ void str2addr(addr_t* addr, const char* string)
          ssid = (uint8_t) atoi( string+i+1 );
          break;
       }
-      addr->callsign[i] = string[i];  
+      addr->callsign[i] = (char) toupper( string[i] );  
    }
    addr->callsign[i] = 0;
    addr->ssid = ssid & 0x0f; 
