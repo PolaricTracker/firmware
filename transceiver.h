@@ -1,5 +1,5 @@
 /*
- * $Id: transceiver.h,v 1.8 2008-05-30 22:37:41 la7eca Exp $
+ * $Id: transceiver.h,v 1.9 2008-06-19 18:36:26 la7eca Exp $
  */
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
@@ -569,6 +569,7 @@ static inline double adf7021_read_temperature (void) {
 }
 
 double adf7021_read_rssi (void);
+void adf7021_wait_enabled (void);
 
 
 #endif /* __TRANSCEIVER_H__ */
