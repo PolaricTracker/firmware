@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.14 2008-06-01 21:55:15 la7eca Exp $
+ * $Id: commands.c,v 1.15 2008-06-19 18:42:31 la7eca Exp $
  */
  
 #include "defines.h"
@@ -40,7 +40,9 @@ static void do_txoff     (uint8_t, char**, Stream*);
 static void do_tracker   (uint8_t, char**, Stream*, Stream* in);
 static void do_freq      (uint8_t, char**, Stream*);
 static void do_power     (uint8_t, char**, Stream*);
+static void do_squelch   (uint8_t, char**, Stream*);
 static void do_deviation (uint8_t, char**, Stream*);
+static void do_rssi      (uint8_t, char**, Stream*, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -90,7 +92,9 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("freq", argv[0], 2) == 0)
              do_freq(argc, argv, out);  
          else if (strncmp("power", argv[0], 2) == 0)
-             do_power(argc, argv, out);     
+             do_power(argc, argv, out);    
+         else if (strncmp("squelch", argv[0], 2) == 0)
+             do_squelch(argc, argv, out);       
          else if (strncmp("deviation", argv[0], 3) == 0)
              do_deviation(argc, argv, out);               
          else if (strncmp("gps",     argv[0], 3) == 0)
@@ -102,7 +106,9 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out);        
          else if (strncmp("txoff",     argv[0], 4) == 0)
-             do_txoff(argc, argv, out);                      
+             do_txoff(argc, argv, out);     
+         else if (strncmp("rssi", argv[0], 2) == 0)
+             do_rssi(argc, argv, out, in);                 
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else
@@ -110,6 +116,19 @@ void cmdProcessor(Stream *in, Stream *out)
          putstr(out,"\r\n");         
    }
 }   
+
+static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+    int i;    
+    for (i=0; i<60; i++)
+    {
+        double x = adf7021_read_rssi();
+        sprintf_P(buf, PSTR("RSSI level: %f\r\n\0"), x);
+        putstr(out, buf);
+        sleep(100);
+    }
+}
+
 
 
 /************************************************
@@ -393,6 +412,26 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
        putstr(out, buf);
     }
 }
+
+
+/*********************************************
+ * config: squelch level (dBm)
+ *********************************************/
+ 
+static void do_squelch(uint8_t argc, char** argv, Stream* out)
+{
+    double x = 0;
+    if (argc > 1) {
+       sscanf(argv[1], " %f", &x);  
+       SET_PARAM(TRX_SQUELCH, &x);
+    } 
+    else {
+       GET_PARAM(TRX_SQUELCH, &x);
+       sprintf_P(buf, PSTR("SQUELCH level is: %f dBm\r\n\0"), x);
+       putstr(out, buf);
+    }
+}
+
 
 /*********************************************
  * config: AFSK modulation deviation
