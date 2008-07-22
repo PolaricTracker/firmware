@@ -1,10 +1,11 @@
-/* $Id: transceiver.c,v 1.14 2008-06-19 18:37:17 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.15 2008-07-22 21:13:59 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
 #include "defines.h"
 #include "timer.h"
 #include "transceiver.h"
+#include "kernel.h"
 
 #define MINIMUM_N 23
 
@@ -12,7 +13,7 @@
 
 bool adf7021_enabled = false;
 bool adf7021_tx_enabled = false;
-Cond adf7021_on_signal;
+Cond adf7021_on_signal, adf7021_tx_idle;
 
 static adf7021_setup_t* setup;
 
@@ -219,8 +220,10 @@ void adf7021_init (adf7021_setup_t* s)
 {
   adf7021_enabled = adf7021_tx_enabled = false;
   cond_init(&adf7021_on_signal);
+  cond_init(&adf7021_tx_idle);
   
   make_output (PD3OUT);
+  make_output (EXTERNAL_PA_ON);
 //  make_output (PD0OUT);
   make_output (ADF7021_ON);
   make_output (ADF7021_SCLK);
@@ -234,6 +237,7 @@ void adf7021_init (adf7021_setup_t* s)
   
   /* Just to be on the safe side */
   clear_port (ADF7021_ON);
+  clear_port (EXTERNAL_PA_ON);
   set_port (PD3OUT);
 //  set_port (PD0OUT);
   
@@ -249,7 +253,8 @@ void adf7021_power_on ()
   
   /* Wait for transceiver to become ready */
   ADF7021_MUXOUT_WAIT ();
-    
+  sleep(1); // Wait for clock (??????) 
+   
   /* Power down unused parts of the transceiver */
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->power_down))
      adf7021_write_register (ADF7021_REGISTER_DEREF (setup->power_down));
@@ -322,10 +327,23 @@ void adf7021_wait_enabled()
 }
 
 
+
+void adf7021_wait_tx_off()
+{
+  /* Be sure that transmitter is off */
+   while (adf7021_tx_enabled) 
+      wait(&adf7021_tx_idle);
+   sleep (setup->ramp_time);     
+}
+
+
 void adf7021_power_off ()
 {
-  adf7021_enabled = adf7021_tx_enabled = false;
+  notifyAll(&adf7021_tx_idle);
+  /* Turn it off */
+  adf7021_enabled = adf7021_tx_enabled =  false;
   set_port (PD3OUT);
+  clear_port(EXTERNAL_PA_ON);
 //  set_port (PD0OUT);
 
   clear_port (ADF7021_ON);
@@ -336,6 +354,7 @@ void adf7021_power_off ()
 void adf7021_enable_tx ()
 {
   /* Turn on external PA */
+    set_port(EXTERNAL_PA_ON);
     clear_port(PD3OUT);
 //    clear_port(PD0OUT);
    
@@ -351,8 +370,10 @@ void adf7021_disable_tx ()
 {
   adf7021_tx_enabled = false;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
-
+  notifyAll(&adf7021_tx_idle);
+  
   set_port (PD3OUT);  
+  clear_port(EXTERNAL_PA_ON);
 //  set_port (PD0OUT);
 //  sleep (setup->ramp_time);        // FIXME
 }
