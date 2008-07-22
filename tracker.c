@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.4 2008-06-19 18:38:58 la7eca Exp $
+ * $Id: tracker.c,v 1.5 2008-07-22 21:22:35 la7eca Exp $
  */
  
 #include "defines.h"
@@ -7,7 +7,7 @@
 #include "gps.h"
 #include "config.h"
 #include "timer.h"
-#include "math.h"
+// #include "math.h"
 
 
 Semaphore tracker_run;
@@ -22,6 +22,7 @@ static void trackerThread(void);
 static bool should_update(posdata_t*, posdata_t*);
 static void report_position(posdata_t*);
 
+double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONCE */
 
 
 /***************************************************************
@@ -80,15 +81,23 @@ static void trackerThread(void)
               report_position(&current_pos);
               prev_pos = current_pos;
              
-              /* FIXME: It is probably better to wait to all packets are
-               * actually sent (empty queue) */
-              sleep(600);
+              /* 
+               * Before turning off the transceiver chip, wait 
+               * a little to allow packet to be received by the 
+               * encoder. Then wait until channel is ready and packet 
+               * encoded and sent.
+               */
+              sleep(100);
+              hdlc_wait_idle();
+              adf7021_wait_tx_off();
               adf7021_power_off(); 
            }
            else
               gps_off();
            
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
+           t = (t > GPS_FIX_TIME + PACKET_TX_TIME) ?
+               t - (GPS_FIX_TIME + PACKET_TX_TIME) : (GPS_FIX_TIME + PACKET_TX_TIME);
            sleep(t);       
        }
     }   
