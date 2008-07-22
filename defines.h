@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.14 2008-06-19 18:35:13 la7eca Exp $ 
+ * $Id: defines.h,v 1.15 2008-07-22 21:10:57 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -12,6 +12,11 @@
 #define TRUE   (1)
 #define FALSE  (0)
 
+
+/* Some assumptions about environment. Units 1/10 s */
+ 
+#define GPS_FIX_TIME   1000  
+#define PACKET_TX_TIME 100
 
 /********************************************
  * Note: The CPU frequency must be defined
