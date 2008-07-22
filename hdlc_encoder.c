@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.16 2008-06-19 18:40:49 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.17 2008-07-22 21:19:09 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -40,6 +40,9 @@ static void hdlc_testsignal(void);
 static void hdlc_encode_frames(void);
 static void hdlc_encode_byte(uint8_t, bool);
 static void wait_channel_ready(void);
+static bool hdlc_idle = true;
+static Cond hdlc_idle_sig;
+;
 
    
 fbq_t* hdlc_init_encoder(stream_t* os)
@@ -48,6 +51,7 @@ fbq_t* hdlc_init_encoder(stream_t* os)
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
    THREAD_START( hdlc_txencoder, 120 );
    
+   cond_init(&hdlc_idle);
    sem_init(&test, 0);
    THREAD_START( hdlc_testsignal, 100);
    return &encoder_queue;
@@ -80,6 +84,17 @@ static void hdlc_testsignal()
 }
 
 
+/**************************************************************
+ * Wait until encoder is idle (no packet waiting to be
+ * transmitted). There may be packets in the queue though.
+ **************************************************************/
+
+void hdlc_wait_idle()
+{
+    while (!hdlc_idle)
+        wait(&hdlc_idle_sig);
+}
+
 
 
 /*******************************************************************************
@@ -89,7 +104,7 @@ static void hdlc_testsignal()
  * as soon as the channel is free. It should typically be called repeatedly
  * from a loop in a thread.  
  *******************************************************************************/
- 
+
 static void hdlc_txencoder()
 { 
    sleep(200);
@@ -104,7 +119,10 @@ static void hdlc_txencoder()
       /* Wait until channel is free 
        * P-persistence algorithm 
        */
+      adf7021_wait_enabled(); 
+      hdlc_idle = false;
       for (;;) {
+
         wait_channel_ready(); 
         int r  = rand(); 
         if (r > PERSISTENCE * 255)
@@ -113,6 +131,8 @@ static void hdlc_txencoder()
             break;
       }
       hdlc_encode_frames();
+      hdlc_idle = true; 
+      notifyAll(&hdlc_idle_sig);
    }
 }
    
@@ -121,10 +141,10 @@ static void wait_channel_ready()
 {
     double sqlevel; 
     GET_PARAM(TRX_SQUELCH, &sqlevel);
-    adf7021_wait_enabled();
     while (adf7021_read_rssi() > sqlevel) 
        sleep(5);
 }
+
 
 
 
