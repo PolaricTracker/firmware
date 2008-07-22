@@ -181,8 +181,10 @@ static void notify_lock(bool lock)
    is_locked = lock;
 }
 
+
 bool gps_is_locked()
    { return is_locked; }
+   
    
 void gps_wait_lock()
 { 
@@ -201,16 +203,20 @@ void gps_wait_lock()
 
 static void do_rmc(uint8_t argc, char** argv, Stream *out)
 {
+    static uint8_t lock_cnt = 0;
+    
     char buf[60], tbuf[9];
-    if (argc != 13)            /* Ignore if wrong format */
+    if (argc != 13)                /* Ignore if wrong format */
        return;
 
     if (*argv[2] != 'A') { 
-      notify_lock(false);      /* Ignore if receiver not in lock */
+          notify_lock(false);      /* Ignore if receiver not in lock */
+          lock_cnt = 0;
       return;
     }
     else
-      notify_lock(true);
+      if (lock_cnt++ == 4)
+         notify_lock(true);
 
     /* get timestamp */
     timestamp_t time; 
