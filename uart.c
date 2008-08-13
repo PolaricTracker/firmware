@@ -1,16 +1,18 @@
 /*
- * $Id: uart.c,v 1.11 2008-05-07 18:01:51 la7eca Exp $
+ * $Id: uart.c,v 1.12 2008-08-13 22:37:11 la7eca Exp $
  */
  
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/signal.h>
 
-#include "kernel.h"
-#include "stream.h"
+#include "kernel/kernel.h"
+#include "kernel/stream.h"
 
-#define USART_BAUD 9600
-#define UART_UBRR (SCALED_F_CPU/(16L*USART_BAUD)-1) 
+#if !defined UART_BAUD
+#define UART_BAUD 9600
+#endif
+#define UART_UBRR (SCALED_F_CPU/(16L*UART_BAUD)-1) 
 
 
 static void uart_kickout(void); 

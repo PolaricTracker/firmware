@@ -1,13 +1,13 @@
 /*
- * $Id: usb.c,v 1.7 2008-05-03 19:42:16 la7eca Exp $
+ * $Id: usb.c,v 1.8 2008-08-13 22:37:34 la7eca Exp $
  */
  
 #include "usb.h"
-#include "kernel.h"
-#include "stream.h"
+#include "kernel/kernel.h"
+#include "kernel/stream.h"
 #include "defines.h"
 
-#define CDC_BUF_SIZE 64
+#define CDC_BUF_SIZE 32
 
 /* MyUSB Bug fix */
 #define ENDPOINT_INT_IN     UEIENX, (1 << TXINE) , UEINTX, (1 << TXINI)
