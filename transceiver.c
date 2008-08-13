@@ -1,15 +1,15 @@
-/* $Id: transceiver.c,v 1.15 2008-07-22 21:13:59 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.16 2008-08-13 22:36:29 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
 #include "defines.h"
-#include "timer.h"
 #include "transceiver.h"
-#include "kernel.h"
+#include "kernel/kernel.h"
+#include "kernel/timer.h"
+#include "kernel/stream.h"
 
 #define MINIMUM_N 23
 
-#include "stream.h"
 
 bool adf7021_enabled = false;
 bool adf7021_tx_enabled = false;

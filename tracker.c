@@ -1,12 +1,12 @@
 /*
- * $Id: tracker.c,v 1.5 2008-07-22 21:22:35 la7eca Exp $
+ * $Id: tracker.c,v 1.6 2008-08-13 22:36:02 la7eca Exp $
  */
  
 #include "defines.h"
-#include "kernel.h"
+#include "kernel/kernel.h"
 #include "gps.h"
 #include "config.h"
-#include "timer.h"
+#include "kernel/timer.h"
 // #include "math.h"
 
 
