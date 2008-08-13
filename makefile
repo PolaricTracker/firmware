@@ -22,6 +22,7 @@
 	MCU = at90usb1287
         F_CPU = 8000000
         
+        
 # Output format. Can be [srec|ihex].
     FORMAT = ihex
 
@@ -34,14 +35,15 @@
               MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
               MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
               MyUSB/Drivers/USB/HighLevel/StdDescriptors.c config.c \
-              kernel.c timer.c main.c stream.c uart.c gps.c transceiver.c \
-              afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c commands.c tracker.c
+              kernel/kernel.c kernel/timer.c kernel/stream.c uart.c gps.c transceiver.c \
+              afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c commands.c tracker.c main.c 
 
 # List Assembler source files here.
-	ASRC = setjmp/setjmp.s
+	ASRC =
+# setjmp/setjmp.s 
 
 # Compiler flags.
-	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -O2 --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
+	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -ggdb --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
 
 # Assembler flags.
     ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
