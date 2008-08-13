@@ -1,7 +1,7 @@
 #if !defined __HDLC_H__
 #define __HDLC_H__
 
-#include "stream.h"
+#include "kernel/stream.h"
 #include "fbuf.h"
 
 #define HDLC_FLAG 0x7E

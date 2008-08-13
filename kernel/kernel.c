@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.9 2008-05-19 20:45:00 la7eca Exp $
+ * $Id: kernel.c,v 1.1 2008-08-13 22:20:14 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -7,10 +7,10 @@
 #include <avr/interrupt.h>
 #include "defines.h"
 
-static TCB root_task;
+static TCB root_task;         /* root task is assigned the initial thread (main) */
 static TCB * q_head, * q_end; /* Ready queue */
 
-void *stack; 
+static void *stack; 
 
 
 /****************************************************************************
@@ -129,6 +129,7 @@ void wait(Cond* c)
        q_head = x; 
        c->qlast->next = NULL;
        leave_critical();
+
        longjmp(x->env, 1);    
     }
 }

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "stream.h"
+#include "kernel/stream.h"
 #include "fbuf.h"
 
 

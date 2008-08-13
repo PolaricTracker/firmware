@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <util/crc16.h>
-#include "kernel.h"
+#include "kernel/kernel.h"
+#include "kernel/stream.h"
 #include "defines.h"
 #include "hdlc.h"
-#include "stream.h"
 #include "fbuf.h"
 
 static stream_t *stream;

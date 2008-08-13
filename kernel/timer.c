@@ -1,4 +1,6 @@
 /*
+ * $Id: timer.c,v 1.1 2008-08-13 22:20:14 la7eca Exp $
+ *
  * Software timer
  */
  
@@ -35,7 +37,7 @@ void timer_set(Timer* t, uint16_t ticks)
 /********************************************************************
  * Cancel a running timer
  *  Note that waiters (blocked threads) are notified, while callback
- *  functions are not called.
+ *  functions are NOT called.
  ********************************************************************/
  
 void timer_cancel(Timer* t)
@@ -92,7 +94,10 @@ void timer_tick()
 }
 
 
-
+/*********************************************************
+ * Remove (cancel) a running timer
+ *********************************************************/
+ 
 static void timer_remove(Timer* t)
 {
      if (t->next != NULL)

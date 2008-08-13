@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.12 2008-05-30 22:41:58 la7eca Exp $
+ * $Id: stream.c,v 1.1 2008-08-13 22:20:14 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -7,7 +7,7 @@
 #include <avr/signal.h>
 #include <avr/pgmspace.h>
 
-#include "kernel.h"
+#include "kernel/kernel.h"
 #include "stream.h"
 
      
@@ -59,8 +59,6 @@ void putstr_P(Stream *b, const char * addr)
 
 
 
-
-
 /********************************************************************************
  *  Blocking receive to a string buffer. 
  *  Returns when len characters are received or when a marker character 
@@ -82,6 +80,7 @@ void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
 }
 
 
+
 /********************************************************************************
  *  Blocking receive of a line (from a terminal) to a string buffer. 
  *  Returns when len characters are received or when reaching end of line. 
@@ -91,7 +90,7 @@ void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
 void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
 {
     uint16_t i = 0;
-    char x = '\0';
+    register char x = '\0';
     while ( i<len ) 
     {
        x = getch(in); 
@@ -108,7 +107,7 @@ void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
            break;
 
        if (x != '\r') 
-           addr[i++] = x; 
+           addr[i++] = x;
     }
     addr[i] = '\0';  
 }
@@ -147,7 +146,7 @@ void stream_sendByte_nb(Stream *b, const char chr)
  * Read a character from stream buffer 
  ***************************************************************************/
  
-inline char _stream_get(Stream* b)
+static char _stream_get(Stream* b)    /* inline? */
 {
     register uint16_t i = b->index;
     if (++b->index >= b->size) 
@@ -182,7 +181,7 @@ char stream_get_nb(Stream* b)
  * Write a character to stream buffer 
  ***************************************************************************/
  
-inline void _stream_put(Stream* b, const char c)
+static void _stream_put(Stream* b, const char c)  /* inline? */
 {
     register uint16_t i = b->index + b->length.cnt; 
     if (i >= b->size)

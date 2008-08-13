@@ -1,12 +1,12 @@
 /*
- * $Id: stream.h,v 1.9 2008-05-30 22:44:24 la7eca Exp $ 
+ * $Id: stream.h,v 1.1 2008-08-13 22:20:14 la7eca Exp $ 
  * Common stuff for serial communication
  */
 
 #if !defined __STREAM_H__
 #define __STREAM_H__
 
-# include "kernel.h"
+#include "kernel/kernel.h"
 
 
 

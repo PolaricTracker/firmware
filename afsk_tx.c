@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.17 2008-06-19 18:43:29 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.18 2008-08-13 22:24:22 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <avr/interrupt.h>
 #include "afsk.h"
-#include "kernel.h"
-#include "stream.h"
+#include "kernel/kernel.h"
+#include "kernel/stream.h"
 #include "transceiver.h"
 
 

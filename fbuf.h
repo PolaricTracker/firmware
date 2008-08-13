@@ -2,7 +2,7 @@
 #define __FBUF_H__
 
 #include <inttypes.h>
-#include "kernel.h"
+#include "kernel/kernel.h"
 
 #define NILPTR        255
 

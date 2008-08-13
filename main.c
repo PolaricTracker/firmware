@@ -1,9 +1,10 @@
 /*
- * $Id: main.c,v 1.13 2008-06-19 18:40:00 la7eca Exp $
+ * $Id: main.c,v 1.14 2008-08-13 22:30:27 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
  * Copyright (C) 2008 Øyvind Hanssen la7eca@hans.priv.no 
+ * Copyright (C) 2008 Espen S Johnsen esj@cs.uit.no
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 
@@ -18,8 +19,8 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include <inttypes.h>
-#include "kernel.h"
-#include "timer.h"
+#include "kernel/kernel.h"
+#include "kernel/timer.h"
 #include <stdlib.h>
 #include <string.h>
 #include "afsk.h"
@@ -80,8 +81,10 @@ ISR(TIMER1_COMPA_vect)
 #define BUTTON_TIME 200
 static Timer button_timer;
 static bool is_off = false;
+static void onoff_handler(void);
+static void sleepmode(void);
 
-void onoff_handler()
+static void onoff_handler()
 {
     if (is_off) {
        is_off = false;
@@ -99,7 +102,7 @@ void onoff_handler()
     sleepmode();
 }  
 
-void sleepmode()
+static void sleepmode()
 {
     if (is_off)
         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -131,11 +134,13 @@ uint8_t blink_length, blink_interval;
  
 void led1(void)
 {       
+    /* Blink both LEDS when turned on */
     set_port(LED1);
     set_port(LED2);
     sleep(100);
     clear_port(LED1);
     clear_port(LED2);
+    
     BLINK_NORMAL;
     while (1) {
         set_port( LED1 );

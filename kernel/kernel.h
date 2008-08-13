@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.h,v 1.10 2008-06-19 18:35:34 la7eca Exp $
+ * $Id: kernel.h,v 1.1 2008-08-13 22:20:30 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 

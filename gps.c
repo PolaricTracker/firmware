@@ -4,8 +4,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
-#include "timer.h"
-#include "stream.h"
+#include "kernel/timer.h"
+#include "kernel/stream.h"
 #include "hdlc.h"
 #include "fbuf.h"
 #include "ax25.h"

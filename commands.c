@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.15 2008-06-19 18:42:31 la7eca Exp $
+ * $Id: commands.c,v 1.16 2008-08-13 22:26:19 la7eca Exp $
  */
  
 #include "defines.h"
@@ -8,8 +8,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
-#include "timer.h"
-#include "stream.h"
+#include "kernel/timer.h"
+#include "kernel/stream.h"
 #include "hdlc.h"
 #include "fbuf.h"
 #include "ax25.h"
@@ -357,6 +357,7 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
       putstr(out, buf);
    }   
 }
+
 
 /*********************************************
  * config: symbol (APRS symbol/symbol table)

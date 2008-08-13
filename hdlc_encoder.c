@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.17 2008-07-22 21:19:09 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.18 2008-08-13 22:28:13 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -11,9 +11,9 @@
 #include <avr/interrupt.h>
 #include "fbuf.h"
 #include "hdlc.h"
-#include "kernel.h"
-#include "timer.h"
-#include "stream.h"
+#include "kernel/kernel.h"
+#include "kernel/timer.h"
+#include "kernel/stream.h"
 #include "config.h"
 #include <util/crc16.h>
 #include "transceiver.h"
