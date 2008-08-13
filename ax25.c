@@ -1,11 +1,12 @@
 /*
- * $Id: ax25.c,v 1.9 2008-06-19 18:42:57 la7eca Exp $
+ * $Id: ax25.c,v 1.10 2008-08-13 22:25:56 la7eca Exp $
  */
  
 #include "ax25.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <avr/pgmspace.h>
 
 #define AXLEN		7 
 #define TO_POS    1
@@ -52,7 +53,7 @@ void str2addr(addr_t* addr, const char* string)
 
 char* addr2str(char* string, const addr_t* addr)
 {
-    sprintf(string, "%s-%d\0", addr->callsign, addr->ssid);
+    sprintf_P(string, PSTR("%s-%d\0"), addr->callsign, addr->ssid);
     return string;
 }
    
