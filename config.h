@@ -11,7 +11,7 @@
      EEMEM t PARAM_##x;       \
      EEMEM uint8_t PARAM_##x##_CRC
      
-#define DEFAULT_PARAM(x,t) PROGMEM t PARAM_DEFAULT_##x   
+#define DEFAULT_PARAM(x) PROGMEM __typeof__(PARAM_##x) PARAM_DEFAULT_##x
 
 #else
 
@@ -47,6 +47,8 @@ DEFINE_PARAM( TRACKER_SLEEP_TIME, uint16_t     );
 DEFINE_PARAM( SYMBOL,             uint8_t      );
 DEFINE_PARAM( SYMBOL_TABLE,       uint8_t      );
 DEFINE_PARAM( REPORT_COMMENT,     comment      );
+DEFINE_PARAM( GPS_BAUD,           uint16_t     );
+
 
 #if defined __CONFIG_C__
 /***************************************************************
@@ -55,22 +57,23 @@ DEFINE_PARAM( REPORT_COMMENT,     comment      );
  * or the linker will complain.
  ***************************************************************/
 
-DEFAULT_PARAM( MYCALL, addr_t)               = {"NOCALL",0};
-DEFAULT_PARAM( DEST, addr_t)                 = {"NONE", 0};
-DEFAULT_PARAM( DIGIS, __digilist_t)          = {};
-DEFAULT_PARAM( NDIGIS,  uint8_t)             = 0;
-DEFAULT_PARAM( TXDELAY, uint8_t)             = 20;
-DEFAULT_PARAM( TXTAIL,  uint8_t)             = 10;
-DEFAULT_PARAM( TRX_FREQ, uint32_t)           = 144.800e6;
-DEFAULT_PARAM( TRX_CALIBRATE, int)           = 0;
-DEFAULT_PARAM( TRX_TXPOWER, double)          = -13.0;
-DEFAULT_PARAM( TRX_AFSK_DEV, uint16_t)       = 3500;
-DEFAULT_PARAM( TRX_SQUELCH, double)          = -100;
-DEFAULT_PARAM( TRACKER_ON, uint8_t)          = 0;
-DEFAULT_PARAM( TRACKER_SLEEP_TIME, uint16_t) = 3000; // 30 sec.
-DEFAULT_PARAM( SYMBOL, uint8_t)              = '.';
-DEFAULT_PARAM( SYMBOL_TABLE, uint8_t)        = '/';
-DEFAULT_PARAM( REPORT_COMMENT, comment )     = "Polaric Tracker";
+DEFAULT_PARAM( MYCALL )             = {"NOCALL",0};
+DEFAULT_PARAM( DEST )               = {"NONE", 0};
+DEFAULT_PARAM( DIGIS )              = {{"WIDE3", 3}};
+DEFAULT_PARAM( NDIGIS )             = 1;
+DEFAULT_PARAM( TXDELAY )            = 20;
+DEFAULT_PARAM( TXTAIL )             = 10;
+DEFAULT_PARAM( TRX_FREQ )           = 144.800e6;
+DEFAULT_PARAM( TRX_CALIBRATE )      = 0;
+DEFAULT_PARAM( TRX_TXPOWER )        = -13.0;
+DEFAULT_PARAM( TRX_AFSK_DEV )       = 3500;
+DEFAULT_PARAM( TRX_SQUELCH )        = -80;
+DEFAULT_PARAM( TRACKER_ON )         = 0;
+DEFAULT_PARAM( TRACKER_SLEEP_TIME ) = 3000; // 30 sec.
+DEFAULT_PARAM( SYMBOL)              = '.';
+DEFAULT_PARAM( SYMBOL_TABLE)        = '/';
+DEFAULT_PARAM( REPORT_COMMENT )     = "Polaric Tracker";
+DEFAULT_PARAM( GPS_BAUD )           = 4800;
 
 #endif
  
