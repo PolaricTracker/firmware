@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.16 2008-08-13 22:22:42 la7eca Exp $ 
+ * $Id: defines.h,v 1.17 2008-08-22 23:59:36 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -11,9 +11,6 @@
 
 #define TRUE   (1)
 #define FALSE  (0)
-
-/* UART Baud rate */
-#define UART_BAUD 9600
 
 /* Some assumptions about environment. Units 1/10 s */
  
