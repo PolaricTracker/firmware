@@ -2,7 +2,7 @@
 MK-I/GENERIC
 ------------
 Stability issues. 
-Digipeater path setting via command interface.
+Digipeater path setting via command interface. DONE
 Distance calculation. 
 Extract more from NMEA? velocity?, precision?
 Advanced tracking - use time/velocity/distance to determine when to report.
