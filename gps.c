@@ -20,8 +20,8 @@
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 /* Defined in uart.c */
-Stream* uart_tx_init(void);
-Stream* uart_rx_init(bool);
+Stream* uart_tx_init(uint16_t);
+Stream* uart_rx_init(uint16_t, bool);
 
 posdata_t current_pos; 
 
@@ -42,7 +42,9 @@ void gps_init(Stream *outstr)
 {
     cond_init(&wait_gps); 
     monitor_pos = monitor_raw = false; 
-    in = uart_rx_init(FALSE);
+    uint16_t baud; 
+    GET_PARAM(GPS_BAUD, &baud);
+    in = uart_rx_init(baud, FALSE);
     out = outstr;
     THREAD_START(nmeaListener, 270);
     make_output(GPSON); 

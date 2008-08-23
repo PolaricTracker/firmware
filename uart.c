@@ -1,5 +1,5 @@
 /*
- * $Id: uart.c,v 1.12 2008-08-13 22:37:11 la7eca Exp $
+ * $Id: uart.c,v 1.13 2008-08-23 00:06:21 la7eca Exp $
  */
  
 #include "defines.h"
@@ -9,10 +9,7 @@
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
 
-#if !defined UART_BAUD
-#define UART_BAUD 9600
-#endif
-#define UART_UBRR (SCALED_F_CPU/(16L*UART_BAUD)-1) 
+#define UART_UBRR(x) (SCALED_F_CPU/(16L*(x))-1) 
 
 
 static void uart_kickout(void); 
@@ -29,13 +26,13 @@ static bool echo;
 
 
 
-Stream* uart_tx_init()
+Stream* uart_tx_init(uint16_t baud)
 {
    STREAM_INIT( uart_outstr, UART_BUF_SIZE );
    uart_outstr.kick = uart_kickout; 
    
    // Set baud rate 
-   UBRR1 = UART_UBRR;
+   UBRR1 = UART_UBRR(baud);
    // Set frame format to 8 data bits, no parity, and 1stop bit
    UCSR1C |= (1<<UCSZ10) | (1<<UCSZ11);
      
@@ -44,13 +41,14 @@ Stream* uart_tx_init()
    return &uart_outstr;
 }
 
-Stream* uart_rx_init(bool e)
+
+Stream* uart_rx_init(uint16_t baud, bool e)
 {
    echo = e; 
    STREAM_INIT( uart_instr, UART_BUF_SIZE );    
    
    // Set baud rate 
-   UBRR1 = UART_UBRR;
+   UBRR1 = UART_UBRR(baud);
    // Set frame format to 8 data bits, no parity, and 1stop bit
    UCSR1C = (1<<UCSZ10) | (1<<UCSZ11);
      
