@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.6 2008-08-13 22:36:02 la7eca Exp $
+ * $Id: tracker.c,v 1.7 2008-08-23 00:04:08 la7eca Exp $
  */
  
 #include "defines.h"
@@ -142,7 +142,9 @@ static void report_position(posdata_t* pos)
     /* Create packet header */
     GET_PARAM(MYCALL, &from);
     GET_PARAM(DEST, &to);
-    addr_t digis[] = {{"WIDE3", 3}};        
+    addr_t digis[7];
+    uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
+    GET_PARAM(DIGIS, &digis);      
     ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
     
     /* APRS Packet content */
