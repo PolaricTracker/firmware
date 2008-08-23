@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.16 2008-08-13 22:26:19 la7eca Exp $
+ * $Id: commands.c,v 1.17 2008-08-23 00:01:57 la7eca Exp $
  */
  
 #include "defines.h"
@@ -28,8 +28,6 @@ uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 static void do_teston    (uint8_t, char**, Stream*);
 static void do_testoff   (uint8_t, char**, Stream*);
 static void do_testpacket(uint8_t, char**, Stream*);
-static void do_txdelay   (uint8_t, char**, Stream*);
-static void do_txtail    (uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
 static void do_symbol    (uint8_t, char**, Stream*);
@@ -41,14 +39,79 @@ static void do_tracker   (uint8_t, char**, Stream*, Stream* in);
 static void do_freq      (uint8_t, char**, Stream*);
 static void do_power     (uint8_t, char**, Stream*);
 static void do_squelch   (uint8_t, char**, Stream*);
-static void do_deviation (uint8_t, char**, Stream*);
 static void do_rssi      (uint8_t, char**, Stream*, Stream*);
+static void do_digipath  (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
 
 extern void tracker_on(void);
 extern void tracker_off(void);
+
+
+/***************************************************************************************
+ * Generic getter/setter commands for simple numeric parameters. 
+ *     MOVE TO config.c
+ *
+ * Note: the ee_addr and default_val arguments are defined by macros (see config.h) 
+ * and are further passed to get_param() and set_param() 
+ ***************************************************************************************/
+ 
+static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out, 
+                void* ee_addr, PGM_P default_val, PGM_P pfmt, PGM_P sfmt)
+{
+    uint16_t x;
+    if (argc > 1) {
+       sscanf_P(argv[1], sfmt, &x);  
+       set_param(ee_addr, &x, sizeof(uint16_t));
+       putstr_P(out,PSTR("OK\r\n"));
+    } 
+    else {
+       get_param(ee_addr, &x, sizeof(uint16_t), default_val); 
+       sprintf_P(buf, pfmt, x);
+       putstr(out, buf);
+    }
+}
+static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out, 
+                void* ee_addr, PGM_P default_val, PGM_P pfmt, PGM_P sfmt)
+{
+    uint8_t x;
+    if (argc > 1) {
+       sscanf_P(argv[1], sfmt, &x);  
+       set_byte_param(ee_addr, x);
+       putstr_P(out,PSTR("OK\r\n"));
+    } 
+    else {
+       x = get_byte_param(ee_addr, default_val); 
+       sprintf_P(buf, pfmt, x);
+       putstr(out, buf);
+    }
+}
+
+/***************************************************************************************
+ * Macro to test for command to get or set numeric parameter. 
+ * Usage: 
+ *
+ *   IF_COMMAND_PARAM_type(  command, cmpchars, 
+ *                          argc, argv, outstream, 
+ *                          paramname, printformat, scanformat)
+ *
+ *   paramname   = name of parameter (as defined in config.h)
+ *   printformat = Format string (in program memory) for showing value of parameter. 
+ *                 It  must contain one "%d" or equivalent.
+ *   scanformat  = Format string (in program memory) for reading value of parameter. 
+ *                 It must contain one "%d" or equivalent. 
+ ***************************************************************************************/
+
+#define IF_COMMAND_PARAM_uint16(command, cmpchars, argc, argv, out, x, pfmt, sfmt)  \
+    if (strncmp(command, argv[0], cmpchars) == 0) \
+        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, pfmt, sfmt) 
+
+#define IF_COMMAND_PARAM_uint8(command, cmpchars, argc, argv, out, x, pfmt, sfmt)  \
+    if (strncmp(command, argv[0], cmpchars) == 0) \
+        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, pfmt, sfmt) 
+
+
 
 
 /**************************************************************************
@@ -70,49 +133,70 @@ void cmdProcessor(Stream *in, Stream *out)
          readLine(in, out, buf, BUFSIZE);
          
          /* Split input line into argument tokens */
-         argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n", true);
+         argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n,", true);
 
-         /* Select command handler */         
+         /* Select command handler: 
+          * misc commands 
+          */         
          if (strncmp("teston", argv[0], 6) == 0)
              do_teston(argc, argv, out);
          else if (strncmp("testoff", argv[0], 7) == 0)
              do_testoff(argc, argv, out);
          else if (strncmp("testpacket",  argv[0], 5) == 0)
-             do_testpacket(argc, argv, out);
-         else if (strncmp("txdelay",     argv[0], 3) == 0)
-             do_txdelay(argc, argv, out);
-         else if (strncmp("txtail",     argv[0], 3) == 0)
-             do_txtail(argc, argv, out);
-         else if (strncmp("mycall",     argv[0], 2) == 0)
-             do_mycall(argc, argv, out);    
-         else if (strncmp("dest",     argv[0], 3) == 0)
-             do_dest(argc, argv, out);    
-         else if (strncmp("symbol",   argv[0], 3) == 0)
-             do_symbol(argc, argv, out);               
-         else if (strncmp("freq", argv[0], 2) == 0)
-             do_freq(argc, argv, out);  
-         else if (strncmp("power", argv[0], 2) == 0)
-             do_power(argc, argv, out);    
-         else if (strncmp("squelch", argv[0], 2) == 0)
-             do_squelch(argc, argv, out);       
-         else if (strncmp("deviation", argv[0], 3) == 0)
-             do_deviation(argc, argv, out);               
-         else if (strncmp("gps",     argv[0], 3) == 0)
+             do_testpacket(argc, argv, out);                               
+         else if (strncmp("gps",     argv[0], 4) == 0)
              do_nmea(argc, argv, out, in);     
          else if (strncmp("trx",     argv[0], 3) == 0)
              do_trx(argc, argv, out, in);        
-         else if (strncmp("tracker", argv[0], 3) == 0)
+         else if (strncmp("tracker", argv[0], 6) == 0)
              do_tracker(argc, argv, out, in);
          else if (strncmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out);        
          else if (strncmp("txoff",     argv[0], 4) == 0)
              do_txoff(argc, argv, out);     
          else if (strncmp("rssi", argv[0], 2) == 0)
-             do_rssi(argc, argv, out, in);                 
+             do_rssi(argc, argv, out, in);        
+         
+         /* Commands for setting/viewing parameters */
+         else if (strncmp("mycall", argv[0], 2) == 0)
+             do_mycall(argc, argv, out);    
+         else if (strncmp("dest", argv[0], 3) == 0)
+             do_dest(argc, argv, out);  
+         else if (strncmp("digipath", argv[0], 4) == 0)  
+             do_digipath(argc, argv, out);
+         else if (strncmp("symbol", argv[0], 3) == 0)
+             do_symbol(argc, argv, out);               
+         else if (strncmp("freq",argv[0], 2) == 0)
+             do_freq(argc, argv, out);  
+         else if (strncmp("power", argv[0], 2) == 0)
+             do_power(argc, argv, out);    
+         else if (strncmp("squelch", argv[0], 2) == 0)
+             do_squelch(argc, argv, out); 
+         
+         else IF_COMMAND_PARAM_uint8
+                  ( "txdelay", 3, argc, argv, out,
+                    TXDELAY, PSTR("TXDELAY (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );      
+         
+         else IF_COMMAND_PARAM_uint8
+                  ( "txtail", 3, argc, argv, out,
+                    TXDELAY, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
+         
+         else IF_COMMAND_PARAM_uint16
+                 ( "tracktime", 6, argc, argv, out, 
+                   TRACKER_SLEEP_TIME, PSTR("Tracker sleep time (in seconds) is %d\r\n\0"), PSTR(" %d") );  
+                      
+         else IF_COMMAND_PARAM_uint16
+                 ( "deviation", 3, argc, argv, out,
+                   TRX_AFSK_DEV, PSTR("AFSK Deviation is %d\r\n\0"), PSTR(" %d") );
+                   
+         else IF_COMMAND_PARAM_uint16 
+                 ( "gpsbaud", 4, argc, argv, out, 
+                    GPS_BAUD, PSTR("GPS baud rate is %d\r\n\0"), PSTR(" %d") );        
+                    
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
-         else
-             continue;
+         else 
+             continue; 
          putstr(out,"\r\n");         
    }
 }   
@@ -139,6 +223,9 @@ Semaphore nmea_run;
 
 static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {                                                                                                            
+  if (argc < 2)
+      putstr_P(out, PSTR("Usage: GPS on|off|nmea|pos\r\n"));
+      
   if (strncmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS ON *****\r\n"));
       gps_on();
@@ -271,7 +358,9 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
     GET_PARAM(MYCALL, &from);
     GET_PARAM(DEST, &to);
     
-    addr_t digis[] = {{"WIDE2", 2}}; 
+    addr_t digis[7];
+    uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
+    GET_PARAM(DIGIS, &digis);
             
     ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
@@ -280,44 +369,6 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
 }
 
          
-         
-/*********************************************
- * config: txdelay 
- *********************************************/
- 
-static void do_txdelay(uint8_t argc, char** argv, Stream* out)
-{
-    if (argc > 1) {
-       int x = 0;
-       sscanf(argv[1], " %d", &x);   
-       SET_BYTE_PARAM(TXDELAY, x);
-    } 
-    else {
-       uint8_t x = GET_BYTE_PARAM(TXDELAY);
-       sprintf_P(buf, PSTR("TXDELAY is: %d\r\n\0"), x);
-       putstr(out, buf);
-    }
-}
-
-         
-/*********************************************
- * config: txtail 
- *********************************************/
- 
-static void do_txtail(uint8_t argc, char** argv, Stream* out)
-{
-    if (argc > 1) {
-       int x = 0;
-       sscanf(argv[1], " %d", &x);   
-       SET_BYTE_PARAM(TXTAIL, x);
-    } 
-    else {
-       uint8_t x = GET_BYTE_PARAM(TXTAIL);
-       sprintf_P(buf, PSTR("TXTAIL is: %d\r\n\0"), x);
-       putstr(out, buf);
-    }
-}
-
          
 /*********************************************
  * config: mycall (sender address)
@@ -330,6 +381,7 @@ static void do_mycall(uint8_t argc, char** argv, Stream* out)
    if (argc > 1) {
       str2addr(&x, argv[1]);
       SET_PARAM(MYCALL, &x);
+      putstr_P(out,PSTR("OK\r\n"));
    }
    else {
       GET_PARAM(MYCALL, &x);
@@ -350,12 +402,47 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    if (argc > 1) {
       str2addr(&x, argv[1]);
       SET_PARAM(DEST, &x);
+      putstr_P(out,PSTR("OK\r\n"));
    }
    else {
       GET_PARAM(DEST, &x);
       sprintf_P(buf, PSTR("DEST is: %s\r\n\0"), addr2str(cbuf, &x));
       putstr(out, buf);
    }   
+}
+
+/*********************************************
+ * config: digipeater path
+ *********************************************/
+static void do_digipath(uint8_t argc, char** argv, Stream* out)
+{
+    __digilist_t digis;
+    uint8_t ndigis;
+    uint8_t i;
+    char cbuf[11]; 
+    
+    if (argc > 2) {
+       ndigis = argc - 1;
+       if (ndigis > 7) 
+           ndigis = 7;
+       for (i=0; i<ndigis; i++)
+           str2addr(&digis[i], argv[i+1]);
+       SET_BYTE_PARAM(NDIGIS, ndigis);
+       SET_PARAM(DIGIS, digis);
+       putstr_P(out,PSTR("OK\r\n")); 
+    }
+    else  {
+       ndigis = GET_BYTE_PARAM(NDIGIS);
+       GET_PARAM(DIGIS,&digis);
+       putstr_P(out, PSTR("Digipeater path is ")); 
+       for (i=0; i<ndigis; i++)
+       {
+           putstr(out, addr2str(cbuf, &digis[i]));
+           if (i < ndigis-1)
+               putstr(out, ", "); 
+       }
+       putstr(out,"\n\r");
+    }
 }
 
 
@@ -368,6 +455,7 @@ static void do_symbol(uint8_t argc, char** argv, Stream* out)
    if (argc > 2) {
       SET_BYTE_PARAM(SYMBOL_TABLE, *argv[1]);
       SET_BYTE_PARAM(SYMBOL, *argv[2]);
+      putstr_P(out,PSTR("OK\r\n"));
    }
    else {
       sprintf_P(buf, PSTR("SYMTABLE/SYMBOL is: %c %c\r\n\0"), 
@@ -387,6 +475,7 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
        sscanf(argv[1], " %ld", &x);
        x *= 1000;   
        SET_PARAM(TRX_FREQ, &x);
+       putstr_P(out,PSTR("OK\r\n"));
     } 
     else {
        GET_PARAM(TRX_FREQ, &x);
@@ -406,6 +495,7 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
     if (argc > 1) {
        sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_TXPOWER, &x);
+       putstr_P(out,PSTR("OK\r\n"));
     } 
     else {
        GET_PARAM(TRX_TXPOWER, &x);
@@ -425,6 +515,7 @@ static void do_squelch(uint8_t argc, char** argv, Stream* out)
     if (argc > 1) {
        sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_SQUELCH, &x);
+       putstr_P(out,PSTR("OK\r\n"));
     } 
     else {
        GET_PARAM(TRX_SQUELCH, &x);
@@ -432,26 +523,6 @@ static void do_squelch(uint8_t argc, char** argv, Stream* out)
        putstr(out, buf);
     }
 }
-
-
-/*********************************************
- * config: AFSK modulation deviation
- *********************************************/
- 
-static void do_deviation(uint8_t argc, char** argv, Stream* out)
-{
-    uint16_t x = 0;
-    if (argc > 1) {
-       sscanf(argv[1], " %d", &x);  
-       SET_PARAM(TRX_AFSK_DEV, &x);
-    } 
-    else {
-       GET_PARAM(TRX_AFSK_DEV, &x);
-       sprintf_P(buf, PSTR("DEVIATION is: %d\r\n\0"), x);
-       putstr(out, buf);
-    }
-}
-
 
 
 /****************************************************************************
