@@ -1,5 +1,5 @@
 /* 
- * $Id: gps.h,v 1.3 2008-08-13 22:23:20 la7eca Exp $
+ * $Id: gps.h,v 1.4 2008-09-08 22:32:52 la7eca Exp $
  * NMEA data 
  */
 
@@ -15,6 +15,8 @@ typedef uint32_t timestamp_t;
 typedef struct _PosData {    
     double latitude;
     double longitude;
+    float  speed;
+    uint16_t course;
     timestamp_t timestamp;
 } posdata_t;
 
@@ -32,7 +34,6 @@ void  gps_wait_lock (void);
 char* time2str (char*, timestamp_t);
 void gps_off(void);
 
-#define gps_on() clear_port(GPSON)
 
 
 #endif
