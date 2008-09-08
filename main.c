@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.14 2008-08-13 22:30:27 la7eca Exp $
+ * $Id: main.c,v 1.15 2008-09-08 22:37:01 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -226,6 +226,7 @@ int main(void)
       make_output(LED1);
       make_output(LED2);
       make_output(LED3);
+      make_output(CPUBUSY);
       
       /* Button */
       make_input(BUTTON);
@@ -239,7 +240,8 @@ int main(void)
       OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
    
       sei();    
-                
+      TRACE_INIT;
+                      
       /* Transceiver setup */
       setup_transceiver(); 
      
