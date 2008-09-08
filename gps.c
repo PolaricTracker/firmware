@@ -29,6 +29,7 @@ posdata_t current_pos;
 static void do_rmc        (uint8_t, char**, Stream*);
 static void do_gga        (uint8_t, char**, Stream*);
 static void nmeaListener  (void); 
+void notify_lock   (bool);
 
 static char buf[NMEA_BUFSIZE];
 static Cond wait_gps; 
@@ -46,16 +47,22 @@ void gps_init(Stream *outstr)
     GET_PARAM(GPS_BAUD, &baud);
     in = uart_rx_init(baud, FALSE);
     out = outstr;
-    THREAD_START(nmeaListener, 270);
+    THREAD_START(nmeaListener, 290);
     make_output(GPSON); 
     set_port(GPSON);
 }
 
+void gps_on()
+{
+   clear_port(GPSON);
+   notify_lock(false);
+}
+
+
 void gps_off()
 { 
    set_port(GPSON);
-   is_locked = false; 
-   BLINK_NORMAL; 
+   BLINK_NORMAL   
 }
  
  
@@ -172,12 +179,13 @@ char* time2str(char* buf, timestamp_t time)
  * handle changes in GPS lock - mainly change LED blinking
  ****************************************************************/
 
-static void notify_lock(bool lock)
+void notify_lock(bool lock)
 {
    if (!lock) 
        BLINK_GPS_SEARCHING
-   else if (!is_locked) {
-       notifyAll(&wait_gps);     
+   else {
+       if (!is_locked) 
+          notifyAll(&wait_gps);     
        BLINK_NORMAL
    }
    is_locked = lock;
@@ -189,12 +197,9 @@ bool gps_is_locked()
    
    
 void gps_wait_lock()
-{ 
-    notify_lock(false); /* OOPS: Is this a good idea? */
-    sleep(200);
-    if (!is_locked)
+{         
+    while (!is_locked)
        wait(&wait_gps);
-
 }         
   
   
@@ -205,21 +210,27 @@ void gps_wait_lock()
 
 static void do_rmc(uint8_t argc, char** argv, Stream *out)
 {
-    static uint8_t lock_cnt = 0;
+    static uint8_t lock_cnt = 4;
     
-    char buf[60], tbuf[9];
-    if (argc != 13)                /* Ignore if wrong format */
+    char buf[95], tbuf[9];
+    if (argc != 13)                 /* Ignore if wrong format */
        return;
 
     if (*argv[2] != 'A') { 
-          notify_lock(false);      /* Ignore if receiver not in lock */
-          lock_cnt = 0;
-      return;
+       notify_lock(false);          /* Ignore if receiver not in lock */
+       lock_cnt = 4;
+       return;
     }
     else
-      if (lock_cnt++ == 4)
-         notify_lock(true);
-
+      if (lock_cnt > 0) {
+         lock_cnt--;
+         return;
+      }
+      
+    lock_cnt = 1;
+    notify_lock(true);
+    TRACE(20);
+       
     /* get timestamp */
     timestamp_t time; 
     nmea2time(&time, argv[1]);
@@ -234,10 +245,26 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     if (*argv[6] == 'W')
         current_pos.longitude = -current_pos.longitude;
     
+    /* get speed [nnn.nn] */
+    if (strlen(argv[7] > 0))
+       sscanf(argv[7], "%f", &current_pos.speed);
+    else
+       current_pos.speed = 0;
+       
+    /* get course [nnn.nn] */
+    if (strlen(argv[8] > 0)) {
+       double x;
+       sscanf(argv[8], "%f", &x);
+       current_pos.course = (uint16_t) x+0.5;
+    }
+    else
+       current_pos.course = 0;
+       
     /* If requested, show position on screen */    
     if (monitor_pos) {
-        sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f\r\n"), 
-          time2str(tbuf, time), current_pos.latitude, current_pos.longitude);
+        sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f, SPEED: %f km/h, COURSE: %u deg\r\n"), 
+          time2str(tbuf, time), current_pos.latitude, current_pos.longitude, 
+          current_pos.speed*1.856, current_pos.course);
         putstr(out, buf);
     }
 }
