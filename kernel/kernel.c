@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.1 2008-08-13 22:20:14 la7eca Exp $
+ * $Id: kernel.c,v 1.2 2008-09-08 22:40:27 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -123,14 +123,12 @@ void wait(Cond* c)
            c->qlast = c->qfirst = q_head; 
        else
            c->qlast = c->qlast->next = q_head; 
-        
-       register TCB* x = q_end; 
-       q_end = q_end->next = q_head->next;
-       q_head = x; 
+
+       q_end->next = q_head = q_head->next;     
+       
        c->qlast->next = NULL;
        leave_critical();
-
-       longjmp(x->env, 1);    
+       longjmp(q_head->env, 1);
     }
 }
 
