@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.17 2008-08-22 23:59:36 la7eca Exp $ 
+ * $Id: defines.h,v 1.18 2008-09-08 22:32:31 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -12,10 +12,19 @@
 #define TRUE   (1)
 #define FALSE  (0)
 
-/* Some assumptions about environment. Units 1/10 s */
- 
-#define GPS_FIX_TIME   1000  
-#define PACKET_TX_TIME 100
+/*
+ *  Some assumptions about environment: 
+ *   - timer resolution - 1/100 sec
+ *   - Minimum time (sec) to get a position from GPS 
+ *     (when tracker is already active)
+ *   - Minimum time (sec) to transmit a report 
+ */
+
+#define TIMER_RESOLUTION 100 
+#define GPS_FIX_TIME     3  
+#define PACKET_TX_TIME   2
+
+
 
 /********************************************
  * Note: The CPU frequency must be defined
