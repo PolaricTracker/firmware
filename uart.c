@@ -1,5 +1,5 @@
 /*
- * $Id: uart.c,v 1.13 2008-08-23 00:06:21 la7eca Exp $
+ * $Id: uart.c,v 1.14 2008-09-08 22:38:39 la7eca Exp $
  */
  
 #include "defines.h"
@@ -55,6 +55,18 @@ Stream* uart_rx_init(uint16_t baud, bool e)
    // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
    UCSR1B |= (1<<RXCIE1) | (1<<RXEN1);
    return &uart_instr;
+}
+
+
+void uart_rx_pause()
+{
+   // Clear Receiver and Transmitter Interrupt, Receiver and Transmitter
+   UCSR1B &= ~(1<<RXCIE1) & ~(1<<RXEN1);
+}
+void uart_rx_resume()
+{
+   // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
+   UCSR1B |= (1<<RXCIE1) | (1<<RXEN1);
 }
 
 
