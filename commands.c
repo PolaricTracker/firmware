@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.17 2008-08-23 00:01:57 la7eca Exp $
+ * $Id: commands.c,v 1.18 2008-09-08 22:35:01 la7eca Exp $
  */
  
 #include "defines.h"
@@ -42,6 +42,7 @@ static void do_squelch   (uint8_t, char**, Stream*);
 static void do_rssi      (uint8_t, char**, Stream*, Stream*);
 static void do_digipath  (uint8_t, char**, Stream*);
 
+
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
 
@@ -58,13 +59,18 @@ extern void tracker_off(void);
  ***************************************************************************************/
  
 static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out, 
-                void* ee_addr, PGM_P default_val, PGM_P pfmt, PGM_P sfmt)
+                void* ee_addr, PGM_P default_val, uint16_t lower, uint16_t upper, PGM_P pfmt, PGM_P sfmt)
 {
     uint16_t x;
     if (argc > 1) {
-       sscanf_P(argv[1], sfmt, &x);  
-       set_param(ee_addr, &x, sizeof(uint16_t));
-       putstr_P(out,PSTR("OK\r\n"));
+       if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
+          sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper); 
+          putstr(out,buf); 
+       }
+       else {
+          set_param(ee_addr, &x, sizeof(uint16_t));
+          putstr_P(out,PSTR("OK\r\n"));
+       }
     } 
     else {
        get_param(ee_addr, &x, sizeof(uint16_t), default_val); 
@@ -72,14 +78,21 @@ static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out,
        putstr(out, buf);
     }
 }
+
+
 static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out, 
-                void* ee_addr, PGM_P default_val, PGM_P pfmt, PGM_P sfmt)
+                void* ee_addr, PGM_P default_val, uint8_t lower, uint8_t upper, PGM_P pfmt, PGM_P sfmt)
 {
     uint8_t x;
     if (argc > 1) {
-       sscanf_P(argv[1], sfmt, &x);  
-       set_byte_param(ee_addr, x);
-       putstr_P(out,PSTR("OK\r\n"));
+       if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
+          sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper);  
+          putstr(out,buf);
+       }
+       else {
+          set_byte_param(ee_addr, x);
+          putstr_P(out,PSTR("OK\r\n"));
+       }
     } 
     else {
        x = get_byte_param(ee_addr, default_val); 
@@ -103,13 +116,13 @@ static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out,
  *                 It must contain one "%d" or equivalent. 
  ***************************************************************************************/
 
-#define IF_COMMAND_PARAM_uint16(command, cmpchars, argc, argv, out, x, pfmt, sfmt)  \
+#define IF_COMMAND_PARAM_uint16(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
     if (strncmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, pfmt, sfmt) 
+        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
-#define IF_COMMAND_PARAM_uint8(command, cmpchars, argc, argv, out, x, pfmt, sfmt)  \
+#define IF_COMMAND_PARAM_uint8(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
     if (strncmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, pfmt, sfmt) 
+        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
 
 
@@ -128,6 +141,8 @@ void cmdProcessor(Stream *in, Stream *out)
     uint8_t argc;
     
     putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n\r\n"));
+    sprintf_P(buf, PSTR("trace = %u\r\n"), GET_TRACE);
+    putstr(out,buf);
     while (1) {
          putstr(out, "cmd: ");    
          readLine(in, out, buf, BUFSIZE);
@@ -156,6 +171,7 @@ void cmdProcessor(Stream *in, Stream *out)
              do_txoff(argc, argv, out);     
          else if (strncmp("rssi", argv[0], 2) == 0)
              do_rssi(argc, argv, out, in);        
+     
          
          /* Commands for setting/viewing parameters */
          else if (strncmp("mycall", argv[0], 2) == 0)
@@ -175,23 +191,31 @@ void cmdProcessor(Stream *in, Stream *out)
          
          else IF_COMMAND_PARAM_uint8
                   ( "txdelay", 3, argc, argv, out,
-                    TXDELAY, PSTR("TXDELAY (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );      
+                    TXDELAY, 0, 200, PSTR("TXDELAY (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );      
          
          else IF_COMMAND_PARAM_uint8
                   ( "txtail", 3, argc, argv, out,
-                    TXDELAY, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
+                    TXDELAY, 0, 200, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint16
                  ( "tracktime", 6, argc, argv, out, 
-                   TRACKER_SLEEP_TIME, PSTR("Tracker sleep time (in seconds) is %d\r\n\0"), PSTR(" %d") );  
+                   TRACKER_SLEEP_TIME, 10, 3600, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
                       
          else IF_COMMAND_PARAM_uint16
                  ( "deviation", 3, argc, argv, out,
-                   TRX_AFSK_DEV, PSTR("AFSK Deviation is %d\r\n\0"), PSTR(" %d") );
+                   TRX_AFSK_DEV, 100, 5000, PSTR("AFSK Deviation is %d Hz\r\n\0"), PSTR(" %d") );
                    
          else IF_COMMAND_PARAM_uint16 
                  ( "gpsbaud", 4, argc, argv, out, 
-                    GPS_BAUD, PSTR("GPS baud rate is %d\r\n\0"), PSTR(" %d") );        
+                    GPS_BAUD, 1200, 19200, PSTR("GPS baud rate is %d\r\n\0"), PSTR(" %d") );        
+         
+         else IF_COMMAND_PARAM_uint16 
+                 ( "maxturn", 6, argc, argv, out, 
+                    TRACKER_TURN_LIMIT, 0, 360, PSTR("Tracker turn limit is %d degrees\r\n\0"), PSTR(" %d") );    
+                        
+         else IF_COMMAND_PARAM_uint8 
+                 ( "maxpause", 6, argc, argv, out, 
+                    TRACKER_PAUSE_LIMIT, 1, 200, PSTR("Tracker pause limit is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
                     
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
@@ -200,6 +224,8 @@ void cmdProcessor(Stream *in, Stream *out)
          putstr(out,"\r\n");         
    }
 }   
+
+
 
 static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
@@ -244,6 +270,11 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
       putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\r\n"));
       gps_mon_pos();
   } 
+  else if (strncmp("fix", argv[1], 3) == 0)
+     { notify_lock(true); return; }
+      
+  else if (strncmp("unfix", argv[1], 5) == 0)
+     { notify_lock(false); return; }     
   else
      return;
 
@@ -252,6 +283,8 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   getch(in);
   gps_mon_off();
 }
+
+
 
 
 /************************************************
