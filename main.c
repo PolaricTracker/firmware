@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.15 2008-09-08 22:37:01 la7eca Exp $
+ * $Id: main.c,v 1.16 2008-09-15 22:04:25 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -47,10 +47,12 @@ do {                        \
 } while(0)
 
 
+
 /***************************************************************************
  * Main clock interrupt routine. Provides clock ticks for software timers
  * (100Hz), AFSK transmitter (1200Hz) and AFSK receiver (9600Hz).  
  ***************************************************************************/ 
+
  
 ISR(TIMER1_COMPA_vect) 
 {
@@ -239,8 +241,8 @@ int main(void)
       TIMSK1 = 1<<OCIE1A;             /* Interrupt on compare match */
       OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
    
-      sei();    
       TRACE_INIT;
+      sei();    
                       
       /* Transceiver setup */
       setup_transceiver(); 
@@ -257,6 +259,7 @@ int main(void)
       THREAD_START(usbSerListener, 200);
       
       THREAD_START(led1, 70);  
+      TRACE(1);
       
       while(1) 
       {  

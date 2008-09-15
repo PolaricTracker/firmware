@@ -1,5 +1,22 @@
 #define __CONFIG_C__   /* IMPORTANT */
 #include "config.h"
+#include <stdio.h>
+
+
+
+void show_trace(char* buf, uint8_t run, PGM_P pre, PGM_P post)
+{
+   uint8_t n=0, i;
+   n+= sprintf_P(buf, pre);
+   for (i=0; i<TRACE_LENGTH; i++)
+   {
+       n += sprintf_P(buf+n, PSTR("%3u"), GET_TRACE(run, i));
+       if (i<TRACE_LENGTH-1)
+          n+= sprintf_P(buf+n, PSTR(", "));
+   }
+   sprintf_P(buf+n, post);
+   
+}
 
 
 /************************************************************************

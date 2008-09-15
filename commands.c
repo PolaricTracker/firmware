@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.18 2008-09-08 22:35:01 la7eca Exp $
+ * $Id: commands.c,v 1.19 2008-09-15 22:02:11 la7eca Exp $
  */
  
 #include "defines.h"
@@ -41,6 +41,7 @@ static void do_power     (uint8_t, char**, Stream*);
 static void do_squelch   (uint8_t, char**, Stream*);
 static void do_rssi      (uint8_t, char**, Stream*, Stream*);
 static void do_digipath  (uint8_t, char**, Stream*);
+static void do_trace     (uint8_t, char**, Stream*);
 
 
 static char buf[BUFSIZE]; 
@@ -138,11 +139,12 @@ void readLine(Stream*, Stream*, char*, const uint16_t); // Move to stream.h
 void cmdProcessor(Stream *in, Stream *out)
 {
     char* argv[MAXTOKENS];
-    uint8_t argc;
+    uint8_t argc, n;
     
-    putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n\r\n"));
-    sprintf_P(buf, PSTR("trace = %u\r\n"), GET_TRACE);
+    putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n"));
+    show_trace(buf, 1, PSTR("Trace = "), PSTR("\r\n\r\n"));
     putstr(out,buf);
+    
     while (1) {
          putstr(out, "cmd: ");    
          readLine(in, out, buf, BUFSIZE);
@@ -170,7 +172,9 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("txoff",     argv[0], 4) == 0)
              do_txoff(argc, argv, out);     
          else if (strncmp("rssi", argv[0], 2) == 0)
-             do_rssi(argc, argv, out, in);        
+             do_rssi(argc, argv, out, in);       
+         else if (strncmp("trace", argv[0], 5) == 0)
+             do_trace(argc, argv, out); 
      
          
          /* Commands for setting/viewing parameters */
@@ -199,7 +203,7 @@ void cmdProcessor(Stream *in, Stream *out)
          
          else IF_COMMAND_PARAM_uint16
                  ( "tracktime", 6, argc, argv, out, 
-                   TRACKER_SLEEP_TIME, 10, 3600, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
+                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 3600, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
                       
          else IF_COMMAND_PARAM_uint16
                  ( "deviation", 3, argc, argv, out,
@@ -269,12 +273,7 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   else if (strncmp("pos", argv[1], 3) == 0){
       putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\r\n"));
       gps_mon_pos();
-  } 
-  else if (strncmp("fix", argv[1], 3) == 0)
-     { notify_lock(true); return; }
-      
-  else if (strncmp("unfix", argv[1], 5) == 0)
-     { notify_lock(false); return; }     
+  }     
   else
      return;
 
@@ -477,6 +476,16 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
        putstr(out,"\n\r");
     }
 }
+
+static void do_trace(uint8_t argc, char** argv, Stream* out)
+{
+    show_trace(buf, 0, PSTR("Current run  = "), PSTR("\r\n"));
+    putstr(out,buf);
+    show_trace(buf, 1, PSTR("Previous run = "), PSTR("\r\n"));
+    putstr(out, buf);
+}
+
+
 
 
 /*********************************************

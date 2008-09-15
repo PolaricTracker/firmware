@@ -7,6 +7,8 @@
 #include <avr/signal.h>
 #include <avr/pgmspace.h>
 #include <string.h>
+#include "config.h"
+
 
 /***************************************************************
  * Storage for packet buffer chains
@@ -290,7 +292,7 @@ void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 void fbq_put(FBQ* q, FBUF b)
 {
     sem_down(&q->capacity); 
-
+    TRACE(221);
     register uint8_t i = q->index + q->length.cnt; 
     if (i >= q->size)
         i -= q->size; 
@@ -306,12 +308,11 @@ void fbq_put(FBQ* q, FBUF b)
  
 FBUF fbq_get(FBQ* q)
 {
-    sem_down(&q->length); 
-
+    sem_down(&q->length);
+    TRACE(222);
     register uint8_t i = q->index;
     if (++q->index >= q->size) 
         q->index = 0; 
-
     sem_up(&q->capacity); 
 
     return q->buf[i];

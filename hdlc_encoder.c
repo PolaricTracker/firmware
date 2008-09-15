@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.18 2008-08-13 22:28:13 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.19 2008-09-15 22:03:44 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -115,12 +115,14 @@ static void hdlc_txencoder()
        * This is a blocking call.
        */ 
       buffer = fbq_get(&encoder_queue); 
+      TRACE(201);
          
       /* Wait until channel is free 
        * P-persistence algorithm 
        */
       adf7021_wait_enabled(); 
       hdlc_idle = false;
+      TRACE(202);
       for (;;) {
 
         wait_channel_ready(); 
@@ -130,8 +132,10 @@ static void hdlc_txencoder()
         else
             break;
       }
+      TRACE(203);
       hdlc_encode_frames();
       hdlc_idle = true; 
+      TRACE(204);
       notifyAll(&hdlc_idle_sig);
    }
 }

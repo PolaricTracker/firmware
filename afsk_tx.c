@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.18 2008-08-13 22:24:22 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.19 2008-09-15 22:01:29 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -12,6 +12,7 @@
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
 #include "transceiver.h"
+#include "config.h"
 
 
 /* Move to config.h or afsk.h */
@@ -50,6 +51,7 @@ stream_t* afsk_init_encoder(void)
  
 void afsk_ptt_on()
 {        
+    TRACE(251);
     TCCR3B = 0x02                  /* Pre-scaler for timer3 = 8x */             
              | (1<<WGM32) ;        /* CTC mode */   
     TCCR3A |= (1<<COM3A0);         /* Toggle OC3A on compare match. */
@@ -69,6 +71,7 @@ void afsk_ptt_on()
 
 void afsk_ptt_off(void)
 {
+    TRACE(252);
     TIMSK3 = 0x00;
     TCCR3A &= ~(1<<COM3A0);           /* Toggle OC3A on compare match: OFF. */
     transmit = false; 
