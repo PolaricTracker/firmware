@@ -1,5 +1,5 @@
 /* 
- * $Id: gps.h,v 1.4 2008-09-08 22:32:52 la7eca Exp $
+ * $Id: gps.h,v 1.5 2008-09-15 22:01:04 la7eca Exp $
  * NMEA data 
  */
 
@@ -29,8 +29,8 @@ void  gps_init (Stream*);
 void  gps_mon_pos (void);
 void  gps_mon_raw (void);
 void  gps_mon_off (void);
-bool  gps_is_locked (void);
-void  gps_wait_lock (void);
+bool  gps_is_fixed (void);
+bool  gps_wait_fix (void);
 char* time2str (char*, timestamp_t);
 void gps_off(void);
 
