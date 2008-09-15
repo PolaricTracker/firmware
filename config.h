@@ -22,8 +22,10 @@
 #endif
 
 #define COMMENT_LENGTH 40
+#define TRACE_LENGTH 12
 typedef addr_t __digilist_t[7];  
 typedef char comment[COMMENT_LENGTH];
+typedef uint8_t __trace_t[TRACE_LENGTH][2];
 
 /***************************************************************
  * Define parameters:
@@ -49,10 +51,13 @@ DEFINE_PARAM( REPORT_COMMENT,     comment      );
 DEFINE_PARAM( GPS_BAUD,           uint16_t     );
 DEFINE_PARAM( TRACKER_TURN_LIMIT, uint16_t     );
 DEFINE_PARAM( TRACKER_PAUSE_LIMIT,uint8_t      );
-DEFINE_PARAM( TRACE_CURRENT,      uint8_t      );
-DEFINE_PARAM( TRACE_PREVIOUS,     uint8_t      );
+
+extern __trace_t trace           __attribute__ ((section (".noinit")));
+extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
 
 #if defined __CONFIG_C__
+
+
 /***************************************************************
  * Default values for parameters to be stored in program
  * memory. This MUST be done for each parameter defined above
@@ -78,8 +83,10 @@ DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker";
 DEFAULT_PARAM( GPS_BAUD )            = 4800;
 DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
 DEFAULT_PARAM( TRACKER_PAUSE_LIMIT ) = 5;
-DEFAULT_PARAM( TRACE_CURRENT )       = 0;
-DEFAULT_PARAM( TRACE_PREVIOUS )      = 0;
+
+__trace_t trace            __attribute__ ((section (".noinit")));
+uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
+
 #endif
  
 
@@ -92,14 +99,25 @@ DEFAULT_PARAM( TRACE_PREVIOUS )      = 0;
 #define GET_BYTE_PARAM(x)      get_byte_param(&PARAM_##x,(PGM_P) &PARAM_DEFAULT_##x)
 #define SET_BYTE_PARAM(x, val) set_byte_param(&PARAM_##x, ((uint8_t) val))
 
-#define TRACE_INIT    set_byte_param(&PARAM_TRACE_PREVIOUS, \
-                      get_byte_param(&PARAM_TRACE_CURRENT,(PGM_P) &PARAM_DEFAULT_TRACE_CURRENT) )
-#define TRACE(val)    set_byte_param(&PARAM_TRACE_CURRENT, ((uint8_t) val))
-#define GET_TRACE     GET_BYTE_PARAM(TRACE_PREVIOUS)
 
 void    set_param(void*, const void*, uint8_t);
 int     get_param(const void*, void*, uint8_t, PGM_P);
 void    set_byte_param(uint8_t*, uint8_t);
 uint8_t get_byte_param(const uint8_t*, PGM_P);
 
+
+/* Tracing. 
+ * Two vectors:  0 is current, 1 is saved from previous run 
+ */
+void show_trace(char*, uint8_t, PGM_P, PGM_P);
+
+#define TRACE_INIT         for (uint8_t i=0; i<TRACE_LENGTH; i++) trace[i][1] = trace[i][0]; \
+                           trace_index[1] = trace_index[0]; \
+                           trace_index[0] = 0; \
+                           for (uint8_t i=0; i<TRACE_LENGTH; i++) trace[i][0] = 0;
+                           
+#define TRACE(val)         trace[trace_index[0]++ % TRACE_LENGTH][0] = (val)    
+#define GET_TRACE(s,i)     trace[(trace_index[(s)] + (i)) % TRACE_LENGTH][(s)]               
+#define TRACE_LAST         TRACE_LENGTH-1
+                   
 #endif /* __CONFIG_H__ */
