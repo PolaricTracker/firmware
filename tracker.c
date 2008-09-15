@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.8 2008-09-08 22:37:39 la7eca Exp $
+ * $Id: tracker.c,v 1.9 2008-09-15 22:05:31 la7eca Exp $
  */
  
 #include "defines.h"
@@ -32,7 +32,7 @@ double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONC
 void tracker_init()
 {
     sem_init(&tracker_run, 0);
-    THREAD_START(trackerThread, 250);
+    THREAD_START(trackerThread, 260);
     if (GET_BYTE_PARAM(TRACKER_ON)) 
        sem_up(&tracker_run);  
 }
@@ -68,10 +68,9 @@ static void trackerThread(void)
        {
           /*
            * Wait for a fix on position. 
-           * OOPS: Should there be a timeout on this? 
            */  
-           TRACE(10);
-           gps_wait_lock();   
+           TRACE(101);
+           bool waited = gps_wait_fix();   
            
            /* Pause GPS serial data to avoid interference with modulation 
             * and to save CPU cycles. 
@@ -79,13 +78,16 @@ static void trackerThread(void)
            uart_rx_pause(); 
            
             
-           /* Send report if criteria are satisfied */
-           TRACE(11);
-           if (should_update(&prev_pos, &current_pos))
+           /* 
+            * Send report if criteria are satisfied or if we waited 
+            * for GPS fix
+            */
+           TRACE(102);
+           if (waited || should_update(&prev_pos, &current_pos))
            {
               adf7021_power_on(); 
-              sleep(100);
-              TRACE(12); 
+              sleep(50);
+              TRACE(103); 
               report_position(&current_pos);
               prev_pos = current_pos;
              
@@ -95,20 +97,23 @@ static void trackerThread(void)
                * encoder. Then wait until channel is ready and packet 
                * encoded and sent.
                */
-              TRACE(13);
-              sleep(100);
+              TRACE(104);
+              sleep(50);
+              TRACE(105);
               hdlc_wait_idle();
+              TRACE(106);
               adf7021_wait_tx_off();
               adf7021_power_off(); 
            }
-           TRACE(14);         
+           TRACE(107);         
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
-           t = (t > GPS_FIX_TIME + PACKET_TX_TIME) ?
-               t - (GPS_FIX_TIME + PACKET_TX_TIME) : (GPS_FIX_TIME + PACKET_TX_TIME);
+           t = (t > GPS_FIX_TIME) ?
+               t - GPS_FIX_TIME : 1;
            sleep(t * TIMER_RESOLUTION); 
            
-           TRACE(15);
+           TRACE(108);
            uart_rx_resume();
+           TRACE(109);
            sleep(GPS_FIX_TIME * TIMER_RESOLUTION);   
        }
     }   
@@ -126,19 +131,20 @@ static void trackerThread(void)
 static uint8_t pause_count = 0;
 static bool should_update(posdata_t* prev, posdata_t* current)
 {
+    TRACE(111);
     uint16_t turn_limit; 
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
     
-    if ( pause_count >= GET_BYTE_PARAM(TRACKER_PAUSE_LIMIT) ||             /* Upper time limit */
-           (  current_pos.speed > 0 && prev_pos.speed > 0 &&               /* change in course */
+    if ( ++pause_count >= GET_BYTE_PARAM(TRACKER_PAUSE_LIMIT) ||             /* Upper time limit */
+           (  current_pos.speed > 0 && prev_pos.speed > 0 &&                 /* change in course */
               abs(current_pos.course - prev_pos.course) > turn_limit ) ) 
     {     
        pause_count = 0;
        return true;
     }
-    pause_count++;
     return false;
 }
+
 
 
 /**********************************************************************
@@ -146,11 +152,12 @@ static bool should_update(posdata_t* prev, posdata_t* current)
  *  Currently: Uncompressed APRS position report without timestamp 
  *  (may add more options later)
  **********************************************************************/
- 
+extern uint16_t course_count; 
 static void report_position(posdata_t* pos)
 {
+    TRACE(121);
     FBUF packet;    
-    char latd[12], longd[12], dspeed[8], comment[COMMENT_LENGTH];
+    char latd[12], longd[12], dspeed[10], comment[COMMENT_LENGTH];
     addr_t from, to; 
     
     /* Format latitude and longitude values, etc. */
@@ -158,10 +165,12 @@ static void report_position(posdata_t* pos)
     char long_we = (pos->longitude < 0 ? 'W' : 'E');
     double latf = fabs(pos->latitude);
     double longf = fabs(pos->longitude);
-    sprintf_P(latd,  PSTR("%02d%05.2f%c"), (int)latf, (latf - (int)latf) * 60, lat_sn);
-    sprintf_P(longd, PSTR("%03d%05.2f%c"), (int)longf, (longf - (int)longf) * 60, long_we);
-    sprintf_P(dspeed, PSTR("%03u/%03u"), pos->course, pos->speed);
+ 
+    sprintf_P(latd,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
+    sprintf_P(longd, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
+    sprintf_P(dspeed, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
     GET_PARAM(REPORT_COMMENT, comment);
+    TRACE(122);
     
     /* Create packet header */
     GET_PARAM(MYCALL, &from);
@@ -182,6 +191,7 @@ static void report_position(posdata_t* pos)
     fbuf_putstr (&packet, comment);     
  
     /* Send packet */
+    TRACE(123);
     fbq_put(outframes, packet);
 }
 
