@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.18 2008-09-08 22:32:31 la7eca Exp $ 
+ * $Id: defines.h,v 1.19 2008-09-15 22:00:39 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -21,7 +21,7 @@
  */
 
 #define TIMER_RESOLUTION 100 
-#define GPS_FIX_TIME     3  
+#define GPS_FIX_TIME     4  
 #define PACKET_TX_TIME   2
 
 
