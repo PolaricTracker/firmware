@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.19 2008-09-15 22:03:44 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.20 2008-09-19 21:38:55 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -49,7 +49,7 @@ fbq_t* hdlc_init_encoder(stream_t* os)
 {
    outstream = os;
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
-   THREAD_START( hdlc_txencoder, 120 );
+   THREAD_START( hdlc_txencoder, 130 );
    
    cond_init(&hdlc_idle);
    sem_init(&test, 0);
@@ -107,8 +107,6 @@ void hdlc_wait_idle()
 
 static void hdlc_txencoder()
 { 
-   sleep(200);
-
    while (true)  
    {
       /* Get frame from buffer-queue when available. 
@@ -137,6 +135,7 @@ static void hdlc_txencoder()
       hdlc_idle = true; 
       TRACE(204);
       notifyAll(&hdlc_idle_sig);
+      sleep(50);
    }
 }
    
@@ -165,20 +164,33 @@ static void hdlc_encode_frames()
      uint8_t txdelay = GET_BYTE_PARAM(TXDELAY);
      uint8_t txtail  = GET_BYTE_PARAM(TXTAIL);
      
-     fbuf_reset(&buffer);
+     /* Preamble of TXDELAY flags */
      for (i=0; i<txdelay; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
-
-     while(!BUFFER_EMPTY)
+     
+     for (;;) /* FIXME: maxframe parameter */ 
      {
-         txbyte = fbuf_getChar(&buffer);        
-         crc = _crc_ccitt_update (crc, txbyte);
-         hdlc_encode_byte(txbyte, false);
+        fbuf_reset(&buffer);
+        while(!BUFFER_EMPTY)
+        {
+            txbyte = fbuf_getChar(&buffer);        
+            crc = _crc_ccitt_update (crc, txbyte);
+            hdlc_encode_byte(txbyte, false);
+        }
+        fbuf_release(&buffer);
+        hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
+        hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
+        
+        if (!fbq_eof(&encoder_queue)) {
+           TRACE(211);
+           hdlc_encode_byte(HDLC_FLAG, true);
+           buffer = fbq_get(&encoder_queue); 
+        }
+        else
+           break;
      }
-     fbuf_release(&buffer);
-     hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
-     hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
        
+     /* Postample of TXTAIL flags */  
      for (i=0; i<txtail; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 }
