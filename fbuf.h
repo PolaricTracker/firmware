@@ -64,7 +64,8 @@ void  fbq_put (FBQ* q, FBUF b);
 FBUF  fbq_get (FBQ* q);
 
 
-#define fbq_length(q) (&(q)->length.cnt)
+#define fbq_length(q) ((q)->length.cnt)
+#define fbq_eof(q)    ((q)->length.cnt == 0)
 
 #define FBQ_INIT(name,size)   static FBUF name##_fbqbuf[(size)];     \               
                               _fbq_init(&(name), (name##_fbqbuf), (size));
