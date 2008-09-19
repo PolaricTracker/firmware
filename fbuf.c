@@ -292,7 +292,7 @@ void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 void fbq_put(FBQ* q, FBUF b)
 {
     sem_down(&q->capacity); 
-    TRACE(221);
+    TRACE(221);  
     register uint8_t i = q->index + q->length.cnt; 
     if (i >= q->size)
         i -= q->size; 
@@ -314,6 +314,10 @@ FBUF fbq_get(FBQ* q)
     if (++q->index >= q->size) 
         q->index = 0; 
     sem_up(&q->capacity); 
-
+    TRACE(223);
     return q->buf[i];
 }
+
+
+
+
