@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.9 2008-09-15 22:05:31 la7eca Exp $
+ * $Id: tracker.c,v 1.10 2008-09-20 19:16:11 la7eca Exp $
  */
  
 #include "defines.h"
@@ -75,6 +75,7 @@ static void trackerThread(void)
            /* Pause GPS serial data to avoid interference with modulation 
             * and to save CPU cycles. 
             */
+           TRACE(102); 
            uart_rx_pause(); 
            
             
@@ -82,7 +83,7 @@ static void trackerThread(void)
             * Send report if criteria are satisfied or if we waited 
             * for GPS fix
             */
-           TRACE(102);
+
            if (waited || should_update(&prev_pos, &current_pos))
            {
               adf7021_power_on(); 

@@ -186,8 +186,10 @@ void notify_fix(bool lock)
    if (!lock) 
        BLINK_GPS_SEARCHING
    else {
-       if (!is_fixed) 
-          notifyAll(&wait_gps);     
+       if (!is_fixed) {
+          TRACE(171);
+          notifyAll(&wait_gps);
+       }     
        BLINK_NORMAL
    }
    is_fixed = lock;
@@ -203,6 +205,7 @@ bool gps_wait_fix()
     if (is_fixed) return false;      
     while (!is_fixed)
        wait(&wait_gps);
+    TRACE(172);
     return true;
 }         
   
