@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.3 2008-09-15 21:58:45 la7eca Exp $
+ * $Id: kernel.c,v 1.4 2008-09-20 19:17:48 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -90,10 +90,10 @@ void t_yield()
         q_head = q_head->next;
         q_end = q_end->next;
         leave_critical();
-        TRACE(1);
+//        TRACE(1);
         longjmp(q_head->env, 1);
     }
-    TRACE(2);
+//    TRACE(2);
 }
  
  
@@ -131,10 +131,10 @@ void wait(Cond* c)
        
        c->qlast->next = NULL;
        leave_critical();
-       TRACE(3);
+//       TRACE(3);
        longjmp(q_head->env, 1);
     }
-    TRACE(4);
+//    TRACE(4);
 }
 
 

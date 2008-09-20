@@ -1,5 +1,5 @@
 /*
- * $Id: uart.c,v 1.14 2008-09-08 22:38:39 la7eca Exp $
+ * $Id: uart.c,v 1.15 2008-09-20 19:16:27 la7eca Exp $
  */
  
 #include "defines.h"
@@ -36,7 +36,7 @@ Stream* uart_tx_init(uint16_t baud)
    // Set frame format to 8 data bits, no parity, and 1stop bit
    UCSR1C |= (1<<UCSZ10) | (1<<UCSZ11);
      
-   // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
+   // Enable Transmitter Interrupt
    UCSR1B = (1<<TXCIE1)| (1<<TXEN1);
    return &uart_outstr;
 }
@@ -52,7 +52,7 @@ Stream* uart_rx_init(uint16_t baud, bool e)
    // Set frame format to 8 data bits, no parity, and 1stop bit
    UCSR1C = (1<<UCSZ10) | (1<<UCSZ11);
      
-   // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
+   // Enable Receiver Interrupt
    UCSR1B |= (1<<RXCIE1) | (1<<RXEN1);
    return &uart_instr;
 }
@@ -60,12 +60,12 @@ Stream* uart_rx_init(uint16_t baud, bool e)
 
 void uart_rx_pause()
 {
-   // Clear Receiver and Transmitter Interrupt, Receiver and Transmitter
+   // Clear Receiver Interrupt
    UCSR1B &= ~(1<<RXCIE1) & ~(1<<RXEN1);
 }
 void uart_rx_resume()
 {
-   // Enable Receiver and Transmitter Interrupt, Receiver and Transmitter
+   // Enable Receiver Interrupt
    UCSR1B |= (1<<RXCIE1) | (1<<RXEN1);
 }
 
