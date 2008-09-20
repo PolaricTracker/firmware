@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.16 2008-09-15 22:04:25 la7eca Exp $
+ * $Id: main.c,v 1.17 2008-09-20 19:15:47 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -222,7 +222,7 @@ int main(void)
       wdt_disable();
     
       /* Start the multi-threading kernel */     
-      init_kernel(60); 
+      init_kernel(80); 
       
       /* DDR Registers */
       make_output(LED1);
@@ -258,7 +258,7 @@ int main(void)
       usb_init();    
       THREAD_START(usbSerListener, 200);
       
-      THREAD_START(led1, 70);  
+      THREAD_START(led1, 80);  
       TRACE(1);
       
       while(1) 
