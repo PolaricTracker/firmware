@@ -114,6 +114,7 @@ static void nmeaListener()
              do_rmc(argc, argv, out);
          else if (strncmp("GGA", argv[0]+3, 3) == 0)
              do_gga(argc, argv, out);
+         TRACE(153);
    }
 }
 
