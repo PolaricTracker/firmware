@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.1 2008-08-13 22:20:14 la7eca Exp $
+ * $Id: stream.c,v 1.2 2008-09-22 20:05:26 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -69,7 +69,7 @@ void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
 { 
     uint16_t i;
     char x;
-    for (i=0; i<len; i++) 
+    for (i=0; i<len-1; i++) 
     {
        x = getch(b);   
        if (marker != '\0' && x == marker)
