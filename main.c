@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.17 2008-09-20 19:15:47 la7eca Exp $
+ * $Id: main.c,v 1.18 2008-10-01 21:38:07 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -37,7 +37,7 @@ extern Semaphore cdc_run;
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
 
-fbq_t* outframes;  
+fbq_t *outframes, *inframes;  
 
 
 #define soft_reset()        \
@@ -57,6 +57,7 @@ do {                        \
 ISR(TIMER1_COMPA_vect) 
 {
      static uint8_t ticks, txticks; 
+     sei(); /* Enable nested interrupts. MAY BE DANGEROUS???? */
      
      /*
       * count 8 ticks to get to a 1200Hz rate
@@ -222,7 +223,7 @@ int main(void)
       wdt_disable();
     
       /* Start the multi-threading kernel */     
-      init_kernel(80); 
+      init_kernel(STACK_MAIN); 
       
       /* DDR Registers */
       make_output(LED1);
@@ -248,17 +249,18 @@ int main(void)
       setup_transceiver(); 
      
       /* HDLC and AFSK setup */
-      outframes =  hdlc_init_encoder( afsk_init_encoder() );            
-     
+      outframes = hdlc_init_encoder( afsk_init_encoder() );            
+//      inframes  = hdlc_init_decoder( afsk_init_decoder() );
+      
       /* GPS and tracking */
       gps_init(&cdc_outstr);
       tracker_init();
 
       /* USB */
       usb_init();    
-      THREAD_START(usbSerListener, 200);
+      THREAD_START(usbSerListener, STACK_USBLISTENER);
       
-      THREAD_START(led1, 80);  
+      THREAD_START(led1, STACK_LED);  
       TRACE(1);
       
       while(1) 
