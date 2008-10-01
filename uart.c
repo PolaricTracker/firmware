@@ -1,5 +1,5 @@
 /*
- * $Id: uart.c,v 1.15 2008-09-20 19:16:27 la7eca Exp $
+ * $Id: uart.c,v 1.16 2008-10-01 21:43:00 la7eca Exp $
  */
  
 #include "defines.h"
@@ -72,10 +72,8 @@ void uart_rx_resume()
 
 static void uart_kickout(void)
 {
-   enter_critical();
    if ((UCSR1A & (1<<UDRE1)))
        UDR1 = stream_get_nb(&uart_outstr);     
-   leave_critical();
 }
 
 
@@ -86,12 +84,10 @@ static void uart_kickout(void)
  
 ISR(USART1_RX_vect)
 {
-      enter_critical();
       register char x = UDR1;   
       stream_put_nb(&uart_instr, x);
       if ( echo ) 
          stream_sendByte_nb(&uart_outstr, x);    
-      leave_critical();
 } 
 
 
