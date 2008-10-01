@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.16 2008-08-13 22:36:29 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.17 2008-10-01 21:39:22 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -355,13 +355,12 @@ void adf7021_enable_tx ()
 {
   /* Turn on external PA */
     set_port(EXTERNAL_PA_ON);
-    clear_port(PD3OUT);
+    clear_port(PD3OUT);  
 //    clear_port(PD0OUT);
    
   /* Enable transmit mode */
-  adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
-  adf7021_tx_enabled = true;
-//  sleep (setup->ramp_time);   // FIXME  
+    adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
+    adf7021_tx_enabled = true;
 }
 
 
@@ -372,10 +371,9 @@ void adf7021_disable_tx ()
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
   notifyAll(&adf7021_tx_idle);
   
-  set_port (PD3OUT);  
+  set_port (PD3OUT);   
   clear_port(EXTERNAL_PA_ON);
 //  set_port (PD0OUT);
-//  sleep (setup->ramp_time);        // FIXME
 }
 
 

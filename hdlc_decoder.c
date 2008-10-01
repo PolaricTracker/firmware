@@ -9,9 +9,9 @@
 
 static stream_t *stream;
 static fbuf_t fbuf;
-static fqb_t fbin;
+static fbq_t fbin;
 
-static void hdlc_decode ();
+static void hdlc_decode (void);
 
 
 fbq_t* hdlc_init_decoder (stream_t *s)
@@ -20,7 +20,7 @@ fbq_t* hdlc_init_decoder (stream_t *s)
   DEFINE_FBQ(fbin, HDLC_DECODER_QUEUE_SIZE);
   fbuf_new(&fbuf);
 
-  THREAD_START (hdlc_decode, DEFAULT_STACK_SIZE);
+  THREAD_START (hdlc_decode, 80);
 
   return &fbin;
 }
@@ -46,6 +46,8 @@ static uint8_t get_bit ()
     return bit;
   }
 }
+
+
 
 static void hdlc_decode ()
 {
@@ -77,16 +79,16 @@ static void hdlc_decode ()
       goto flag_sync; // Lost termination flag or only receiving noise?
     
     for (bit_count = 0; bit_count < 8; bit_count++) {
-      if (bit == HDLC_FLAG) // Not very likely, but could happend
-	goto frame_sync; 
+      if (bit == HDLC_FLAG) // Not very likely, but could happen
+        goto frame_sync; 
       
       octet = (bit ? 0x80 : 0x00) | (octet >> 1);
-      if (bit) ones_count++;	
+      if (bit) ones_count++;    
       bit = get_bit ();
       if (ones_count == 5) {
-	if (bit)          // Got more than five consecutive one bits,
-	  goto flag_sync; // which is a certain error
-	ones_count = 0;
+        if (bit)          // Got more than five consecutive one bits,
+          goto flag_sync; // which is a certain error
+        ones_count = 0;
       }
     }
 

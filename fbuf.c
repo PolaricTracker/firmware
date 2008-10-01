@@ -30,7 +30,8 @@ char      _fbuf_buf   [FBUF_SLOTS][FBUF_SLOTSIZE];
  * Note: We assume that FBUF objects are not shared between 
  * ISRs/threads. 
  * 
- * We also assume that slots are not shared between FBUF objects. 
+ * We also assume that slots are not shared between FBUF objects, 
+ * and that FBUF objects are not accessed from interrupt handlers. 
  * That may change later. In that case, check if we need to protect
  * parts of code by disabling interrupts.
  */
@@ -43,7 +44,6 @@ char      _fbuf_buf   [FBUF_SLOTS][FBUF_SLOTSIZE];
 static uint8_t _fbuf_newslot ()
 {
    register uint8_t i; 
-   enter_critical();
    for (i=0; i<FBUF_SLOTS; i++)
        if (_fbuf_refcnt[i] == 0) 
        {
@@ -52,7 +52,6 @@ static uint8_t _fbuf_newslot ()
            _fbuf_next[i] = NILPTR; 
            return i; 
        }
-   leave_critical(); 
    return NILPTR; 
 }
 
@@ -75,14 +74,12 @@ void fbuf_new (FBUF* bb)
 
 void fbuf_release(FBUF* bb)
 {
-    enter_critical();
     register uint8_t b = bb->head;
     while (b != NILPTR) 
     {
        _fbuf_refcnt[b]--; 
        b = _fbuf_next[b]; 
     } 
-    leave_critical();
     fbuf_new(bb);
 }
 
@@ -292,7 +289,6 @@ void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 void fbq_put(FBQ* q, FBUF b)
 {
     sem_down(&q->capacity); 
-    TRACE(221);  
     register uint8_t i = q->index + q->length.cnt; 
     if (i >= q->size)
         i -= q->size; 
@@ -309,12 +305,10 @@ void fbq_put(FBQ* q, FBUF b)
 FBUF fbq_get(FBQ* q)
 {
     sem_down(&q->length);
-    TRACE(222);
     register uint8_t i = q->index;
     if (++q->index >= q->size) 
         q->index = 0; 
     sem_up(&q->capacity); 
-    TRACE(223);
     return q->buf[i];
 }
 

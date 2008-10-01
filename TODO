@@ -1,26 +1,32 @@
 
-MK-I/GENERIC
-------------
-Stability issues. 
-Digipeater path setting via command interface. DONE
-Distance calculation. 
-Extract more from NMEA? speed?, precision? DONE speed and course. 
-Advanced tracking - use time/speed/distance to determine when to report.
-Timestamped report packet.
-Compressed report packet (mic-e format?)
-Test receiving and decoding of packets.
+MK-I/GENERIC (v0.4 ++)
+----------------------
+* Stability issues. 
+    DONE
+* Digipeater path setting via command interface. 
+    DONE
+* Distance calculation. 
+* Extract more from NMEA? speed?, precision? 
+    PARTLY DONE speed and course. 
+* Advanced tracking - use time/speed/distance to determine when to report.
+    PARTLY DONE. Course change.
+* Timestamped report packet.
+* Compressed report packet (mic-e format?)
+* Test receiving and decoding of packets.
+* Battery voltage measurement using ADC. 
 
 
 MK-II
 -----
-Possibility to send commands to GPS. Proprietary protocol?
-AFSK generation using (4 bit) DAC.
-Battery charge alarm
-Other hardware changes?
+* Possibility to send commands to GPS. 
+* AFSK generation using (4 bit) DAC.
+    DONE
+* Battery charge alarm, battery charge support. 
+* Other hardware changes?
 
 
 POSSIBLE EXTENSIONS
 -------------------
-Digipeater mode
-USB host mode
-USB NMEA stream or APRS stream (to external GPS/display or PC)
+* Digipeater mode
+* USB host mode
+* USB NMEA stream or APRS stream (to external GPS/display or PC)
