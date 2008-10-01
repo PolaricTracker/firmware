@@ -1,13 +1,15 @@
 /*
- * $Id: defines.h,v 1.19 2008-09-15 22:00:39 la7eca Exp $ 
+ * $Id: defines.h,v 1.20 2008-10-01 21:33:19 la7eca Exp $ 
  */
 
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
 
-// #define USBKEY_TEST  /* Define if compiling for the USBKEY */
+// #define USBKEY_TEST     /* Define if compiling for the USBKEY */
 // #define USE_TXPIN_OC /* Define if using OC3A pin for modulation */
+// #define AFSK_DAC_METHOD /* Define if using 4-bit DAC for modulation */
+
 
 #define TRUE   (1)
 #define FALSE  (0)
@@ -38,6 +40,21 @@
 #endif
 
 
+
+/*********************************************
+ * Stack configuration (one stack per thread)
+ *********************************************/
+
+#define STACK_MAIN             90
+#define STACK_LED              90
+#define STACK_USBLISTENER      300
+#define STACK_HDLCENCODER      140
+#define STACK_HDLCENCODER_TEST 110
+#define STACK_GPSLISTENER      320
+#define STACK_TRACKER          270
+
+
+
 /******************************************* 
  * Buffers, memory management
  *******************************************/
@@ -45,7 +62,6 @@
 #define UART_BUF_SIZE	   16		
 #define FBUF_SLOTS         32
 #define FBUF_SLOTSIZE      16
-#define DEFAULT_STACK_SIZE 70
 
 #define AFSK_ENCODER_BUFFER_SIZE 128
 #define AFSK_DECODER_BUFFER_SIZE 128
@@ -61,6 +77,15 @@ extern uint8_t blink_length, blink_interval;
 #define BLINK_NORMAL        { blink_length = 5; blink_interval = 95; }
 #define BLINK_GPS_SEARCHING { blink_length = 45; blink_interval = 45; }
 
+
+
+/*******************************************
+ * 4 bit DAC
+ *******************************************/
+ 
+#define DAC_PORT           PORTC
+#define DAC_DDR            DDRC
+#define DAC_MASK           0x0F;
 
 
 /********************************************
