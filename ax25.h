@@ -35,7 +35,10 @@ typedef struct {
 addr_t* addr(addr_t*, char*, uint8_t); 
 void str2addr(addr_t*, const char*);
 char* addr2str(char*, const addr_t*);
+
 void ax25_encode_header( FBUF*, addr_t*, addr_t*, addr_t[], uint8_t, 
                         uint8_t, uint8_t );
-
+uint8_t ax25_decode_header(FBUF*, addr_t*, addr_t*, addr_t[],
+                        uint8_t*, uint8_t*);
+                        
 #endif /* __AX25_H__ */
