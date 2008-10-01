@@ -1,5 +1,5 @@
 /*
- * $Id: ax25.c,v 1.10 2008-08-13 22:25:56 la7eca Exp $
+ * $Id: ax25.c,v 1.11 2008-10-01 21:34:45 la7eca Exp $
  */
  
 #include "ax25.h"
@@ -8,12 +8,13 @@
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 
-#define AXLEN		7 
+#define AXLEN           7 
 #define TO_POS    1
 #define FROM_POS  (AXLEN + 1)
 #define DIGI_POS  (AXLEN + AXLEN + 1)
 
 static void encode_addr(FBUF *, char*, uint8_t, uint8_t);
+static uint8_t decode_addr(FBUF *, addr_t* );
 
 
 
@@ -86,8 +87,54 @@ void ax25_encode_header(FBUF* b, addr_t* from,
        fbuf_putChar(b, pid);        
 }
 
- 
-      
+
+
+/**********************************************************************
+ * Decode an AX25 frame
+ **********************************************************************/ 
+uint8_t ax25_decode_header(FBUF* b, addr_t* from, 
+                                    addr_t* to,
+                                    addr_t digis[],
+                                    uint8_t* ctrl,
+                                    uint8_t* pid)
+{
+    register uint8_t i;
+    decode_addr(b, from);
+    decode_addr(b, to);
+    for (i=0; i<7; i++)
+        if ( decode_addr(b, &digis[i]) | FLAG_LAST)   
+            break;
+    *ctrl = fbuf_getChar(b);
+    *pid = fbuf_getChar(b);
+    return i+1;
+}
+
+
+
+
+
+/************************************************************************
+ * Decode AX25 address field (callsign)
+ ************************************************************************/      
+static uint8_t decode_addr(FBUF *b, addr_t* a)
+{
+    register char* c = a->callsign;
+    register uint8_t x, i;
+    for (i=0; i<6; i++)
+    {
+        x = fbuf_getChar(b);
+        x >>= 1;
+        if (x != ASCII_SPC)
+           *(c++) = x;
+    }
+    *c = '\0';
+    x = fbuf_getChar(b);
+    a->ssid = (x & 0x8e) >> 1; 
+    return x & 0x81;
+}
+
+
+
 
 /************************************************************************
  * Encode AX25 address field (callsign)
