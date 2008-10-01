@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.20 2008-09-19 21:38:55 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.21 2008-10-01 21:37:04 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -18,6 +18,13 @@
 #include <util/crc16.h>
 #include "transceiver.h"
 		          
+
+#if defined USBKEY_TEST
+#define adf7021_wait_enabled() 
+#define adf7021_read_rssi() -130
+#endif
+
+
 
 // Buffers
 FBQ encoder_queue; 
@@ -49,11 +56,11 @@ fbq_t* hdlc_init_encoder(stream_t* os)
 {
    outstream = os;
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
-   THREAD_START( hdlc_txencoder, 130 );
+   THREAD_START( hdlc_txencoder, STACK_HDLCENCODER );
    
    cond_init(&hdlc_idle);
    sem_init(&test, 0);
-   THREAD_START( hdlc_testsignal, 100);
+   THREAD_START( hdlc_testsignal, STACK_HDLCENCODER_TEST);
    return &encoder_queue;
 }		
 
@@ -66,7 +73,7 @@ void hdlc_test_on(uint8_t b)
 { 
     testbyte = b;
     test_active = true;
-    sem_up(&test);
+    sem_up(&test); 
 }
 
 void hdlc_test_off()
@@ -182,7 +189,6 @@ static void hdlc_encode_frames()
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
         
         if (!fbq_eof(&encoder_queue)) {
-           TRACE(211);
            hdlc_encode_byte(HDLC_FLAG, true);
            buffer = fbq_get(&encoder_queue); 
         }

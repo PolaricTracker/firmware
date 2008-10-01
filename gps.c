@@ -47,7 +47,7 @@ void gps_init(Stream *outstr)
     GET_PARAM(GPS_BAUD, &baud);
     in = uart_rx_init(baud, FALSE);
     out = outstr;
-    THREAD_START(nmeaListener, 290);
+    THREAD_START(nmeaListener, STACK_GPSLISTENER);
     make_output(GPSON); 
     set_port(GPSON);
 }
