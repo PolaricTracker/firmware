@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.10 2008-09-20 19:16:11 la7eca Exp $
+ * $Id: tracker.c,v 1.11 2008-10-01 21:38:46 la7eca Exp $
  */
  
 #include "defines.h"
@@ -32,7 +32,7 @@ double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONC
 void tracker_init()
 {
     sem_init(&tracker_run, 0);
-    THREAD_START(trackerThread, 260);
+    THREAD_START(trackerThread, STACK_TRACKER);
     if (GET_BYTE_PARAM(TRACKER_ON)) 
        sem_up(&tracker_run);  
 }
@@ -189,8 +189,10 @@ static void report_position(posdata_t* pos)
     fbuf_putstr (&packet, longd);
     fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));   
     fbuf_putstr (&packet, dspeed); 
-    fbuf_putstr (&packet, comment);     
- 
+    if (*comment != '\0') {
+       fbuf_putChar (&packet, '/');
+       fbuf_putstr (&packet, comment);     
+    } 
     /* Send packet */
     TRACE(123);
     fbq_put(outframes, packet);
