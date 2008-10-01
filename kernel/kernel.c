@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.4 2008-09-20 19:17:48 la7eca Exp $
+ * $Id: kernel.c,v 1.5 2008-10-01 21:47:09 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -20,11 +20,11 @@ static void *stack;
  ****************************************************************************/
  
 void init_kernel(uint16_t stsize) 
-{  
+{       CONTAINS_CRITICAL;
         enter_critical();
         q_head = q_end = &root_task;
         q_head->next = q_head;
-
+        leave_critical(); 
         asm volatile(
             "in __tmp_reg__,  __SP_L__"  "\n\t"
             "mov %A0, __tmp_reg__"       "\n\t"
@@ -32,8 +32,9 @@ void init_kernel(uint16_t stsize)
             "mov %B0, __tmp_reg__"       "\n\t" 
              : "=e" (stack) :
          );
+        root_task.stackbase = stack;
         stack -= stsize; 
-        leave_critical(); 
+
 }
 
 
@@ -44,7 +45,7 @@ void init_kernel(uint16_t stsize)
  ****************************************************************************/
 
 void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
-{
+{   CONTAINS_CRITICAL;
     if (setjmp(q_head->env) == 0)
     {
         enter_critical();
@@ -52,6 +53,8 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
         q_head->next = tcb; 
         q_end = q_head; 
         q_head = tcb; 
+        tcb->stackbase = stack;
+        leave_critical();
         
         /* Set stack pointer and call thread function */
         asm volatile(
@@ -63,7 +66,7 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
             "e" (stack)
          ); 
          
-         leave_critical();
+
          stack -= stsize; 
          (*task)();
         
@@ -71,10 +74,13 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
          * remove task and switch to the next entry in the 
          * ready queue 
          */
+         
+        enter_critical();
         q_head = q_head->next;
         q_end->next = q_head;
+        leave_critical();
         longjmp(q_head->env, 1);
-    }   
+    } 
 }
 
 
@@ -83,7 +89,7 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
  ****************************************************************************/
  
 void t_yield()
-{
+{   CONTAINS_CRITICAL;
     if (setjmp(q_head->env) == 0)
     {
         enter_critical();
@@ -118,7 +124,7 @@ void cond_init(Cond* c)
  ******************************************************************************/
  
 void wait(Cond* c)
-{
+{        CONTAINS_CRITICAL;
     if (setjmp(q_head->env) == 0) 
     { 
        enter_critical();
@@ -128,9 +134,10 @@ void wait(Cond* c)
            c->qlast = c->qlast->next = q_head; 
 
        q_end->next = q_head = q_head->next;     
-       
        c->qlast->next = NULL;
        leave_critical();
+       
+
 //       TRACE(3);
        longjmp(q_head->env, 1);
     }
@@ -144,7 +151,7 @@ void wait(Cond* c)
  ******************************************************************************/
 
 void notify(Cond* c)
-{
+{   CONTAINS_CRITICAL;
     enter_critical();
     if (c->qfirst != NULL) {
        register TCB* x = c->qfirst; 
@@ -157,10 +164,8 @@ void notify(Cond* c)
 
 void notifyAll(Cond* c)
 {
-    enter_critical();
     while (c->qfirst != NULL)
         notify(c);
-    leave_critical();
 }
 
    
@@ -177,7 +182,7 @@ void sem_init(Semaphore* s, uint16_t cnt)
  *********************************************************************************/
 
 void sem_set(Semaphore* s, uint16_t cnt)
-   { enter_critical(); s->cnt = cnt; leave_critical(); }
+   {CONTAINS_CRITICAL; enter_critical(); s->cnt = cnt; leave_critical(); }
 
 
 /********************************************************************************
@@ -185,12 +190,16 @@ void sem_set(Semaphore* s, uint16_t cnt)
  ********************************************************************************/
  
 bool sem_nb_down(Semaphore* s)
-{ 
+{   CONTAINS_CRITICAL;
     enter_critical(); 
     if (s->cnt > 0) 
-       { s->cnt--; leave_critical(); return true;}
+       { s->cnt--; 
+        leave_critical(); 
+        return true;}
     else
-       { leave_critical(); return false; }
+       { 
+         leave_critical(); 
+         return false; }
 }
 
 
@@ -202,13 +211,16 @@ bool sem_nb_down(Semaphore* s)
  ********************************************************************************/
  
 void sem_down(Semaphore* s)
-{
+{  CONTAINS_CRITICAL;
    enter_critical();
-   if (s->cnt == 0)
+   if (s->cnt == 0) {
+      leave_critical();
       wait(&s->waiters);
-   else
+   }
+   else {
       s->cnt--; 
-   leave_critical();
+      leave_critical();
+   }
 }
 
 
@@ -218,7 +230,7 @@ void sem_down(Semaphore* s)
  ********************************************************************************/
 
 void sem_up(Semaphore* s)
-{
+{   CONTAINS_CRITICAL;
     enter_critical();
     if (s->waiters.qfirst == NULL)
        s->cnt++;
@@ -226,6 +238,3 @@ void sem_up(Semaphore* s)
        notify(&s->waiters);
     leave_critical();
 }
-
-
-

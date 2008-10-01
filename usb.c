@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.8 2008-08-13 22:37:34 la7eca Exp $
+ * $Id: usb.c,v 1.9 2008-10-01 21:43:44 la7eca Exp $
  */
  
 #include "usb.h"
@@ -49,7 +49,7 @@ EVENT_HANDLER(USB_Reset)
 
 
 EVENT_HANDLER(USB_CreateEndpoints)
-{
+{  CONTAINS_CRITICAL;
 	/* Setup CDC Notification, Rx and Tx Endpoints */
 	Endpoint_ConfigureEndpoint(CDC_NOTIFICATION_EPNUM, EP_TYPE_INTERRUPT,
 		                        ENDPOINT_DIR_IN, CDC_NOTIFICATION_EPSIZE,
@@ -142,6 +142,7 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 
 void usb_kickout(void)
 {
+   CONTAINS_CRITICAL;
    enter_critical();
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);	     
    while ( !stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
@@ -157,11 +158,10 @@ void usb_kickout(void)
 
 ISR(ENDPOINT_PIPE_vect)
 {   
-
 	if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
 	{
 		Endpoint_ClearEndpointInterrupt(ENDPOINT_CONTROLEP);
-		USB_USBTask();
+      USB_USBTask();
 		USB_INT_Clear(ENDPOINT_INT_SETUP);
 	}     
    
@@ -169,7 +169,7 @@ ISR(ENDPOINT_PIPE_vect)
 	{
 		Endpoint_ClearEndpointInterrupt(CDC_RX_EPNUM);
 		Endpoint_SelectEndpoint(CDC_RX_EPNUM);	
-   
+
 		if ( USB_INT_HasOccurred(ENDPOINT_INT_OUT) ) {
          USB_INT_Clear(ENDPOINT_INT_OUT);
          if (Endpoint_ReadWriteAllowed()){
@@ -178,6 +178,7 @@ ISR(ENDPOINT_PIPE_vect)
              Endpoint_FIFOCON_Clear();
          }   
       }
+
    }
    if (Endpoint_HasEndpointInterrupted(CDC_TX_EPNUM))
 	{	
@@ -187,7 +188,7 @@ ISR(ENDPOINT_PIPE_vect)
            USB_INT_Clear(ENDPOINT_INT_IN);
            usb_kickout(); 
       }
-   } 
+   }  
 }
 
   

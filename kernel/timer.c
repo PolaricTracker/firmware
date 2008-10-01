@@ -1,5 +1,5 @@
 /*
- * $Id: timer.c,v 1.1 2008-08-13 22:20:14 la7eca Exp $
+ * $Id: timer.c,v 1.2 2008-10-01 21:48:07 la7eca Exp $
  *
  * Software timer
  */
@@ -19,10 +19,10 @@ static void timer_remove(Timer*);
  ********************************************************************/
  
 void timer_set(Timer* t, uint16_t ticks) 
-{
+{   CONTAINS_CRITICAL;
     cond_init(&t->kick);
 
-    enter_critical();
+    enter_critical();  
     t->callback = NULL;
     t->count = ticks;
     t->prev = NULL;
@@ -41,7 +41,7 @@ void timer_set(Timer* t, uint16_t ticks)
  ********************************************************************/
  
 void timer_cancel(Timer* t)
-{
+{   CONTAINS_CRITICAL;
     enter_critical();
     if (t->count != 0) {
        t->callback = NULL;
@@ -74,6 +74,7 @@ void sleep(uint16_t ticks)
  
 void timer_tick()
 {
+    CONTAINS_CRITICAL;
     register Timer *t;
     for (t = _timers; t != NULL;) 
     {
@@ -88,8 +89,8 @@ void timer_tick()
              if (t->callback != NULL)
                 (*t->callback)();
         }
-        leave_critical();
         t = t->next; 
+        leave_critical();
     }
 }
 
@@ -99,14 +100,15 @@ void timer_tick()
  *********************************************************/
  
 static void timer_remove(Timer* t)
-{
+{    CONTAINS_CRITICAL;
+     enter_critical();
      if (t->next != NULL)
          t->next->prev = t->prev; 
      if (t->prev != NULL) 
          t->prev->next = t->next; 
      else if (_timers == t) 
             _timers = t->next; 
-
+     leave_critical();
 }
 
 

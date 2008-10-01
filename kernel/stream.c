@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.2 2008-09-22 20:05:26 la7eca Exp $
+ * $Id: stream.c,v 1.3 2008-10-01 21:47:43 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -34,9 +34,9 @@ void _stream_init(Stream* b, char* bdata, const uint16_t s)
  ****************************************************************************/
  
 void putstr(Stream *b, const char *str)
-{
+{   
      while (*str != 0)                       
-        putch(b, *(str++));          
+        putch(b, *(str++));       
 }       
 
 
@@ -148,19 +148,20 @@ void stream_sendByte_nb(Stream *b, const char chr)
  
 static char _stream_get(Stream* b)    /* inline? */
 {
+    CONTAINS_CRITICAL;
+    enter_critical(); 
     register uint16_t i = b->index;
     if (++b->index >= b->size) 
         b->index = 0;  
+    leave_critical(); 
     sem_up(&b->capacity);
     return b->buf[i];
 }
     
 char stream_get(Stream* b)
 {   
-    enter_critical();
     sem_down(&b->length);
     register char c = _stream_get(b);
-    leave_critical();     
     return c;
 }
 
@@ -168,13 +169,12 @@ char stream_get_nb(Stream* b)
 {   
     if (&b->length.cnt==0 )
        return 0;
-  
-    enter_critical();
+    
     sem_nb_down(&b->length);
     register char c = _stream_get(b);
-    leave_critical();     
     return c;
 }
+
 
 
 /***************************************************************************
@@ -183,19 +183,20 @@ char stream_get_nb(Stream* b)
  
 static void _stream_put(Stream* b, const char c)  /* inline? */
 {
+    CONTAINS_CRITICAL;
+    enter_critical(); 
     register uint16_t i = b->index + b->length.cnt; 
     if (i >= b->size)
         i -= b->size; 
     b->buf[i] = c; 
+    leave_critical();
     sem_up(&b->length);
 }
  
 void stream_put(Stream* b, const char c)
 {  
-    enter_critical();  
     sem_down(&b->capacity);
     _stream_put(b, c);
-    leave_critical();
 }
    
 void stream_put_nb(Stream* b, const char c)
@@ -203,13 +204,9 @@ void stream_put_nb(Stream* b, const char c)
     if (&b->capacity==0)
        return;
        
-    enter_critical();  
     sem_nb_down(&b->capacity);
     _stream_put(b,c);
-    leave_critical();
 }
-
-
 
 
 
