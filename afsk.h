@@ -19,7 +19,7 @@ stream_t* afsk_init_encoder(void);
 void afsk_ptt_on(void);
 void afsk_ptt_off(void);
 void afsk_txBitClock(void);
-
+void afsk_high_tone(bool t);
 
 stream_t* afsk_init_decoder (void);
 void afsk_enable_decoder (void);
