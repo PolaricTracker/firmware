@@ -3,17 +3,21 @@ MK-I/GENERIC (v0.4 ++)
 ----------------------
 * Stability issues. 
     DONE
+* USB issues
+    DONE
 * Digipeater path setting via command interface. 
     DONE
-* Distance calculation. 
-* Extract more from NMEA? speed?, precision? 
-    PARTLY DONE speed and course. 
+* Extract more from NMEA? speed?, 
+    DONE speed, course and altitude. 
 * Advanced tracking - use time/speed/distance to determine when to report.
     PARTLY DONE. Course change.
 * Timestamped report packet.
+    DONE
 * Compressed report packet (mic-e format?)
+* Status reports
 * Test receiving and decoding of packets.
 * Battery voltage measurement using ADC. 
+    DONE
 
 
 MK-II

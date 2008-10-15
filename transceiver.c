@@ -1,8 +1,9 @@
-/* $Id: transceiver.c,v 1.17 2008-10-01 21:39:22 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.18 2008-10-15 21:56:50 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
 #include "defines.h"
+#include "config.h"
 #include "transceiver.h"
 #include "kernel/kernel.h"
 #include "kernel/timer.h"
@@ -333,7 +334,8 @@ void adf7021_wait_tx_off()
   /* Be sure that transmitter is off */
    while (adf7021_tx_enabled) 
       wait(&adf7021_tx_idle);
-   sleep (setup->ramp_time);     
+   TRACE(50);
+//   sleep (setup->ramp_time);     
 }
 
 
