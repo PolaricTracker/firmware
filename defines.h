@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.20 2008-10-01 21:33:19 la7eca Exp $ 
+ * $Id: defines.h,v 1.21 2008-10-15 21:49:55 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -48,10 +48,10 @@
 #define STACK_MAIN             90
 #define STACK_LED              90
 #define STACK_USBLISTENER      300
-#define STACK_HDLCENCODER      140
+#define STACK_HDLCENCODER      150
 #define STACK_HDLCENCODER_TEST 110
 #define STACK_GPSLISTENER      320
-#define STACK_TRACKER          270
+#define STACK_TRACKER          300
 
 
 
@@ -77,6 +77,13 @@ extern uint8_t blink_length, blink_interval;
 #define BLINK_NORMAL        { blink_length = 5; blink_interval = 95; }
 #define BLINK_GPS_SEARCHING { blink_length = 45; blink_interval = 45; }
 
+
+/*******************************************
+ * ADC 
+ *******************************************/
+ 
+#define ADC_PRESCALER 0x06
+#define ADC_REFERENCE 3.3
 
 
 /*******************************************
