@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.9 2008-10-01 21:43:44 la7eca Exp $
+ * $Id: usb.c,v 1.10 2008-10-15 21:57:26 la7eca Exp $
  */
  
 #include "usb.h"
@@ -34,6 +34,15 @@ EVENT_HANDLER(USB_Connect)
 
 EVENT_HANDLER(USB_Disconnect)
 {
+   clear_port(LED3);
+//   enter_critical();
+   Endpoint_SelectEndpoint(CDC_RX_EPNUM);
+   Endpoint_DisableEndpoint();
+   USB_INT_Disable( ENDPOINT_INT_OUT ); 
+   Endpoint_SelectEndpoint(CDC_TX_EPNUM);
+   Endpoint_DisableEndpoint();   	 
+   USB_INT_Disable( ENDPOINT_INT_IN ); 
+//   leave_critical(); 
 }
 
 
