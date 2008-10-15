@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.11 2008-10-01 21:38:46 la7eca Exp $
+ * $Id: tracker.c,v 1.12 2008-10-15 21:56:26 la7eca Exp $
  */
  
 #include "defines.h"
@@ -7,6 +7,7 @@
 #include "gps.h"
 #include "config.h"
 #include "kernel/timer.h"
+#include "adc.h"
 // #include "math.h"
 
 
@@ -21,6 +22,8 @@ void tracker_off(void);
 static void trackerThread(void);
 static bool should_update(posdata_t*, posdata_t*);
 static void report_position(posdata_t*);
+static void send_header(FBUF*);
+static void send_timestamp(FBUF* packet, posdata_t* pos);
 
 double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONCE */
 
@@ -75,7 +78,6 @@ static void trackerThread(void)
            /* Pause GPS serial data to avoid interference with modulation 
             * and to save CPU cycles. 
             */
-           TRACE(102); 
            uart_rx_pause(); 
            
             
@@ -86,9 +88,9 @@ static void trackerThread(void)
 
            if (waited || should_update(&prev_pos, &current_pos))
            {
+              TRACE(102);
               adf7021_power_on(); 
               sleep(50);
-              TRACE(103); 
               report_position(&current_pos);
               prev_pos = current_pos;
              
@@ -98,23 +100,18 @@ static void trackerThread(void)
                * encoder. Then wait until channel is ready and packet 
                * encoded and sent.
                */
-              TRACE(104);
               sleep(50);
-              TRACE(105);
               hdlc_wait_idle();
-              TRACE(106);
               adf7021_wait_tx_off();
               adf7021_power_off(); 
-           }
-           TRACE(107);         
+           }         
+           TRACE(105);
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
            t = (t > GPS_FIX_TIME) ?
                t - GPS_FIX_TIME : 1;
            sleep(t * TIMER_RESOLUTION); 
            
-           TRACE(108);
            uart_rx_resume();
-           TRACE(109);
            sleep(GPS_FIX_TIME * TIMER_RESOLUTION);   
        }
     }   
@@ -158,45 +155,90 @@ static void report_position(posdata_t* pos)
 {
     TRACE(121);
     FBUF packet;    
-    char latd[12], longd[12], dspeed[10], comment[COMMENT_LENGTH];
-    addr_t from, to; 
+    char pbuf[14], comment[COMMENT_LENGTH];
+          
+    /* Create packet header */
+    send_header(&packet);    
+    
+    /* APRS Packet content 
+     * Timestamp */
+    uint8_t tstamp = GET_BYTE_PARAM(TIMESTAMP_ON);
+    fbuf_putChar(&packet, (tstamp ? '/' : '!'));
+    if (tstamp) 
+        send_timestamp(&packet, pos);
     
     /* Format latitude and longitude values, etc. */
     char lat_sn = (pos->latitude < 0 ? 'S' : 'N');
     char long_we = (pos->longitude < 0 ? 'W' : 'E');
     double latf = fabs(pos->latitude);
     double longf = fabs(pos->longitude);
- 
-    sprintf_P(latd,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
-    sprintf_P(longd, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
-    sprintf_P(dspeed, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
+       
+    sprintf_P(pbuf,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
+    fbuf_putstr (&packet, pbuf);
+    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));
+    sprintf_P(pbuf, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
+    fbuf_putstr (&packet, pbuf);
+    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));   
+    sprintf_P(pbuf, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
+    fbuf_putstr (&packet, pbuf); 
+
+    /* Altitude */
+    if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
+        uint16_t altd = round(pos->altitude / 0.3048);
+        sprintf(pbuf,"/A=%06u\0", altd);
+        fbuf_putstr(&packet, pbuf);
+    }
+    
+    /* 
+     * Get battery voltage - This should perhaps not be here but in status message or
+     * telemetry message instead. 
+     *
+    char vbatt[7];
+    adc_enable();
+    sprintf_P(vbatt, PSTR("%01.2f\0"), adc_get(ADC_CHANNEL_0)*2);
+    adc_disable();
+    fbuf_putstr_P(&packet, PSTR("/VBATT="));
+    fbuf_putstr(&packet, vbatt);
+    */
+        
+    /* Comment */
     GET_PARAM(REPORT_COMMENT, comment);
-    TRACE(122);
-    
-    /* Create packet header */
-    GET_PARAM(MYCALL, &from);
-    
+    if (*comment != '\0') {
+       fbuf_putChar (&packet, ' ');     /* Or should it be a slash ??*/
+       fbuf_putstr (&packet, comment);     
+    } 
+  
+    /* Send packet */
+    fbq_put(outframes, packet);
+}
+
+
+
+static void send_header(FBUF* packet)
+{
+    TRACE(126);
+    addr_t from, to; 
+    GET_PARAM(MYCALL, &from);   
     GET_PARAM(DEST, &to);
     addr_t digis[7];
     uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
     GET_PARAM(DIGIS, &digis);      
-    ax25_encode_header(&packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
-    
-    /* APRS Packet content */
-    fbuf_putChar(&packet, '!');
-    fbuf_putstr (&packet, latd);
-    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));
-    fbuf_putstr (&packet, longd);
-    fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));   
-    fbuf_putstr (&packet, dspeed); 
-    if (*comment != '\0') {
-       fbuf_putChar (&packet, '/');
-       fbuf_putstr (&packet, comment);     
-    } 
-    /* Send packet */
-    TRACE(123);
-    fbq_put(outframes, packet);
+    ax25_encode_header(packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
 }
+
+
+
+static void send_timestamp(FBUF* packet, posdata_t* pos)
+{
+    TRACE(127);
+    char ts[9];
+    sprintf(ts, "%02u%02u%02uh\0", 
+       (uint8_t) (pos->timestamp / 3600 % 24), 
+       (uint8_t) (pos->timestamp / 60 % 60), 
+       (uint8_t) (pos->timestamp % 60) );
+    fbuf_putstr(packet, ts);   
+}
+
 
 
 
