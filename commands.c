@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.19 2008-09-15 22:02:11 la7eca Exp $
+ * $Id: commands.c,v 1.20 2008-10-15 21:52:03 la7eca Exp $
  */
  
 #include "defines.h"
@@ -16,6 +16,8 @@
 #include "config.h"
 #include "transceiver.h"
 #include "gps.h"
+#include <avr/interrupt.h>
+#include "adc.h"
 
 
 #define MAXTOKENS 10
@@ -25,24 +27,23 @@
 void setup_transceiver(void);
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
-static void do_teston    (uint8_t, char**, Stream*);
-static void do_testoff   (uint8_t, char**, Stream*);
+static void do_teston    (uint8_t, char**, Stream*, Stream*);
 static void do_testpacket(uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
 static void do_symbol    (uint8_t, char**, Stream*);
-static void do_nmea      (uint8_t, char**, Stream*, Stream* in);
-static void do_trx       (uint8_t, char**, Stream*, Stream* in);
-static void do_txon      (uint8_t, char**, Stream*);            
-static void do_txoff     (uint8_t, char**, Stream*);            
-static void do_tracker   (uint8_t, char**, Stream*, Stream* in);
+static void do_nmea      (uint8_t, char**, Stream*, Stream*);
+static void do_trx       (uint8_t, char**, Stream*, Stream*);
+static void do_txon      (uint8_t, char**, Stream*, Stream*);                 
+static void do_tracker   (uint8_t, char**, Stream*, Stream*);
 static void do_freq      (uint8_t, char**, Stream*);
 static void do_power     (uint8_t, char**, Stream*);
 static void do_squelch   (uint8_t, char**, Stream*);
 static void do_rssi      (uint8_t, char**, Stream*, Stream*);
 static void do_digipath  (uint8_t, char**, Stream*);
 static void do_trace     (uint8_t, char**, Stream*);
-
+static void do_txtone    (uint8_t, char**, Stream*, Stream*);
+static void do_vbatt     (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -102,6 +103,33 @@ static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out,
     }
 }
 
+
+static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out, 
+                void* ee_addr, PGM_P default_val, PGM_P name)
+{
+    if (argc < 2) {
+       putstr_P(out, name);
+       if (get_byte_param(ee_addr, default_val)) 
+          putstr_P(out, PSTR(" is ON\r\n")); 
+       else
+          putstr_P(out, PSTR(" is OFF\r\n"));
+       return; 
+    }
+    putstr_P(out, PSTR("***** "));
+    putstr_P(out, name);
+    if (strncmp("on", argv[1], 2) == 0) {   
+       putstr_P(out, PSTR(" ON *****\r\n"));
+       set_byte_param(ee_addr, 1);
+    }  
+    if (strncmp("off", argv[1], 2) == 0) {     
+       putstr_P(out, PSTR(" OFF *****\r\n"));
+       set_byte_param(ee_addr, 0);
+    }
+}
+
+
+
+
 /***************************************************************************************
  * Macro to test for command to get or set numeric parameter. 
  * Usage: 
@@ -125,6 +153,10 @@ static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out,
     if (strncmp(command, argv[0], cmpchars) == 0) \
         _parameter_setting_uint8(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
+#define IF_COMMAND_PARAM_bool(command, cmpchars, argc, argv, out, x, name)  \
+    if (strncmp(command, argv[0], cmpchars) == 0) \
+        _parameter_setting_bool(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, name) 
+
 
 
 
@@ -139,7 +171,7 @@ void readLine(Stream*, Stream*, char*, const uint16_t); // Move to stream.h
 void cmdProcessor(Stream *in, Stream *out)
 {
     char* argv[MAXTOKENS];
-    uint8_t argc, n;
+    uint8_t argc;
     
     putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n"));
     show_trace(buf, 1, PSTR("Trace = "), PSTR("\r\n\r\n"));
@@ -156,9 +188,9 @@ void cmdProcessor(Stream *in, Stream *out)
           * misc commands 
           */         
          if (strncmp("teston", argv[0], 6) == 0)
-             do_teston(argc, argv, out);
-         else if (strncmp("testoff", argv[0], 7) == 0)
-             do_testoff(argc, argv, out);
+             do_teston(argc, argv, out, in);
+         else if (strncmp("txtone", argv[0], 7) == 0)
+             do_txtone(argc, argv, out, in);
          else if (strncmp("testpacket",  argv[0], 5) == 0)
              do_testpacket(argc, argv, out);                               
          else if (strncmp("gps",     argv[0], 4) == 0)
@@ -168,14 +200,13 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("tracker", argv[0], 6) == 0)
              do_tracker(argc, argv, out, in);
          else if (strncmp("txon",     argv[0], 4) == 0)
-             do_txon(argc, argv, out);        
-         else if (strncmp("txoff",     argv[0], 4) == 0)
-             do_txoff(argc, argv, out);     
+             do_txon(argc, argv, out, in);             
          else if (strncmp("rssi", argv[0], 2) == 0)
              do_rssi(argc, argv, out, in);       
          else if (strncmp("trace", argv[0], 5) == 0)
              do_trace(argc, argv, out); 
-     
+         else if (strncmp("vbatt", argv[0], 2) == 0)
+             do_vbatt(argc, argv, out);
          
          /* Commands for setting/viewing parameters */
          else if (strncmp("mycall", argv[0], 2) == 0)
@@ -220,7 +251,13 @@ void cmdProcessor(Stream *in, Stream *out)
          else IF_COMMAND_PARAM_uint8 
                  ( "maxpause", 6, argc, argv, out, 
                     TRACKER_PAUSE_LIMIT, 1, 200, PSTR("Tracker pause limit is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
-                    
+         
+         else IF_COMMAND_PARAM_bool 
+                 ( "altitude", 3, argc, argv, out, ALTITUDE_ON, PSTR("ALTITUDE") );
+         
+         else IF_COMMAND_PARAM_bool           
+                 ( "timestamp", 4, argc, argv, out, TIMESTAMP_ON, PSTR("TIMESTAMP") );
+                 
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
@@ -230,6 +267,9 @@ void cmdProcessor(Stream *in, Stream *out)
 }   
 
 
+/************************************************
+ * Report RSSI level for 1 minute
+ ************************************************/
 
 static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
@@ -241,6 +281,26 @@ static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
         putstr(out, buf);
         sleep(100);
     }
+}
+
+
+/************************************************
+ * Report battery voltage
+ ************************************************/
+static void do_vbatt(uint8_t argc, char** argv, Stream* out)
+{
+   float vbatt;
+   adc_enable();
+   vbatt = adc_get(ADC_CHANNEL_0);
+   adc_disable();
+   sprintf_P(buf, PSTR("Battery voltage: %f V\r\n\0"), vbatt * 2);
+   putstr(out, buf);
+}
+
+
+static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+    
 }
 
 
@@ -334,47 +394,62 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
  * For testing of transmitter .....
  ************************************************/
 
-static void do_txon(uint8_t argc, char** argv, Stream* out)
+static void do_txon(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** TX ON *****\r\n"));
    adf7021_enable_tx();
-}
 
-static void do_txoff(uint8_t argc, char** argv, Stream* out)
-{
-   putstr_P(out, PSTR("***** TX OFF *****\r\n"));
+   getch(in);
+   getch(in);
    adf7021_disable_tx();
 }
 
 
       
 /*********************************************
- * teston <byte> : Turn on test signal
+ * teston <byte> : Generate test signal
  *********************************************/
  
-static void do_teston(uint8_t argc, char** argv, Stream* out)
+static void do_teston(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     int ch = 0;
-    putstr(out, "**** TEST SIGNAL ON ****\r\n");
-    hdlc_test_off();
-    sleep(10);
+    if (argc < 2) {
+        putstr_P(out, PSTR("Usage: TESTON <byte>\r\n"));
+        return;
+    }
     sscanf(argv[1], " %i", &ch);  
     hdlc_test_on((uint8_t) ch);
-    sprintf_P(buf, PSTR("Test signal on: 0x%X\r\n\0"), ch);
+    sprintf_P(buf, PSTR("**** TEST SIGNAL: 0x%X ****\r\n"), ch);
     putstr(out, buf );  
+    
+     /* And wait until some character has been typed */
+    getch(in);
+    getch(in);
+    hdlc_test_off();
 }
 
-
-         
-
-/*********************************************
- * testoff : Turn off test signal
- *********************************************/
- 
-static void do_testoff(uint8_t argc, char** argv, Stream* out)
+static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-    putstr_P(out, PSTR("**** TEST SIGNAL OFF ****\r\n"));  
-    hdlc_test_off();  
+  if (argc < 2) {
+      putstr_P(out, PSTR("Usage: TXTONE high|low\r\n"));
+      return;
+  }
+ 
+  if (strncmp("hi", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** TEST TONE HIGH *****\r\n"));
+      afsk_high_tone(true);
+      hdlc_test_on(0xff);
+  }
+  else if (strncmp("low", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** TEST TONE LOW *****\r\n"));
+      afsk_high_tone(false);
+      hdlc_test_on(0xff);
+  } 
+  
+ /* And wait until some character has been typed */
+  getch(in);
+  getch(in);
+  hdlc_test_off();
 }
 
 
@@ -384,19 +459,17 @@ static void do_testoff(uint8_t argc, char** argv, Stream* out)
  *********************************************/
 
 static void do_testpacket(uint8_t argc, char** argv, Stream* out)
-{
+{ 
     FBUF packet;    
     addr_t from, to; 
     GET_PARAM(MYCALL, &from);
-    GET_PARAM(DEST, &to);
-    
+    GET_PARAM(DEST, &to);       
     addr_t digis[7];
     uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
-    GET_PARAM(DIGIS, &digis);
-            
+    GET_PARAM(DIGIS, &digis);   
     ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
-    putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));        
+    putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));       
     fbq_put(outframes, packet);
 }
 
@@ -453,7 +526,7 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
     uint8_t i;
     char cbuf[11]; 
     
-    if (argc > 2) {
+    if (argc > 1) {
        ndigis = argc - 1;
        if (ndigis > 7) 
            ndigis = 7;
@@ -465,17 +538,20 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
     }
     else  {
        ndigis = GET_BYTE_PARAM(NDIGIS);
-       GET_PARAM(DIGIS,&digis);
+       GET_PARAM(DIGIS, &digis);
        putstr_P(out, PSTR("Digipeater path is ")); 
        for (i=0; i<ndigis; i++)
-       {
-           putstr(out, addr2str(cbuf, &digis[i]));
+       {   
+           putstr(out, addr2str(cbuf, &digis[i]));           
            if (i < ndigis-1)
-               putstr(out, ", "); 
+               putstr_P(out, PSTR(", ")); 
        }
-       putstr(out,"\n\r");
+       putstr_P(out,PSTR("\n\r"));
+
     }
 }
+
+
 
 static void do_trace(uint8_t argc, char** argv, Stream* out)
 {
