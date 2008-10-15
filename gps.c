@@ -82,11 +82,12 @@ static void nmeaListener()
          uint8_t checksum = 0; 
          int c_checksum;
          
+         TRACE(151);         
          getstr(in, buf, NMEA_BUFSIZE, '\n');
-
+         
          if (buf[0] != '$')
             continue;
-         TRACE(151);
+
          
          /* If requested, show raw NMEA packet on screen */
          if (monitor_raw) {
@@ -107,14 +108,12 @@ static void nmeaListener()
         
          /* Split input line into tokens */
          argc = tokenize(buf, argv, NMEA_MAXTOKENS, ",", false);           
-         TRACE(152);
          
          /* Select command handler */    
          if (strncmp("RMC", argv[0]+3, 3) == 0)
              do_rmc(argc, argv, out);
          else if (strncmp("GGA", argv[0]+3, 3) == 0)
              do_gga(argc, argv, out);
-         TRACE(153);
    }
 }
 
@@ -188,7 +187,6 @@ void notify_fix(bool lock)
        BLINK_GPS_SEARCHING
    else {
        if (!is_fixed) {
-          TRACE(171);
           notifyAll(&wait_gps);
        }     
        BLINK_NORMAL
@@ -206,12 +204,12 @@ bool gps_wait_fix()
     if (is_fixed) return false;      
     while (!is_fixed)
        wait(&wait_gps);
-    TRACE(172);
     return true;
 }         
   
 
 uint16_t course_count = 0;  
+float altitude = -1;
        
 /****************************************************************
  * Handle RMC line
@@ -241,8 +239,7 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     TRACE(161);
        
     /* get timestamp */
-    timestamp_t time; 
-    nmea2time(&time, argv[1]);
+    nmea2time(&current_pos.timestamp, argv[1]);
    
     /* get latitude [ddmm.mmmmm] */
     str2coord(2, argv[3], &current_pos.latitude);  
@@ -268,11 +265,12 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     }
     else
        current_pos.course = 0;
+    current_pos.altitude = altitude;
            
     /* If requested, show position on screen */    
     if (monitor_pos) {
         sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f, SPEED: %f km/h, COURSE: %u deg\r\n"), 
-          time2str(tbuf, time), current_pos.latitude, current_pos.longitude, 
+          time2str(tbuf, current_pos.timestamp), current_pos.latitude, current_pos.longitude, 
           current_pos.speed*1.856, current_pos.course);
         putstr(out, buf);
     }
@@ -280,13 +278,16 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
 
 
 /* 
- * FIXME: I noen situasjoner slutter GPS å sende RMC rapporter. 
- * Derfor er det mulig vi trenger GGA eller GLL. 
+ * Get altitude from GGA line
  */
 
 static void do_gga(uint8_t argc, char** argv, Stream *out)
 {
-    /* TBD if needed */
+    TRACE(171);
+    if (argc == 15 && *argv[6] > '0')
+       sscanf(argv[9], "%f", &altitude);
+    else
+       altitude = -1; 
 }
 
 
