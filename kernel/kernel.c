@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.5 2008-10-01 21:47:09 la7eca Exp $
+ * $Id: kernel.c,v 1.6 2008-11-09 23:42:55 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -32,7 +32,7 @@ void init_kernel(uint16_t stsize)
             "mov %B0, __tmp_reg__"       "\n\t" 
              : "=e" (stack) :
          );
-        root_task.stackbase = stack;
+        root_task.stackbase = (uint16_t) stack;
         stack -= stsize; 
 
 }
@@ -53,7 +53,7 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
         q_head->next = tcb; 
         q_end = q_head; 
         q_head = tcb; 
-        tcb->stackbase = stack;
+        tcb->stackbase = (uint16_t) stack;
         leave_critical();
         
         /* Set stack pointer and call thread function */

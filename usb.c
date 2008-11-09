@@ -1,11 +1,12 @@
 /*
- * $Id: usb.c,v 1.10 2008-10-15 21:57:26 la7eca Exp $
+ * $Id: usb.c,v 1.11 2008-11-09 23:39:02 la7eca Exp $
  */
  
 #include "usb.h"
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
 #include "defines.h"
+#include "ui.h"
 
 #define CDC_BUF_SIZE 32
 
@@ -34,15 +35,13 @@ EVENT_HANDLER(USB_Connect)
 
 EVENT_HANDLER(USB_Disconnect)
 {
-   clear_port(LED3);
-//   enter_critical();
+   led_usb_off();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_DisableEndpoint();
    USB_INT_Disable( ENDPOINT_INT_OUT ); 
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);
    Endpoint_DisableEndpoint();   	 
    USB_INT_Disable( ENDPOINT_INT_IN ); 
-//   leave_critical(); 
 }
 
 
@@ -73,7 +72,7 @@ EVENT_HANDLER(USB_CreateEndpoints)
 	                           ENDPOINT_BANK_SINGLE);
 
 	/* LED to indicate USB connected and ready */
-	set_port(LED3);
+	led_usb_on();
    enter_critical();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_EnableEndpoint();
@@ -96,8 +95,7 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 
 	Endpoint_Ignore_Word();
 
-	/* Process CDC specific control requests */
-	switch (Request)
+	/* Process CDC specific control requests */	switch (Request)
 	{
 		case GET_LINE_CODING:
 			if (RequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
@@ -166,14 +164,13 @@ void usb_kickout(void)
 
 
 ISR(ENDPOINT_PIPE_vect)
-{   
+{ 
 	if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
 	{
 		Endpoint_ClearEndpointInterrupt(ENDPOINT_CONTROLEP);
       USB_USBTask();
 		USB_INT_Clear(ENDPOINT_INT_SETUP);
 	}     
-   
 	if (Endpoint_HasEndpointInterrupted(CDC_RX_EPNUM))
 	{
 		Endpoint_ClearEndpointInterrupt(CDC_RX_EPNUM);
@@ -197,7 +194,7 @@ ISR(ENDPOINT_PIPE_vect)
            USB_INT_Clear(ENDPOINT_INT_IN);
            usb_kickout(); 
       }
-   }  
+   }   
 }
 
   

@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.20 2008-10-15 21:52:03 la7eca Exp $
+ * $Id: commands.c,v 1.21 2008-11-09 23:34:44 la7eca Exp $
  */
  
 #include "defines.h"
@@ -44,6 +44,7 @@ static void do_digipath  (uint8_t, char**, Stream*);
 static void do_trace     (uint8_t, char**, Stream*);
 static void do_txtone    (uint8_t, char**, Stream*, Stream*);
 static void do_vbatt     (uint8_t, char**, Stream*);
+static void do_listen    (uint8_t, char**, Stream*, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -207,7 +208,9 @@ void cmdProcessor(Stream *in, Stream *out)
              do_trace(argc, argv, out); 
          else if (strncmp("vbatt", argv[0], 2) == 0)
              do_vbatt(argc, argv, out);
-         
+         else if (strncmp("listen", argv[0], 3) == 0)
+             do_listen(argc, argv, out, in);
+             
          /* Commands for setting/viewing parameters */
          else if (strncmp("mycall", argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
@@ -251,6 +254,10 @@ void cmdProcessor(Stream *in, Stream *out)
          else IF_COMMAND_PARAM_uint8 
                  ( "maxpause", 6, argc, argv, out, 
                     TRACKER_PAUSE_LIMIT, 1, 200, PSTR("Tracker pause limit is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
+         
+         else IF_COMMAND_PARAM_uint8 
+                 ( "statustime", 7, argc, argv, out, 
+                    TRACKER_PAUSE_LIMIT, 1, 200, PSTR("Status time is %d units (see tracktime)\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_bool 
                  ( "altitude", 3, argc, argv, out, ALTITUDE_ON, PSTR("ALTITUDE") );
@@ -300,7 +307,11 @@ static void do_vbatt(uint8_t argc, char** argv, Stream* out)
 
 static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-    
+   putstr_P(out, PSTR("***** LISTEN ON RECEIVER *****\r\n"));
+   afsk_enable_decoder();
+   getch(in);
+   getch(in);
+   afsk_disable_decoder();
 }
 
 

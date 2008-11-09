@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.21 2008-10-01 21:37:04 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.22 2008-11-09 23:36:09 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -85,8 +85,14 @@ static void hdlc_testsignal()
     while (true)
     {
         sem_down(&test);
+        adf7021_wait_enabled(); 
+        hdlc_idle = false;
+        
         while(test_active) 
-           putch(outstream, testbyte);
+            putch(outstream, testbyte);
+    
+        hdlc_idle = true; 
+        notifyAll(&hdlc_idle_sig);   
     }
 }
 

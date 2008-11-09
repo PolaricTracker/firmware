@@ -34,9 +34,9 @@
               MyUSB/Drivers/USB/LowLevel/LowLevel.c MyUSB/Drivers/USB/HighLevel/USBTask.c \
               MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
               MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
-              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c config.c \
+              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c config.c ui.c\
               kernel/kernel.c kernel/timer.c kernel/stream.c uart.c gps.c transceiver.c \
-              afsk_tx.c hdlc_encoder.c fbuf.c ax25.c usb.c commands.c adc.c \
+              afsk_tx.c afsk_rx.c hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c usb.c commands.c adc.c \
               tracker.c main.c 
 
 # List Assembler source files here.
