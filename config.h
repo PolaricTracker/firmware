@@ -53,6 +53,7 @@ DEFINE_PARAM( REPORT_COMMENT,     comment      );
 DEFINE_PARAM( GPS_BAUD,           uint16_t     );
 DEFINE_PARAM( TRACKER_TURN_LIMIT, uint16_t     );
 DEFINE_PARAM( TRACKER_PAUSE_LIMIT,uint8_t      );
+DEFINE_PARAM( STATUS_TIME,        uint8_t      );
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
 extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
@@ -78,7 +79,7 @@ DEFAULT_PARAM( TRX_TXPOWER )         = -13.0;
 DEFAULT_PARAM( TRX_AFSK_DEV )        = 3500;
 DEFAULT_PARAM( TRX_SQUELCH )         = -80;
 DEFAULT_PARAM( TRACKER_ON )          = 0;
-DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 30; 
+DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 10; 
 DEFAULT_PARAM( SYMBOL)               = '.';
 DEFAULT_PARAM( SYMBOL_TABLE)         = '/';
 DEFAULT_PARAM( TIMESTAMP_ON)         = 1;
@@ -87,6 +88,7 @@ DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker";
 DEFAULT_PARAM( GPS_BAUD )            = 4800;
 DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
 DEFAULT_PARAM( TRACKER_PAUSE_LIMIT ) = 5;
+DEFAULT_PARAM( STATUS_TIME )         = 30;
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
