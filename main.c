@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.18 2008-10-01 21:38:07 la7eca Exp $
+ * $Id: main.c,v 1.19 2008-11-09 23:36:52 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -30,6 +30,8 @@
 #include "config.h"
 #include "transceiver.h"
 #include "gps.h"
+#include "ui.h"
+#include "commands.h"
 
 
 /* usb.c */
@@ -62,7 +64,7 @@ ISR(TIMER1_COMPA_vect)
      /*
       * count 8 ticks to get to a 1200Hz rate
       */
-     if (++txticks == 8) {
+     if (++txticks == 2) {
          afsk_txBitClock();
          txticks = 0;
      }
@@ -70,10 +72,12 @@ ISR(TIMER1_COMPA_vect)
      /* 
       * Count 96 ticks to get to a 100Hz rate
       */
-     if (++ticks == 96) { 
+     if (++ticks == 24) { 
         timer_tick();  
         ticks = 0; 
      }  
+     
+     ui_clock();
 }
 
 
@@ -98,7 +102,9 @@ static void onoff_handler()
        adf7021_power_off();
        clear_port(LED1);
        clear_port(LED2);
+#if defined TRACKER_MK1
        clear_port(LED3);
+#endif
        gps_off();
        is_off = true; 
     } 
@@ -128,32 +134,6 @@ ISR(INT1_vect)
     }
 }
 
-
-
-/*************************************************************************
- * Heartbeat LED blink. 
- *************************************************************************/
-uint8_t blink_length, blink_interval;
- 
-void led1(void)
-{       
-    /* Blink both LEDS when turned on */
-    set_port(LED1);
-    set_port(LED2);
-    sleep(100);
-    clear_port(LED1);
-    clear_port(LED2);
-    
-    BLINK_NORMAL;
-    while (1) {
-        set_port( LED1 );
-        sleep(blink_length);
-        clear_port( LED1 );
-        sleep(blink_interval);
-    }
-}
- 
- 
 
 
 /**************************************************************************
@@ -225,12 +205,6 @@ int main(void)
       /* Start the multi-threading kernel */     
       init_kernel(STACK_MAIN); 
       
-      /* DDR Registers */
-      make_output(LED1);
-      make_output(LED2);
-      make_output(LED3);
-      make_output(CPUBUSY);
-      
       /* Button */
       make_input(BUTTON);
       EICRA = (1<<ISC10);
@@ -240,7 +214,7 @@ int main(void)
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
              | (1<<WGM12);            /* CTC mode */             
       TIMSK1 = 1<<OCIE1A;             /* Interrupt on compare match */
-      OCR1A  = (SCALED_F_CPU / 8 / 9600) - 1;
+      OCR1A  = (SCALED_F_CPU / 8 / 2400) - 1;
    
       TRACE_INIT;
       sei();    
@@ -250,7 +224,7 @@ int main(void)
      
       /* HDLC and AFSK setup */
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
-//      inframes  = hdlc_init_decoder( afsk_init_decoder() );
+//      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
       
       /* GPS and tracking */
       gps_init(&cdc_outstr);
@@ -259,20 +233,16 @@ int main(void)
       /* USB */
       usb_init();    
       THREAD_START(usbSerListener, STACK_USBLISTENER);
-      
-      THREAD_START(led1, STACK_LED);  
+
+      ui_init();    
       TRACE(1);
       
       while(1) 
       {  
-           if (t_is_idle()) {
-              clear_port(CPUBUSY);
+           if (t_is_idle()) 
               /* Enter idle mode or sleep mode here */
               sleep_mode();
-           }
-           else {
-              set_port(CPUBUSY);
+           else 
               t_yield(); 
-           }
       }     
 }
