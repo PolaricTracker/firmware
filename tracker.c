@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.12 2008-10-15 21:56:26 la7eca Exp $
+ * $Id: tracker.c,v 1.13 2008-11-09 23:37:55 la7eca Exp $
  */
  
 #include "defines.h"
@@ -22,8 +22,10 @@ void tracker_off(void);
 static void trackerThread(void);
 static bool should_update(posdata_t*, posdata_t*);
 static void report_position(posdata_t*);
+static void report_status(posdata_t*);
 static void send_header(FBUF*);
 static void send_timestamp(FBUF* packet, posdata_t* pos);
+static void send_timestamp_z(FBUF* packet, posdata_t* pos);
 
 double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONCE */
 
@@ -62,6 +64,8 @@ void tracker_off()
 static void trackerThread(void)
 {
     uint16_t t;
+    uint8_t st_count = 0;
+    
     while (true) 
     {
        sem_down(&tracker_run);  
@@ -81,11 +85,18 @@ static void trackerThread(void)
            uart_rx_pause(); 
            
             
+           /*
+            * Send status report
+            */
+           if (++st_count == GET_BYTE_PARAM( STATUS_TIME)) {
+              st_count = 0;
+              report_status(&current_pos);
+           }
+            
            /* 
             * Send report if criteria are satisfied or if we waited 
             * for GPS fix
             */
-
            if (waited || should_update(&prev_pos, &current_pos))
            {
               TRACE(102);
@@ -101,7 +112,9 @@ static void trackerThread(void)
                * encoded and sent.
                */
               sleep(50);
+              TRACE(103);
               hdlc_wait_idle();
+              TRACE(104);
               adf7021_wait_tx_off();
               adf7021_power_off(); 
            }         
@@ -146,10 +159,43 @@ static bool should_update(posdata_t* prev, posdata_t* current)
 
 
 /**********************************************************************
+ * APRS status report. 
+ *  What should we put into this report? Currently, I would 
+ *  try the battery voltage and a static text. 
+ **********************************************************************/
+
+static void report_status(posdata_t* pos)
+{
+    FBUF packet;   
+    
+    /* Create packet header */
+    send_header(&packet);  
+    fbuf_putChar(&packet, '>');
+//    send_timestamp_z(&packet, pos); 
+    
+    /* 
+     * Get battery voltage - This should perhaps not be here but in status message or
+     * telemetry message instead. 
+     */
+    char vbatt[7];
+    adc_enable();
+    sprintf_P(vbatt, PSTR("%01.2f\0"), adc_get(ADC_CHANNEL_0)*2);
+    adc_disable();
+    fbuf_putstr_P(&packet, PSTR("VBATT="));
+    fbuf_putstr(&packet, vbatt);
+   
+    /* Send packet */
+    fbq_put(outframes, packet);
+}
+
+
+
+/**********************************************************************
  * Report position as an APRS packet
  *  Currently: Uncompressed APRS position report without timestamp 
  *  (may add more options later)
  **********************************************************************/
+ 
 extern uint16_t course_count; 
 static void report_position(posdata_t* pos)
 {
@@ -188,18 +234,6 @@ static void report_position(posdata_t* pos)
         sprintf(pbuf,"/A=%06u\0", altd);
         fbuf_putstr(&packet, pbuf);
     }
-    
-    /* 
-     * Get battery voltage - This should perhaps not be here but in status message or
-     * telemetry message instead. 
-     *
-    char vbatt[7];
-    adc_enable();
-    sprintf_P(vbatt, PSTR("%01.2f\0"), adc_get(ADC_CHANNEL_0)*2);
-    adc_disable();
-    fbuf_putstr_P(&packet, PSTR("/VBATT="));
-    fbuf_putstr(&packet, vbatt);
-    */
         
     /* Comment */
     GET_PARAM(REPORT_COMMENT, comment);
@@ -233,12 +267,22 @@ static void send_timestamp(FBUF* packet, posdata_t* pos)
     TRACE(127);
     char ts[9];
     sprintf(ts, "%02u%02u%02uh\0", 
-       (uint8_t) (pos->timestamp / 3600 % 24), 
-       (uint8_t) (pos->timestamp / 60 % 60), 
+       (uint8_t) ((pos->timestamp / 3600) % 24), 
+       (uint8_t) ((pos->timestamp / 60) % 60), 
        (uint8_t) (pos->timestamp % 60) );
     fbuf_putstr(packet, ts);   
 }
 
 
-
+/* Dette virker ikke som det skal */
+static void send_timestamp_z(FBUF* packet, posdata_t* pos)
+{
+    TRACE(128);
+    char ts[9];
+    sprintf(ts, "%02u%02u%02uz\0", 
+       (uint8_t) (pos->timestamp / 86400)+1,
+       (uint8_t) ((pos->timestamp / 3600) % 24), 
+       (uint8_t) ((pos->timestamp / 60) % 60) ); 
+    fbuf_putstr(packet, ts);   
+}
 
