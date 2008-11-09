@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.18 2008-10-15 21:56:50 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.19 2008-11-09 23:38:25 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -266,12 +266,11 @@ void adf7021_power_on ()
   
   /* Turn on TX/RX clock */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->clock));
-
   /* Enable PLL and wait for lock */
   setup->rx_n.muxout = ADF7021_MUXOUT_DIGITAL_LOCK_DETECT;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
   ADF7021_MUXOUT_WAIT ();
-
+  
   /* Set MUXOUT to indicate when filter calibration has completed. */
   setup->rx_n.muxout = ADF7021_MUXOUT_FILTER_CAL_COMPLETE;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
@@ -344,10 +343,10 @@ void adf7021_power_off ()
   notifyAll(&adf7021_tx_idle);
   /* Turn it off */
   adf7021_enabled = adf7021_tx_enabled =  false;
+#if defined TRACKER_MK1
   set_port (PD3OUT);
   clear_port(EXTERNAL_PA_ON);
-//  set_port (PD0OUT);
-
+#endif
   clear_port (ADF7021_ON);
 }
 
@@ -356,9 +355,11 @@ void adf7021_power_off ()
 void adf7021_enable_tx ()
 {
   /* Turn on external PA */
+
+#if defined TRACKER_MK1
     set_port(EXTERNAL_PA_ON);
     clear_port(PD3OUT);  
-//    clear_port(PD0OUT);
+#endif
    
   /* Enable transmit mode */
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
@@ -372,10 +373,11 @@ void adf7021_disable_tx ()
   adf7021_tx_enabled = false;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
   notifyAll(&adf7021_tx_idle);
-  
+
+#if defined TRACKER_MK1  
   set_port (PD3OUT);   
   clear_port(EXTERNAL_PA_ON);
-//  set_port (PD0OUT);
+#endif
 }
 
 

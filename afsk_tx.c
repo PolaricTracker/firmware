@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.20 2008-10-01 21:34:06 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.21 2008-11-09 23:34:11 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -47,13 +47,11 @@ stream_t* afsk_init_encoder(void)
 #if defined AFSK_DAC_METHOD
     DAC_DDR |= DAC_MASK;
     DAC_PORT = 0;
-#else
-#if defined USE_TXPIN_OC
-    make_output(OC3A);
-#else
+#endif
+    /* Clear TXDATA pin, even when using DAC method */
     make_output(TXDATA);
-#endif
-#endif
+    clear_port(TXDATA);
+
     start_tone = _TXI_MARK;
     return &afsk_tx_stream;
 }               
@@ -75,7 +73,7 @@ void afsk_ptt_on()
     TRACE(251);
     TCCR3B = _PRESCALER3_SETTING   /* Pre-scaler for timer3 */             
              | (1<<WGM32) ;        /* CTC mode */   
-    TCCR3A |= (1<<COM3A0);         /* Toggle OC3A on compare match. */
+//    TCCR3A |= (1<<COM3A0);         /* Toggle OC3A on compare match. */
     OCR3A  = timertop = start_tone;
     TIMSK3 = 1<<OCIE3A;            /* Interrupt on compare match */ 
     transmit = true; 
@@ -99,12 +97,9 @@ void afsk_ptt_off(void)
     clear_port(LED2);                 /* LED / PTT */
 #if defined AFSK_DAC_METHOD
     DAC_PORT = 0;
-#else    
-#if !defined AFSK_DAC_METHOD || !defined USE_TXPIN_OC    
+#else     
     clear_port(TXDATA);               /* out signal */
 #endif
-#endif
-
     adf7021_disable_tx();
     start_tone = _TXI_MARK;
     TRACE(253);
@@ -140,7 +135,6 @@ static void next_byte(void)
     /* Turn off TX if buffer is empty (have reached end of frame) */
     if (stream_empty(&afsk_tx_stream)) { 
         afsk_ptt_off();  
-        TRACE(261); 
         return;
     }
     bits = stream_get_nb (&afsk_tx_stream); 
@@ -191,9 +185,7 @@ void afsk_txBitClock(void)
  
 ISR(TIMER3_COMPA_vect)
 {   
-#if !defined USE_TXPIN_OC
      toggle_port( TXDATA );
-#endif
      OCR3A = timertop;  
 } 
 
@@ -208,7 +200,12 @@ ISR(TIMER3_COMPA_vect)
 
 ISR(TIMER3_COMPA_vect)
 {
+#if defined USBKEY_TEST
    static uint8_t sine[16] = {8, 10, 13, 14, 15, 14, 13, 10, 7, 5, 2, 1, 0, 1, 2, 5};
+#else
+   static uint8_t sine[16] = {0x80,0xa0,0xd0,0xe0,0xf0,0xe0,0xd0,0xa0,0x70,0x50,0x20,0x10,0,0x10,0x20,0x50};
+#endif
+      
    static uint8_t index = 0;          // Index for the D-to-A sequence
 
    DAC_PORT = sine[index];            // Output next D-to-A sinewave value
