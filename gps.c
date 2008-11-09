@@ -155,15 +155,18 @@ static void str2coord(const uint8_t ndeg, const char* str, double* coord)
 }
 
 
+
 /*****************************************************************
  * Convert date/time NMEA fields to 32 bit integer (timestamp)
  *****************************************************************/
  
-static void nmea2time( timestamp_t* t, const char* timestr)
+static void nmea2time( timestamp_t* t, const char* timestr, const char* datestr)
 {
-    int hour, min, sec;
+    uint32_t hour, min, sec;
+    uint32_t date, month, year;
     sscanf(timestr, "%2u%2u%2u", &hour, &min, &sec);
-    *t = (uint32_t) hour * 3600 + min * 60 + sec;
+    sscanf(datestr, "%2u%2u%2u", &date, &month, &year);
+    *t = (uint32_t) /* (date-1) * 86400 TRØBBEL + */  hour * 3600 + min * 60 + sec;
 }
 
 
@@ -239,7 +242,7 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     TRACE(161);
        
     /* get timestamp */
-    nmea2time(&current_pos.timestamp, argv[1]);
+    nmea2time(&current_pos.timestamp, argv[1], argv[9]);
    
     /* get latitude [ddmm.mmmmm] */
     str2coord(2, argv[3], &current_pos.latitude);  
