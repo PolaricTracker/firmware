@@ -1,12 +1,12 @@
 /*
- * $Id: defines.h,v 1.22 2008-11-09 23:32:18 la7eca Exp $ 
+ * $Id: defines.h,v 1.23 2008-11-22 19:01:09 la7eca Exp $ 
  */
 
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
 
-// #define TRACKER_MK1     /* Define if compiling for the first lab model */
+#define TRACKER_MK1     /* Define if compiling for the first lab model */
 // #define USBKEY_TEST     /* Define if compiling for the USBKEY */
 
 #if defined USBKEY_TEST || !defined TRACKER_MK1
@@ -109,11 +109,9 @@ extern uint8_t blink_length, blink_interval;
                         
  /* Common */
 
-#define EXTERNAL_PA_ON_PORT PORTA  
-#define EXTERNAL_PA_ON_BIT  2    
-#define EXTERNAL_PA_ON_DDR  DDRA   
+  
 #define GPSON_PORT          PORTB
-#define GPSON_BIT           6
+#define GPSON_BIT           5
 #define GPSON_DDR           DDRB
 #define GPIO_PORT           PORTE
 #define GPIO_BIT            0
@@ -125,9 +123,10 @@ extern uint8_t blink_length, blink_interval;
 #define UART_OUT_BIT        3
 #define UART_OUT_DDR        DDRD
 
-#define PD3OUT_PORT        PORTD
-#define PD3OUT_BIT         3
-#define PD3OUT_DDR         DDRD
+#define INV_PA_ON_PORT PORTE  
+#define INV_PA_ON_BIT  1    
+#define INV_PA_ON_DDR  DDRE 
+
 #define PD0OUT_PORT        PORTD
 #define PD0OUT_BIT         0
 #define PD0OUT_DDR         DDRD
@@ -140,6 +139,10 @@ extern uint8_t blink_length, blink_interval;
 #define OC3A_PORT          PORTC
 #define OC3A_BIT           6
 #define OC3A_DDR           DDRC
+
+#define HIGH_CHARGE_PORT   PORTA
+#define HIGH_CHARGE_BIT    4
+#define HIGH_CHARGE_DDR    DDRA
 
 
 #if defined USBKEY_TEST  
@@ -202,6 +205,14 @@ extern uint8_t blink_length, blink_interval;
 #define LED3_PORT       PORTA
 #define LED3_BIT        0
 #define LED3_DDR        DDRA
+#define GPSON_BIT       6
+#define MK1_PA_ON_PORT  PORTA  
+#define MK1_PA_ON_BIT   2    
+#define MK1_PA_ON_DDR   DDRA
+ 
+#define INV_PA_ON_PORT PORTD  
+#define INV_PA_ON_BIT  3    
+#define INV_PA_ON_DDR  DDRD 
 
 #define ADF7021_ON_DDR        DDRC
 #define ADF7021_ON_PORT       PORTC
