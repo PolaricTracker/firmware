@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.21 2008-11-09 23:34:44 la7eca Exp $
+ * $Id: commands.c,v 1.22 2008-11-22 19:06:49 la7eca Exp $
  */
  
 #include "defines.h"
@@ -18,6 +18,7 @@
 #include "gps.h"
 #include <avr/interrupt.h>
 #include "adc.h"
+#include "afsk.h"
 
 
 #define MAXTOKENS 10
@@ -45,6 +46,7 @@ static void do_trace     (uint8_t, char**, Stream*);
 static void do_txtone    (uint8_t, char**, Stream*, Stream*);
 static void do_vbatt     (uint8_t, char**, Stream*);
 static void do_listen    (uint8_t, char**, Stream*, Stream*);
+static void do_hicharge  (uint8_t, char**, Stream*, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -148,15 +150,15 @@ static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out,
 
 #define IF_COMMAND_PARAM_uint16(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
     if (strncmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
+        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
 #define IF_COMMAND_PARAM_uint8(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
     if (strncmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
+        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
 #define IF_COMMAND_PARAM_bool(command, cmpchars, argc, argv, out, x, name)  \
     if (strncmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_bool(argc, argv, out, &PARAM_##x, &PARAM_DEFAULT_##x, name) 
+        _parameter_setting_bool(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, name) 
 
 
 
@@ -210,7 +212,10 @@ void cmdProcessor(Stream *in, Stream *out)
              do_vbatt(argc, argv, out);
          else if (strncmp("listen", argv[0], 3) == 0)
              do_listen(argc, argv, out, in);
-             
+         else if (strncmp("charge", argv[0], 3) == 0)
+             do_hicharge(argc, argv, out, in);             
+         
+         
          /* Commands for setting/viewing parameters */
          else if (strncmp("mycall", argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
@@ -314,6 +319,22 @@ static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
    afsk_disable_decoder();
 }
 
+
+/************************************************
+ * High charge voltage....
+ ************************************************/
+ 
+static void do_hicharge(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+   if (strncmp("on", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** HIGH CHARGE ON *****\r\n"));
+      set_port(HIGH_CHARGE);
+   }
+   if (strncmp("off", argv[1], 2) == 0) {
+      putstr_P(out, PSTR("***** HIGH CHARGE OFF *****\r\n"));
+      clear_port(HIGH_CHARGE);
+   }
+}
 
 
 /************************************************
@@ -478,7 +499,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
     addr_t digis[7];
     uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
     GET_PARAM(DIGIS, &digis);   
-    ax25_encode_header(&packet, &from, &to, digis, 1, FTYPE_UI, PID_NO_L3);
+    ax25_encode_header(&packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
     putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));       
     fbq_put(outframes, packet);
@@ -620,7 +641,7 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
  
 static void do_power(uint8_t argc, char** argv, Stream* out)
 {
-    double x = 0;
+    float x = 0;
     if (argc > 1) {
        sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_TXPOWER, &x);
@@ -640,7 +661,7 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
  
 static void do_squelch(uint8_t argc, char** argv, Stream* out)
 {
-    double x = 0;
+    float x = 0;
     if (argc > 1) {
        sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_SQUELCH, &x);
