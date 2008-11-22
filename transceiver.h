@@ -1,5 +1,5 @@
 /*
- * $Id: transceiver.h,v 1.10 2008-07-22 21:13:13 la7eca Exp $
+ * $Id: transceiver.h,v 1.11 2008-11-22 19:02:22 la7eca Exp $
  */
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
@@ -571,5 +571,11 @@ static inline double adf7021_read_temperature (void) {
 double adf7021_read_rssi (void);
 void adf7021_wait_enabled (void);
 void adf7021_wait_tx_off(void);
+
+
+#if defined USBKEY_TEST
+#define adf7021_wait_enabled() 
+#define adf7021_read_rssi() -130
+#endif
 
 #endif /* __TRANSCEIVER_H__ */

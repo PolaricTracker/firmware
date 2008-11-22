@@ -6,7 +6,9 @@
 #include "defines.h"
 #include "hdlc.h"
 #include "fbuf.h"
+#include <avr/pgmspace.h>
 
+static stream_t *out; 
 static stream_t *stream;
 static fbuf_t fbuf;
 static fbq_t fbin;
@@ -14,8 +16,9 @@ static fbq_t fbin;
 static void hdlc_decode (void);
 
 
-fbq_t* hdlc_init_decoder (stream_t *s)
-{
+fbq_t* hdlc_init_decoder (stream_t *s, stream_t *outstr)
+{   
+  out = outstr;
   stream = s;
   DEFINE_FBQ(fbin, HDLC_DECODER_QUEUE_SIZE);
   fbuf_new(&fbuf);
@@ -98,7 +101,8 @@ static void hdlc_decode ()
   } while (bit != HDLC_FLAG);
 
   if (crc == 0xf0b8) {
-    fbq_put(&fbin, fbuf);       
+    putstr_P(out, PSTR("*** RECEIVED PACKET\r\n"));
+    // fbq_put(&fbin, fbuf);       
     fbuf_new(&fbuf);
   }
   

@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.13 2008-11-09 23:37:55 la7eca Exp $
+ * $Id: tracker.c,v 1.14 2008-11-22 19:10:39 la7eca Exp $
  */
  
 #include "defines.h"
@@ -8,8 +8,11 @@
 #include "config.h"
 #include "kernel/timer.h"
 #include "adc.h"
-// #include "math.h"
+#include "transceiver.h"
+#include "hdlc.h"
+#include "uart.h"
 
+// #include "math.h"
 
 Semaphore tracker_run;
 posdata_t prev_pos; 
@@ -28,7 +31,8 @@ static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
 
 double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONCE */
-
+int abs(int);  
+double round(double);
 
 /***************************************************************
  * Init tracker. gps_init should be called first.
@@ -230,8 +234,8 @@ static void report_position(posdata_t* pos)
 
     /* Altitude */
     if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
-        uint16_t altd = round(pos->altitude / 0.3048);
-        sprintf(pbuf,"/A=%06u\0", altd);
+        uint16_t altd = (uint16_t) round(pos->altitude / 0.3048);
+        sprintf_P(pbuf,PSTR("/A=%06u\0"), altd);
         fbuf_putstr(&packet, pbuf);
     }
         
@@ -266,7 +270,7 @@ static void send_timestamp(FBUF* packet, posdata_t* pos)
 {
     TRACE(127);
     char ts[9];
-    sprintf(ts, "%02u%02u%02uh\0", 
+    sprintf_P(ts, PSTR("%02u%02u%02uh\0"), 
        (uint8_t) ((pos->timestamp / 3600) % 24), 
        (uint8_t) ((pos->timestamp / 60) % 60), 
        (uint8_t) (pos->timestamp % 60) );
@@ -279,7 +283,7 @@ static void send_timestamp_z(FBUF* packet, posdata_t* pos)
 {
     TRACE(128);
     char ts[9];
-    sprintf(ts, "%02u%02u%02uz\0", 
+    sprintf(ts, PSTR("%02u%02u%02uz\0"), 
        (uint8_t) (pos->timestamp / 86400)+1,
        (uint8_t) ((pos->timestamp / 3600) % 24), 
        (uint8_t) ((pos->timestamp / 60) % 60) ); 

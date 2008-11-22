@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.19 2008-11-09 23:36:52 la7eca Exp $
+ * $Id: main.c,v 1.20 2008-11-22 19:10:07 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -75,6 +75,7 @@ ISR(TIMER1_COMPA_vect)
      if (++ticks == 24) { 
         timer_tick();  
         ticks = 0; 
+        afsk_check_channel ();
      }  
      
      ui_clock();
@@ -209,7 +210,12 @@ int main(void)
       make_input(BUTTON);
       EICRA = (1<<ISC10);
       EIMSK = (1<<INT1);
-    
+      
+      /* Battery charging, etc. */
+      make_output(HIGH_CHARGE);
+      clear_port(HIGH_CHARGE);
+      
+      
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
              | (1<<WGM12);            /* CTC mode */             

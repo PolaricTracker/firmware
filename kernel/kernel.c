@@ -1,12 +1,11 @@
 /* 
- * $Id: kernel.c,v 1.6 2008-11-09 23:42:55 la7eca Exp $
+ * $Id: kernel.c,v 1.7 2008-11-22 19:14:08 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
 #include "kernel.h"
 #include <avr/interrupt.h>
 #include "defines.h"
-#include "../config.h"
 
 static TCB root_task;         /* root task is assigned the initial thread (main) */
 static TCB * q_head, * q_end; /* Ready queue */
@@ -96,10 +95,8 @@ void t_yield()
         q_head = q_head->next;
         q_end = q_end->next;
         leave_critical();
-//        TRACE(1);
         longjmp(q_head->env, 1);
     }
-//    TRACE(2);
 }
  
  
@@ -124,7 +121,8 @@ void cond_init(Cond* c)
  ******************************************************************************/
  
 void wait(Cond* c)
-{        CONTAINS_CRITICAL;
+{   
+    CONTAINS_CRITICAL;
     if (setjmp(q_head->env) == 0) 
     { 
        enter_critical();
@@ -137,11 +135,8 @@ void wait(Cond* c)
        c->qlast->next = NULL;
        leave_critical();
        
-
-//       TRACE(3);
        longjmp(q_head->env, 1);
     }
-//    TRACE(4);
 }
 
 
