@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.19 2008-11-09 23:38:25 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.20 2008-11-22 19:12:09 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -223,23 +223,24 @@ void adf7021_init (adf7021_setup_t* s)
   cond_init(&adf7021_on_signal);
   cond_init(&adf7021_tx_idle);
   
-  make_output (PD3OUT);
-  make_output (EXTERNAL_PA_ON);
+  make_output (INV_PA_ON);
+#if defined TRACKER_MK1
+  make_output (MK1_PA_ON);
+  clear_port (MK1_PA_ON);
+#endif
+
 //  make_output (PD0OUT);
   make_output (ADF7021_ON);
   make_output (ADF7021_SCLK);
   make_output (ADF7021_SLE);
   make_output (ADF7021_SDATA);
-
   make_input  (ADF7021_SREAD); 
-
   make_input   (ADF7021_MUXOUT);  
   make_output  (ADF7021_TXRXCLK); 
   
   /* Just to be on the safe side */
   clear_port (ADF7021_ON);
-  clear_port (EXTERNAL_PA_ON);
-  set_port (PD3OUT);
+  set_port (INV_PA_ON);
 //  set_port (PD0OUT);
   
   setup = s;
@@ -343,9 +344,10 @@ void adf7021_power_off ()
   notifyAll(&adf7021_tx_idle);
   /* Turn it off */
   adf7021_enabled = adf7021_tx_enabled =  false;
+  
+  set_port (INV_PA_ON);  
 #if defined TRACKER_MK1
-  set_port (PD3OUT);
-  clear_port(EXTERNAL_PA_ON);
+  clear_port(MK1_PA_ON);
 #endif
   clear_port (ADF7021_ON);
 }
@@ -357,10 +359,10 @@ void adf7021_enable_tx ()
   /* Turn on external PA */
 
 #if defined TRACKER_MK1
-    set_port(EXTERNAL_PA_ON);
-    clear_port(PD3OUT);  
+    set_port(MK1_PA_ON);
 #endif
-   
+    clear_port(INV_PA_ON);  
+  
   /* Enable transmit mode */
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->tx_n));  
     adf7021_tx_enabled = true;
@@ -373,10 +375,10 @@ void adf7021_disable_tx ()
   adf7021_tx_enabled = false;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
   notifyAll(&adf7021_tx_idle);
-
-#if defined TRACKER_MK1  
-  set_port (PD3OUT);   
-  clear_port(EXTERNAL_PA_ON);
+  
+  set_port (INV_PA_ON);  
+#if defined TRACKER_MK1   
+  clear_port(MK1_PA_ON);
 #endif
 }
 
