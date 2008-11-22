@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.21 2008-11-09 23:34:11 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.22 2008-11-22 19:05:58 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -15,9 +15,6 @@
 #include "config.h"
 
 
-/* Move to config.h or afsk.h */
-#define AFSK_TXTONE_MARK  1200
-#define AFSK_TXTONE_SPACE 2200
 
 /* Internal config */
 #if !defined AFSK_DAC_METHOD
