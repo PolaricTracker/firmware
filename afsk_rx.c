@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_rx.c,v 1.6 2008-10-01 21:40:18 la7eca Exp $
+ * $Id: afsk_rx.c,v 1.7 2008-11-22 19:05:23 la7eca Exp $
  * AFSK receiver/demodulator
  */
  
@@ -10,30 +10,35 @@
 #include "kernel/kernel.h"
 #include "afsk.h"
 #include "defines.h"
+#include "config.h"
 #include "kernel/stream.h"
+#include "transceiver.h"
 
 
-// TODO: Compute all constant automatically from CPU freq
-
-#define SYMBOL_SAMPLE_INTERVAL 26 // (4e6/128)/1200 = 26.042
+#define SYMBOL_SAMPLE_INTERVAL (SCALED_F_CPU/128)/AFSK_BAUD /*  52.083 */
 
 #ifdef SIMPLE_DETECTOR
-#define CENTER_FREQUENCY 18 // (4e6/64)/(1700*2) = 18.382
-                            // (4e6/8)/(1700*2) = 147.059
+#define TXTONE_MID = ((AFSK_TXTONE_MARK+AFSK_TXTONE_SPACE)/2)
+#define CENTER_FREQUENCY (SCALED_F_CPU/64)/(TXTONE_MID*2)           /*  36.764 */
 #else
-#define MARK_FREQUENCY 26  // (4e6/64)/(1200*2) = 26.042
-#define SPACE_FREQUENCY 14 // (4e6/64)/(2200*2) = 14.205
-#define FREQUENCY_DEVIATION 1
+#define MARK_FREQUENCY  (SCALED_F_CPU/64)/(AFSK_TXTONE_MARK*2)      /*  52.083 */
+#define SPACE_FREQUENCY (SCALED_F_CPU/64)/(AFSK_TXTONE_SPACE*2)     /*  28.41 */
+#define FREQUENCY_DEVIATION 10
 
 #endif
 
-int8_t hard_symbol; // Most recent detected symbol.
-int8_t soft_symbol; // Differs from the above by also having
-                    // UNDECIDED as valid state
-bool valid_symbol;  // (DCD) Will always be true when using the simple detector
+int8_t hard_symbol; /* Most recent detected symbol. */
+int8_t soft_symbol; /* Differs from the above by also having UNDECIDED as valid state */
+bool valid_symbol;  /* (DCD) Will always be true when using the simple detector */
+
+bool decoder_running = false; 
+bool decoder_enabled = false;
+double sqlevel; 
 
 stream_t afsk_rx_stream;
 
+static void _afsk_stop_decoder (void);
+static void _afsk_start_decoder (void);
 
 static void afsk_abort ()
 {
@@ -53,8 +58,9 @@ stream_t* afsk_init_decoder ()
 }
 
 
-void afsk_enable_decoder ()
-{
+static void _afsk_start_decoder ()
+{  
+  decoder_running = true;
   valid_symbol = false;
   soft_symbol = hard_symbol = UNDECIDED;
     
@@ -76,25 +82,46 @@ void afsk_enable_decoder ()
   set_bit (TCCR2B, CS22);    /* /                       */
 
   /* Enable pin change interrupt on rx data from receiver */
-  set_bit (PCMSK0, PCINT3);
+  make_input(TXDATA);
+  set_bit (PCMSK0, PCINT2);
   set_bit (PCICR, PCIE0);
 }
 
 
-
-void afsk_disable_decoder ()
-{
+static void _afsk_stop_decoder ()
+{  
+  decoder_running = false;
   /* Disable pin change interrupt on input pin from receiver */
   clear_bit (PCICR, PCIE0);
-  clear_bit (PCMSK0, PCINT3);
+  clear_bit (PCMSK0, PCINT2);
   
   /* Disable Timer2 interrupt */
   clear_bit (TIMSK2, OCIE2A);
-
+  clear_port(LED2);
   afsk_abort (); // Just in case the decoder is disabled while the HDLC
                  // decoder is still in sync
 }
 
+
+void afsk_enable_decoder ()
+   { decoder_enabled = true; 
+     GET_PARAM(TRX_SQUELCH, &sqlevel); }
+     
+void afsk_disable_decoder ()
+   { decoder_enabled = false; 
+     _afsk_stop_decoder(); }
+
+
+/* To be called periodically to see if there is a signal on the channel */
+void afsk_check_channel ()
+{
+    if (!decoder_enabled)
+       return;    
+    if ((!decoder_running) && (adf7021_read_rssi() > sqlevel))
+       _afsk_start_decoder();
+    else if (decoder_running)
+       _afsk_stop_decoder();   
+}
 
 
 /******************************************************************************
@@ -105,7 +132,7 @@ void afsk_disable_decoder ()
 
 ISR(PCINT0_vect)
 {
-  /* We assume for now that PCINT3 is the only enabled pin change
+  /* We assume for now that PCINT2 is the only enabled pin change
      interrupt, so we just go about doing decoding without further
      check of interrupt source. */
 
@@ -126,6 +153,7 @@ ISR(PCINT0_vect)
 
   valid_symbol = true;
   soft_symbol = hard_symbol;
+
 
 #else
   if (counts >= MARK_FREQUENCY - FREQUENCY_DEVIATION &&
@@ -158,6 +186,7 @@ ISR(PCINT0_vect)
 }
 
 
+
 /******************************************************************************
  * Interrupt routine to be called to sample input symbols at the baud rate    *
  ******************************************************************************/
@@ -170,7 +199,7 @@ ISR(TIMER2_COMPA_vect)
    static uint8_t octet;
    enter_critical();
    if (valid_symbol) {
-   //  set_port (DCD_LED);
+      set_port (LED2);
 
       octet = (octet >> 1) | ((hard_symbol == prev_symbol) ? 0x80 : 0x00);
       prev_symbol = hard_symbol;
@@ -193,7 +222,7 @@ ISR(TIMER2_COMPA_vect)
    } else {
       leave_critical();
       afsk_abort();
-  //   clear_port (DCD_LED);
+      clear_port (LED2);
    }
   
    OCR2A = SYMBOL_SAMPLE_INTERVAL;
