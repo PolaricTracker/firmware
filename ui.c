@@ -1,5 +1,5 @@
 /*
- * $Id: ui.c,v 1.1 2008-11-09 23:38:56 la7eca Exp $
+ * $Id: ui.c,v 1.2 2008-11-22 19:12:57 la7eca Exp $
  *
  * Polaric tracker UI, using LEDs on top of tracker unit
  */
@@ -11,6 +11,7 @@
 #include "kernel/timer.h"
 #include <stdlib.h>
 #include "config.h"
+#include "ui.h"
 
 static bool usb_on = false;
 static bool buzzer = false;
@@ -70,6 +71,22 @@ void beep(uint16_t t)
     sleep(t);
     buzzer = false;
     clear_port(BUZZER);
+#endif 
+}
+ 
+void beeps(char* s)
+{
+#if !defined TRACKER_MK1
+    while (*s != 0) {
+       if (*s == '.')
+          beep(5);
+       else if (*s == '-')
+          beep(15);
+       else
+          sleep(10);
+       sleep(5);  
+       s++;
+   }
 #endif 
 }
 
@@ -154,6 +171,7 @@ static void ui_thread(void)
     clear_port(LED1);
     clear_port(LED2);
 #else
+    beeps("--.- .-. ...-");
     set_port(LED1);
     sleep(30);
     clear_port(LED1);
@@ -173,7 +191,6 @@ static void ui_thread(void)
     sleep(50);
     if (usb_on)
         rgb_led_on(false,false,true);
-    beep(10);
 #endif           
     BLINK_NORMAL;
     while (1) {
