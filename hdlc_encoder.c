@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.22 2008-11-09 23:36:09 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.23 2008-11-22 19:09:37 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -18,12 +18,6 @@
 #include <util/crc16.h>
 #include "transceiver.h"
 		          
-
-#if defined USBKEY_TEST
-#define adf7021_wait_enabled() 
-#define adf7021_read_rssi() -130
-#endif
-
 
 
 // Buffers
@@ -176,12 +170,13 @@ static void hdlc_encode_frames()
      uint8_t txbyte, i;
      uint8_t txdelay = GET_BYTE_PARAM(TXDELAY);
      uint8_t txtail  = GET_BYTE_PARAM(TXTAIL);
+     uint8_t maxfr   = GET_BYTE_PARAM(MAXFRAME);
      
      /* Preamble of TXDELAY flags */
      for (i=0; i<txdelay; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
      
-     for (;;) /* FIXME: maxframe parameter */ 
+     for (i=0;i<maxfr;i++) 
      {
         fbuf_reset(&buffer);
         while(!BUFFER_EMPTY)
@@ -194,7 +189,7 @@ static void hdlc_encode_frames()
         hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
         
-        if (!fbq_eof(&encoder_queue)) {
+        if (!fbq_eof(&encoder_queue) && i < maxfr) {
            hdlc_encode_byte(HDLC_FLAG, true);
            buffer = fbq_get(&encoder_queue); 
         }
