@@ -38,6 +38,7 @@ DEFINE_PARAM( DIGIS,              __digilist_t );
 DEFINE_PARAM( NDIGIS,             uint8_t      );
 DEFINE_PARAM( TXDELAY,            uint8_t      );
 DEFINE_PARAM( TXTAIL,             uint8_t      );
+DEFINE_PARAM( MAXFRAME,           uint8_t      ); // need command
 DEFINE_PARAM( TRX_FREQ,           uint32_t     );
 DEFINE_PARAM( TRX_CALIBRATE,      int          );
 DEFINE_PARAM( TRX_TXPOWER,        double       );
@@ -49,7 +50,7 @@ DEFINE_PARAM( SYMBOL,             uint8_t      );
 DEFINE_PARAM( SYMBOL_TABLE,       uint8_t      );
 DEFINE_PARAM( TIMESTAMP_ON,       uint8_t      );
 DEFINE_PARAM( ALTITUDE_ON,        uint8_t      );
-DEFINE_PARAM( REPORT_COMMENT,     comment      );
+DEFINE_PARAM( REPORT_COMMENT,     comment      ); // need command
 DEFINE_PARAM( GPS_BAUD,           uint16_t     );
 DEFINE_PARAM( TRACKER_TURN_LIMIT, uint16_t     );
 DEFINE_PARAM( TRACKER_PAUSE_LIMIT,uint8_t      );
@@ -73,6 +74,7 @@ DEFAULT_PARAM( DIGIS )               = {{"WIDE3", 3}};
 DEFAULT_PARAM( NDIGIS )              = 1;
 DEFAULT_PARAM( TXDELAY )             = 20;
 DEFAULT_PARAM( TXTAIL )              = 10;
+DEFAULT_PARAM( MAXFRAME )            = 4;
 DEFAULT_PARAM( TRX_FREQ )            = 144.800e6;
 DEFAULT_PARAM( TRX_CALIBRATE )       = 0;
 DEFAULT_PARAM( TRX_TXPOWER )         = -13.0;
