@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_rx.c,v 1.7 2008-11-22 19:05:23 la7eca Exp $
+ * $Id: afsk_rx.c,v 1.8 2008-12-13 11:37:50 la7eca Exp $
  * AFSK receiver/demodulator
  */
  
@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include "kernel/kernel.h"
 #include "afsk.h"
 #include "defines.h"
@@ -15,17 +16,14 @@
 #include "transceiver.h"
 
 
-#define SYMBOL_SAMPLE_INTERVAL (SCALED_F_CPU/128)/AFSK_BAUD /*  52.083 */
+#define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/128/AFSK_BAUD)-1)         /*  52.083 */
 
-#ifdef SIMPLE_DETECTOR
-#define TXTONE_MID = ((AFSK_TXTONE_MARK+AFSK_TXTONE_SPACE)/2)
-#define CENTER_FREQUENCY (SCALED_F_CPU/64)/(TXTONE_MID*2)           /*  36.764 */
-#else
-#define MARK_FREQUENCY  (SCALED_F_CPU/64)/(AFSK_TXTONE_MARK*2)      /*  52.083 */
-#define SPACE_FREQUENCY (SCALED_F_CPU/64)/(AFSK_TXTONE_SPACE*2)     /*  28.41 */
-#define FREQUENCY_DEVIATION 10
+#define TXTONE_MID ((AFSK_TXTONE_MARK+AFSK_TXTONE_SPACE)/2)
+#define CENTER_FREQUENCY ((SCALED_F_CPU/64)/(TXTONE_MID*2)-1)           /*  36.764 */
+#define MARK_FREQUENCY  ((SCALED_F_CPU/64)/(AFSK_TXTONE_MARK*2)-1)      /*  52.083 */
+#define SPACE_FREQUENCY ((SCALED_F_CPU/64)/(AFSK_TXTONE_SPACE*2)-1)     /*  28.41 */
+#define FREQUENCY_DEVIATION 24
 
-#endif
 
 int8_t hard_symbol; /* Most recent detected symbol. */
 int8_t soft_symbol; /* Differs from the above by also having UNDECIDED as valid state */
@@ -39,16 +37,8 @@ stream_t afsk_rx_stream;
 
 static void _afsk_stop_decoder (void);
 static void _afsk_start_decoder (void);
+static void _afsk_abort (void);
 
-static void afsk_abort ()
-{
-    /* A sequence of seven or more consecutive ones will always
-     * reset the HDLC decoder to flag sync state. 
-     * If the buffer full, an abort token has already been
-     * written to the stream 
-     */
-    stream_put_nb (&afsk_rx_stream, 0xFF);
-}
 
 
 stream_t* afsk_init_decoder ()
@@ -98,8 +88,8 @@ static void _afsk_stop_decoder ()
   /* Disable Timer2 interrupt */
   clear_bit (TIMSK2, OCIE2A);
   clear_port(LED2);
-  afsk_abort (); // Just in case the decoder is disabled while the HDLC
-                 // decoder is still in sync
+  _afsk_abort (); // Just in case the decoder is disabled while the HDLC
+                  // decoder is still in sync
 }
 
 
@@ -112,16 +102,20 @@ void afsk_disable_decoder ()
      _afsk_stop_decoder(); }
 
 
-/* To be called periodically to see if there is a signal on the channel */
+/***************************************************************************
+ * To be called periodically to see if there is a signal on the channel    *
+ ***************************************************************************/
+ 
 void afsk_check_channel ()
 {
     if (!decoder_enabled)
        return;    
     if ((!decoder_running) && (adf7021_read_rssi() > sqlevel))
        _afsk_start_decoder();
-    else if (decoder_running)
+    else if (decoder_running && (adf7021_read_rssi() <= sqlevel))
        _afsk_stop_decoder();   
 }
+
 
 
 /******************************************************************************
@@ -132,48 +126,33 @@ void afsk_check_channel ()
 
 ISR(PCINT0_vect)
 {
+
   /* We assume for now that PCINT2 is the only enabled pin change
      interrupt, so we just go about doing decoding without further
-     check of interrupt source. */
-
+     check of interrupt source. */  
   int8_t symbol;
   uint8_t counts = TCNT0; /* Counts on Timer0 since last change */
   TCNT0 = 0;
+  set_sleep_mode(SLEEP_MODE_IDLE);
 
-#ifdef SIMPLE_DETECTOR
-  symbol = counts >= CENTER_FREQUENCY ? MARK : SPACE;
-
-  if (symbol != hard_symbol) {
-    hard_symbol = symbol;
-    /* Reset Timer2 and set compare match register to 1/2 of a bit */
-    TCNT2 = 0;
-    OCR2A = HARD_SYMBOL_SAMPLE_INTERVAL / 2
-    set_bit (TIMSK2, OCIE2A); /* Enable Compare Match A Interrupt */
-  }
-
-  valid_symbol = true;
-  soft_symbol = hard_symbol;
-
-
-#else
-  if (counts >= MARK_FREQUENCY - FREQUENCY_DEVIATION &&
-      counts <= MARK_FREQUENCY + FREQUENCY_DEVIATION)
-    symbol = MARK;
-  else
-    if (counts >= SPACE_FREQUENCY - FREQUENCY_DEVIATION &&
-        counts <= SPACE_FREQUENCY + FREQUENCY_DEVIATION)
-      symbol = SPACE;
-    else
-      symbol = UNDECIDED;
+  symbol = UNDECIDED;
+  if (counts > CENTER_FREQUENCY &&
+       counts < MARK_FREQUENCY + FREQUENCY_DEVIATION  )
+     symbol = MARK;
+  else 
+    if (counts > SPACE_FREQUENCY - FREQUENCY_DEVIATION && 
+         counts < CENTER_FREQUENCY )
+     symbol = SPACE;
 
   if (symbol != UNDECIDED && symbol != hard_symbol)
   {
-    hard_symbol = symbol;
-    
-    /* Reset Timer2 and set compare match register to 2/3 of a bit */
+    /* If toggle, reset Timer2 and set compare match register 
+     * to 2/3 of a bit 
+     */
     TCNT2 = 0;
-    OCR2A = (SYMBOL_SAMPLE_INTERVAL * 2) / 3;
-    set_bit (TIMSK2, OCIE2A); /* Enable Compare Match A Interrupt */
+    OCR2A = SYMBOL_SAMPLE_INTERVAL * 2 / 3;
+    set_bit (TIMSK2, OCIE2A);   /* Enable Compare Match A Interrupt */
+    hard_symbol = symbol;
   }
 
   if (symbol == UNDECIDED && soft_symbol == UNDECIDED)
@@ -182,9 +161,23 @@ ISR(PCINT0_vect)
     if (symbol != UNDECIDED && soft_symbol != UNDECIDED)
       valid_symbol = true;
   soft_symbol = symbol;
-#endif
 }
 
+
+
+/******************************************************************************
+ * Indicate that decoding fails (e.g. if signal is lost)
+ ******************************************************************************/
+ 
+static void _afsk_abort ()
+{
+    /* A sequence of seven or more consecutive ones will always
+     * reset the HDLC decoder to flag sync state. 
+     * If the buffer full, an abort token has already been
+     * written to the stream 
+     */
+    stream_put_nb (&afsk_rx_stream, 0xFF);
+}
 
 
 /******************************************************************************
@@ -193,36 +186,33 @@ ISR(PCINT0_vect)
 
 ISR(TIMER2_COMPA_vect)
 {
-   CONTAINS_CRITICAL;
    static int8_t prev_symbol;
    static uint8_t bit_count = 0;
    static uint8_t octet;
-   enter_critical();
    if (valid_symbol) {
-      set_port (LED2);
+//      set_port (LED2);
 
       octet = (octet >> 1) | ((hard_symbol == prev_symbol) ? 0x80 : 0x00);
       prev_symbol = hard_symbol;
-      leave_critical();   // Should be safe to enable interrupts from here
      
-      if (bit_count++ == 8) 
+      bit_count++;
+      if (bit_count == 8) 
       {
          /* Always leave room for abort token */
-         if (afsk_rx_stream.length.cnt < afsk_rx_stream.size) { 
+         if (afsk_rx_stream.length.cnt < afsk_rx_stream.size) 
             stream_put_nb (&afsk_rx_stream, octet);
-         } else
+         else
             /* This should never happend, but if if it does it can only be
-             * caused by the buffer being too short or a tread running too
+             * caused by the buffer being too short or a thread running too
              * long. Having some kind of log to report such errors would be
              * a good idea. 
              */
-            afsk_abort();
+             _afsk_abort();
          bit_count = 0;
       }
    } else {
-      leave_critical();
-      afsk_abort();
-      clear_port (LED2);
+      _afsk_abort();
+//      clear_port (LED2);
    }
   
    OCR2A = SYMBOL_SAMPLE_INTERVAL;
