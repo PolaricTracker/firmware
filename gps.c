@@ -140,9 +140,9 @@ void gps_mon_off(void)
  * Convert position NMEA fields to float (degrees)
  ****************************************************************/
 
-static void str2coord(const uint8_t ndeg, const char* str, double* coord)
+static void str2coord(const uint8_t ndeg, const char* str, float* coord)
 {
-    double minutes;
+    float minutes;
     char dstring[ndeg+1];
 
     /* Format [ddmm.mmmmm] */
@@ -162,11 +162,12 @@ static void str2coord(const uint8_t ndeg, const char* str, double* coord)
  
 static void nmea2time( timestamp_t* t, const char* timestr, const char* datestr)
 {
-    uint32_t hour, min, sec;
-    uint32_t date, month, year;
+    uint16_t hour, min, sec;
+    uint16_t date, month, year;
     sscanf(timestr, "%2u%2u%2u", &hour, &min, &sec);
     sscanf(datestr, "%2u%2u%2u", &date, &month, &year);
-    *t = (uint32_t) /* (date-1) * 86400 TRØBBEL + */  hour * 3600 + min * 60 + sec;
+    *t = (uint32_t) 
+         ((uint32_t) date-1) * 86400 +  ((uint32_t)hour) * 3600 + ((uint32_t)min) * 60 + sec;
 }
 
 
@@ -174,7 +175,7 @@ static void nmea2time( timestamp_t* t, const char* timestr, const char* datestr)
 char* time2str(char* buf, timestamp_t time)
 {
     sprintf(buf, "%2u:%2u:%2u", 
-      (uint8_t) (time / 3600 % 24), (uint8_t) (time / 60 % 60), (uint8_t) (time % 60) );
+      (uint8_t) ((time / 3600) % 24), (uint8_t) ((time / 60) % 60), (uint8_t) (time % 60) );
     return buf;
 }
  
