@@ -1,12 +1,11 @@
 /*
- * $Id: defines.h,v 1.23 2008-11-22 19:01:09 la7eca Exp $ 
+ * $Id: defines.h,v 1.24 2008-12-13 11:36:40 la7eca Exp $ 
  */
 
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
 
-#define TRACKER_MK1     /* Define if compiling for the first lab model */
 // #define USBKEY_TEST     /* Define if compiling for the USBKEY */
 
 #if defined USBKEY_TEST || !defined TRACKER_MK1
@@ -76,7 +75,7 @@
  ********************************************/
  
 extern uint8_t blink_length, blink_interval;
-#define BLINK_NORMAL        { blink_length = 5; blink_interval = 95; }
+#define BLINK_NORMAL        { blink_length = 5; blink_interval = 195; }
 #define BLINK_GPS_SEARCHING { blink_length = 45; blink_interval = 45; }
 
 
@@ -86,6 +85,17 @@ extern uint8_t blink_length, blink_interval;
  
 #define ADC_PRESCALER 0x06
 #define ADC_REFERENCE 3.3
+#define ADC_VBATT_DIVIDE 2.20513
+
+
+/*******************************************
+ * Bættery stuff
+ *******************************************/
+ 
+#define BATT_HIGHCHARGE_MAX 7.18
+#define BATT_LOWCHARGE_MIN  7.05 
+#define BATT_LOW_WARNING    5.0
+#define BATT_LOW_TURNOFF    4.8
 
 
 /*******************************************
@@ -95,11 +105,11 @@ extern uint8_t blink_length, blink_interval;
 #if defined USBKEY_TEST 
 #define DAC_PORT           PORTC
 #define DAC_DDR            DDRC
-#define DAC_MASK           0x0F;
+#define DAC_MASK           0x0F
 #else
 #define DAC_PORT           PORTD
 #define DAC_DDR            DDRD
-#define DAC_MASK           0xF0;
+#define DAC_MASK           0xF0
 #endif
 
 
@@ -123,33 +133,38 @@ extern uint8_t blink_length, blink_interval;
 #define UART_OUT_BIT        3
 #define UART_OUT_DDR        DDRD
 
-#define INV_PA_ON_PORT PORTE  
-#define INV_PA_ON_BIT  1    
-#define INV_PA_ON_DDR  DDRE 
+#define INV_PA_ON_PORT      PORTE  
+#define INV_PA_ON_BIT       1    
+#define INV_PA_ON_DDR       DDRE 
 
-#define PD0OUT_PORT        PORTD
-#define PD0OUT_BIT         0
-#define PD0OUT_DDR         DDRD
+#define PD0OUT_PORT         PORTD
+#define PD0OUT_BIT          0
+#define PD0OUT_DDR          DDRD
 
-#define BUTTON_PORT        PORTD
-#define BUTTON_BIT         1
-#define BUTTON_DDR         DDRD
-#define BUTTON_PIN         PIND
+#define BUTTON_PORT         PORTD
+#define BUTTON_BIT          1
+#define BUTTON_DDR          DDRD
+#define BUTTON_PIN          PIND
 
-#define OC3A_PORT          PORTC
-#define OC3A_BIT           6
-#define OC3A_DDR           DDRC
+#define OC3A_PORT           PORTC
+#define OC3A_BIT            6
+#define OC3A_DDR            DDRC
 
-#define HIGH_CHARGE_PORT   PORTA
-#define HIGH_CHARGE_BIT    4
-#define HIGH_CHARGE_DDR    DDRA
+#define HIGH_CHARGE_PORT    PORTA
+#define HIGH_CHARGE_BIT     4
+#define HIGH_CHARGE_DDR     DDRA
+
+#define EXT_CHARGER_PORT    PORTB
+#define EXT_CHARGER_BIT     6
+#define EXT_CHARGER_DDR     DDRB
+#define EXT_CHARGER_PIN     PINB
 
 
 #if defined USBKEY_TEST  
  /* These are for the USBKEY configuration */     
-#define BUZZER_PORT         PORTA
-#define BUZZER_BIT          6
-#define BUZZER_DDR          DDRA        
+#define BUZZER_PORT     PORTA
+#define BUZZER_BIT      6
+#define BUZZER_DDR      DDRA        
 #define TXDATA_PORT     PORTB
 #define TXDATA_BIT      2 
 #define TXDATA_DDR      DDRB
@@ -165,16 +180,34 @@ extern uint8_t blink_length, blink_interval;
 
 
 #else 
- /* Tracker configuration (both MK1 and MK2) */
-#define TXDATA_PORT     ADF7021_TXRXDATA_PORT
-#define TXDATA_BIT      ADF7021_TXRXDATA_BIT
-#define TXDATA_DDR      ADF7021_TXRXDATA_DDR
-#define LED1_PORT       PORTA
-#define LED1_BIT        7       
-#define LED1_DDR        DDRA
-#define LED2_PORT       PORTC
-#define LED2_BIT        7
-#define LED2_DDR        DDRC
+ /* Tracker configuration (MK2) */
+#define TXDATA_PORT           ADF7021_TXRXDATA_PORT
+#define TXDATA_BIT            ADF7021_TXRXDATA_BIT
+#define TXDATA_DDR            ADF7021_TXRXDATA_DDR
+#define LED1_PORT             PORTA
+#define LED1_BIT              7       
+#define LED1_DDR              DDRA
+#define LED2_PORT             PORTC
+#define LED2_BIT              7
+#define LED2_DDR              DDRC
+
+#define BUZZER_PORT           PORTE
+#define BUZZER_BIT            4
+#define BUZZER_DDR            DDRE
+
+
+#define VBATT_ADC_PORT        PORTF
+#define VBATT_ADC_BIT         0
+#define VBATT_ADC_DDR         DDRF
+#define LED3_PORT             PORTA
+#define LED3_BIT              6
+#define LED3_DDR              DDRA
+#define LED4_PORT 	    	   PORTC
+#define LED4_BIT			      6
+#define LED4_DDR			      DDRC
+#define LED5_PORT 		      PORTC
+#define LED5_BIT		  	      5
+#define LED5_DDR			      DDRC
 
 #define ADF7021_TXRXDATA_DDR  DDRB
 #define ADF7021_TXRXDATA_PORT PORTB
@@ -197,64 +230,6 @@ extern uint8_t blink_length, blink_interval;
 #define ADF7021_CLKOUT_PORT   PORTB
 #define ADF7021_CLKOUT_PIN    PINB
 #define ADF7021_CLKOUT_BIT    1
-
- 
-#if defined TRACKER_MK1 
-
- /* Tracker MK1 configuration */
-#define LED3_PORT       PORTA
-#define LED3_BIT        0
-#define LED3_DDR        DDRA
-#define GPSON_BIT       6
-#define MK1_PA_ON_PORT  PORTA  
-#define MK1_PA_ON_BIT   2    
-#define MK1_PA_ON_DDR   DDRA
- 
-#define INV_PA_ON_PORT PORTD  
-#define INV_PA_ON_BIT  3    
-#define INV_PA_ON_DDR  DDRD 
-
-#define ADF7021_ON_DDR        DDRC
-#define ADF7021_ON_PORT       PORTC
-#define ADF7021_ON_PIN        PINC
-#define ADF7021_ON_BIT        0
-#define ADF7021_SCLK_DDR      DDRC
-#define ADF7021_SCLK_PORT     PORTC
-#define ADF7021_SCLK_PIN      PINC
-#define ADF7021_SCLK_BIT      4
-#define ADF7021_SREAD_DDR     DDRC
-#define ADF7021_SREAD_PORT    PORTC
-#define ADF7021_SREAD_PIN     PINC
-#define ADF7021_SREAD_BIT     3
-#define ADF7021_SDATA_DDR     DDRC
-#define ADF7021_SDATA_PORT    PORTC
-#define ADF7021_SDATA_PIN     PINC
-#define ADF7021_SDATA_BIT     2
-#define ADF7021_SLE_DDR       DDRC
-#define ADF7021_SLE_PORT      PORTC
-#define ADF7021_SLE_PIN       PINC
-#define ADF7021_SLE_BIT       1
-
-
-#else                  
- /* Tracker MK2 configuration (pilot series) */
-#define BUZZER_PORT         PORTE
-#define BUZZER_BIT          4
-#define BUZZER_DDR          DDRE
- 
-#define VBATT_ADC_PORT     PORTF
-#define VBATT_ADC_BIT      0
-#define VBATT_ADC_DDR      DDRF
-#define LED3_PORT       PORTA
-#define LED3_BIT        6
-#define LED3_DDR        DDRA
-#define LED4_PORT 		PORTC
-#define LED4_BIT			6
-#define LED4_DDR			DDRC
-#define LED5_PORT 		PORTC
-#define LED5_BIT			5
-#define LED5_DDR			DDRC
-
 #define ADF7021_ON_DDR        DDRC
 #define ADF7021_ON_PORT       PORTC
 #define ADF7021_ON_PIN        PINC
@@ -276,7 +251,6 @@ extern uint8_t blink_length, blink_interval;
 #define ADF7021_SLE_PIN       PINC
 #define ADF7021_SLE_BIT       3
 
-#endif
 #endif
 
 
