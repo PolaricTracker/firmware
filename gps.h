@@ -1,5 +1,5 @@
 /* 
- * $Id: gps.h,v 1.7 2008-11-22 19:01:49 la7eca Exp $
+ * $Id: gps.h,v 1.8 2008-12-13 11:36:59 la7eca Exp $
  * NMEA data 
  */
 
@@ -13,8 +13,8 @@ typedef uint32_t timestamp_t;
 
 /* Position report */
 typedef struct _PosData {    
-    double latitude;
-    double longitude;
+    float latitude;
+    float longitude;
     float  speed, altitude;
     uint16_t course;
     timestamp_t timestamp;

@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.14 2008-11-22 19:10:39 la7eca Exp $
+ * $Id: tracker.c,v 1.15 2008-12-13 11:41:20 la7eca Exp $
  */
  
 #include "defines.h"
@@ -175,7 +175,7 @@ static void report_status(posdata_t* pos)
     /* Create packet header */
     send_header(&packet);  
     fbuf_putChar(&packet, '>');
-//    send_timestamp_z(&packet, pos); 
+    send_timestamp_z(&packet, pos); 
     
     /* 
      * Get battery voltage - This should perhaps not be here but in status message or
@@ -183,7 +183,7 @@ static void report_status(posdata_t* pos)
      */
     char vbatt[7];
     adc_enable();
-    sprintf_P(vbatt, PSTR("%01.2f\0"), adc_get(ADC_CHANNEL_0)*2);
+    sprintf_P(vbatt, PSTR("%.1f\0"), adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE);
     adc_disable();
     fbuf_putstr_P(&packet, PSTR("VBATT="));
     fbuf_putstr(&packet, vbatt);
@@ -278,7 +278,6 @@ static void send_timestamp(FBUF* packet, posdata_t* pos)
 }
 
 
-/* Dette virker ikke som det skal */
 static void send_timestamp_z(FBUF* packet, posdata_t* pos)
 {
     TRACE(128);

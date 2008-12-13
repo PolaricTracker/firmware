@@ -18,7 +18,9 @@ MK-II specific
 * UI Basics: RGB LED and buzzer
     DONE
 * Tracker UI design (led and buzzer)
-* Battery charge alarm, battery charge support. 
+    PARTLY
+* Battery charge alarm, battery charge support.
+    DONE 
 * Other hardware changes?
 
 

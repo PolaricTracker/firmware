@@ -9,5 +9,6 @@ void led_usb_on(void);
 void led_usb_off(void);
 void rgb_led_on(bool, bool, bool);
 void rgb_led_off(void);
+void batt_extcharger_event(void);
 
 #endif

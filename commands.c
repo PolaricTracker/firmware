@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.22 2008-11-22 19:06:49 la7eca Exp $
+ * $Id: commands.c,v 1.23 2008-12-13 11:38:16 la7eca Exp $
  */
  
 #include "defines.h"
@@ -246,7 +246,7 @@ void cmdProcessor(Stream *in, Stream *out)
                       
          else IF_COMMAND_PARAM_uint16
                  ( "deviation", 3, argc, argv, out,
-                   TRX_AFSK_DEV, 100, 5000, PSTR("AFSK Deviation is %d Hz\r\n\0"), PSTR(" %d") );
+                   TRX_AFSK_DEV, 0, 5000, PSTR("AFSK Deviation is %d Hz\r\n\0"), PSTR(" %d") );
                    
          else IF_COMMAND_PARAM_uint16 
                  ( "gpsbaud", 4, argc, argv, out, 
@@ -305,7 +305,7 @@ static void do_vbatt(uint8_t argc, char** argv, Stream* out)
    adc_enable();
    vbatt = adc_get(ADC_CHANNEL_0);
    adc_disable();
-   sprintf_P(buf, PSTR("Battery voltage: %f V\r\n\0"), vbatt * 2);
+   sprintf_P(buf, PSTR("Battery voltage: %.2f V\r\n\0"), vbatt * ADC_VBATT_DIVIDE);
    putstr(out, buf);
 }
 
