@@ -55,6 +55,8 @@ DEFINE_PARAM( GPS_BAUD,           uint16_t     );
 DEFINE_PARAM( TRACKER_TURN_LIMIT, uint16_t     );
 DEFINE_PARAM( TRACKER_PAUSE_LIMIT,uint8_t      );
 DEFINE_PARAM( STATUS_TIME,        uint8_t      );
+DEFINE_PARAM( GPS_POWERSAVE,      uint8_t      ); // need command
+
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
 extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
@@ -69,7 +71,7 @@ extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
  ***************************************************************/
 
 DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
-DEFAULT_PARAM( DEST )                = {"NONE", 0};
+DEFAULT_PARAM( DEST )                = {"APPT06", 0};
 DEFAULT_PARAM( DIGIS )               = {{"WIDE3", 3}};
 DEFAULT_PARAM( NDIGIS )              = 1;
 DEFAULT_PARAM( TXDELAY )             = 20;
@@ -91,6 +93,7 @@ DEFAULT_PARAM( GPS_BAUD )            = 4800;
 DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
 DEFAULT_PARAM( TRACKER_PAUSE_LIMIT ) = 5;
 DEFAULT_PARAM( STATUS_TIME )         = 30;
+DEFAULT_PARAM( GPS_POWERSAVE )       = 0;
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
