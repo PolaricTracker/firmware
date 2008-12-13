@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.11 2008-11-09 23:39:02 la7eca Exp $
+ * $Id: usb.c,v 1.12 2008-12-13 11:44:01 la7eca Exp $
  */
  
 #include "usb.h"
@@ -7,6 +7,8 @@
 #include "kernel/stream.h"
 #include "defines.h"
 #include "ui.h"
+#include <avr/sleep.h>
+
 
 #define CDC_BUF_SIZE 32
 
@@ -30,6 +32,7 @@ Stream cdc_outstr;
 
 EVENT_HANDLER(USB_Connect)
 {
+  set_sleep_mode(SLEEP_MODE_IDLE); 
 }
 
 
@@ -161,8 +164,6 @@ void usb_kickout(void)
 
 
 
-
-
 ISR(ENDPOINT_PIPE_vect)
 { 
 	if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
@@ -204,7 +205,8 @@ void usb_init()
 { 
    /* Initialize USB Subsystem */
    /* See makefile for mode constraints */
-	USB_Init( USB_OPT_REG_ENABLED);
+	USB_Init( USB_OPT_REG_ENABLED );
+
    sem_init(&cdc_run, 0);
   
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);
