@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.20 2008-11-22 19:10:07 la7eca Exp $
+ * $Id: main.c,v 1.21 2008-12-13 11:40:14 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -16,7 +16,6 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-#include <avr/sleep.h>
 #include <avr/wdt.h>
 #include <inttypes.h>
 #include "kernel/kernel.h"
@@ -32,7 +31,7 @@
 #include "gps.h"
 #include "ui.h"
 #include "commands.h"
-
+#include <avr/sleep.h>
 
 /* usb.c */
 extern Semaphore cdc_run;   
@@ -40,13 +39,6 @@ extern Stream cdc_instr;
 extern Stream cdc_outstr;
 
 fbq_t *outframes, *inframes;  
-
-
-#define soft_reset()        \
-do {                        \
-    wdt_enable(WDTO_15MS);  \
-    for(;;)  { }            \
-} while(0)
 
 
 
@@ -81,59 +73,6 @@ ISR(TIMER1_COMPA_vect)
      ui_clock();
 }
 
-
-/*************************************************************************
- * Handler for on/off button
- *************************************************************************/
- 
-#define BUTTON_TIME 200
-static Timer button_timer;
-static bool is_off = false;
-static void onoff_handler(void);
-static void sleepmode(void);
-
-static void onoff_handler()
-{
-    if (is_off) {
-       is_off = false;
-       soft_reset(); 
-    }
-    else {
-       /* External devices should be turned off. Todo: USB */
-       adf7021_power_off();
-       clear_port(LED1);
-       clear_port(LED2);
-#if defined TRACKER_MK1
-       clear_port(LED3);
-#endif
-       gps_off();
-       is_off = true; 
-    } 
-    sleepmode();
-}  
-
-static void sleepmode()
-{
-    if (is_off)
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    else
-        set_sleep_mode(SLEEP_MODE_IDLE);        
-}
-
-
-ISR(INT1_vect)
-{ 
-    nop();
-    if (!pin_is_high(BUTTON)) {
-       set_sleep_mode(SLEEP_MODE_IDLE);
-       timer_set(&button_timer, BUTTON_TIME);
-       timer_callback(&button_timer, onoff_handler);
-    }   
-    else {
-       timer_cancel(&button_timer);
-       sleepmode();
-    }
-}
 
 
 
@@ -206,16 +145,6 @@ int main(void)
       /* Start the multi-threading kernel */     
       init_kernel(STACK_MAIN); 
       
-      /* Button */
-      make_input(BUTTON);
-      EICRA = (1<<ISC10);
-      EIMSK = (1<<INT1);
-      
-      /* Battery charging, etc. */
-      make_output(HIGH_CHARGE);
-      clear_port(HIGH_CHARGE);
-      
-      
       /* Timer */    
       TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
              | (1<<WGM12);            /* CTC mode */             
@@ -223,14 +152,14 @@ int main(void)
       OCR1A  = (SCALED_F_CPU / 8 / 2400) - 1;
    
       TRACE_INIT;
-      sei();    
-                      
+      sei();
+                            
       /* Transceiver setup */
       setup_transceiver(); 
      
       /* HDLC and AFSK setup */
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
-//      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
+      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
       
       /* GPS and tracking */
       gps_init(&cdc_outstr);
