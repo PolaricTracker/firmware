@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.20 2008-11-22 19:12:09 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.21 2008-12-13 11:42:18 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -12,6 +12,8 @@
 #define MINIMUM_N 23
 
 
+#include <util/delay.h>
+    
 bool adf7021_enabled = false;
 bool adf7021_tx_enabled = false;
 Cond adf7021_on_signal, adf7021_tx_idle;
@@ -58,14 +60,13 @@ void adf7021_set_frequency (adf7021_setup_t *setup, uint32_t freq)
     if (freq > 200e6)
       setup->vco_osc.vco_bias = ADF7021_VCO_BIAS_CURRENT_mA (0.75);
     else
-      setup->vco_osc.vco_bias = ADF7021_VCO_BIAS_CURRENT_mA (0.5);
+      setup->vco_osc.vco_bias = ADF7021_VCO_BIAS_CURRENT_mA (0.75); // Opprinnelig: 0.5
 
   setup->vco_osc.clockout_divide = 0xF; // divide by 30
   setup->vco_osc.vco_enable = true;
 
   // TODO: figure out when to use xtal doubler
   setup->vco_osc.xtal_doubler = false;
-
 
   /* Setup N register for RX */
   ADF7021_INIT_REGISTER(setup->rx_n, ADF7021_N_REGISTER);
@@ -222,12 +223,7 @@ void adf7021_init (adf7021_setup_t* s)
   adf7021_enabled = adf7021_tx_enabled = false;
   cond_init(&adf7021_on_signal);
   cond_init(&adf7021_tx_idle);
-  
   make_output (INV_PA_ON);
-#if defined TRACKER_MK1
-  make_output (MK1_PA_ON);
-  clear_port (MK1_PA_ON);
-#endif
 
 //  make_output (PD0OUT);
   make_output (ADF7021_ON);
@@ -255,7 +251,8 @@ void adf7021_power_on ()
   
   /* Wait for transceiver to become ready */
   ADF7021_MUXOUT_WAIT ();
-  sleep(1); // Wait for clock (??????) 
+  //sleep(1); // Wait for clock (??????) 1.01ms 
+   _delay_ms(2);
    
   /* Power down unused parts of the transceiver */
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->power_down))
@@ -263,7 +260,8 @@ void adf7021_power_on ()
      
   /* Turn on VCO */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->vco_osc));
-  sleep (1); // Minimum 700 µs
+//  sleep (1); // Minimum 700 µs
+  _delay_ms(1);
   
   /* Turn on TX/RX clock */
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->clock));
@@ -346,9 +344,6 @@ void adf7021_power_off ()
   adf7021_enabled = adf7021_tx_enabled =  false;
   
   set_port (INV_PA_ON);  
-#if defined TRACKER_MK1
-  clear_port(MK1_PA_ON);
-#endif
   clear_port (ADF7021_ON);
 }
 
@@ -357,10 +352,6 @@ void adf7021_power_off ()
 void adf7021_enable_tx ()
 {
   /* Turn on external PA */
-
-#if defined TRACKER_MK1
-    set_port(MK1_PA_ON);
-#endif
     clear_port(INV_PA_ON);  
   
   /* Enable transmit mode */
@@ -374,12 +365,8 @@ void adf7021_disable_tx ()
 {
   adf7021_tx_enabled = false;
   adf7021_write_register (ADF7021_REGISTER_DEREF (setup->rx_n));
-  notifyAll(&adf7021_tx_idle);
-  
+  notifyAll(&adf7021_tx_idle); 
   set_port (INV_PA_ON);  
-#if defined TRACKER_MK1   
-  clear_port(MK1_PA_ON);
-#endif
 }
 
 
