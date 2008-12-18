@@ -1,31 +1,32 @@
 
-MK-I/GENERIC (v0.5 ++)
-----------------------
-* Advanced tracking - use time/speed/distance to determine when to report.
-    PARTLY DONE. Course change.
-* Compressed report packet (mic-e format?)
-* Status reports
-    PARTLY DONE
-* Test receiving and decoding of packets.
-* Battery voltage measurement using ADC. 
-    DONE
-
-
-MK-II specific
---------------
-* AFSK generation using (4 bit) DAC.
-    DONE
-* UI Basics: RGB LED and buzzer
-    DONE
-* Tracker UI design (led and buzzer)
-    PARTLY
-* Battery charge alarm, battery charge support.
+Version 0.6
+-----------
+* Battery charge support
     DONE 
-* Other hardware changes?
+* Frequency calibration !     
+    DONE
+* xtra text for statusreport.
+    FW VERSION DONE
+* Proper tracker wakeup on external power
+    DONE
 
 
-POSSIBLE EXTENSIONS
+Version 0.7
+-----------
+* Powersave mode for tracking (turn off GPS)
+* Compressed reports
+* Reset to default settings??? 
+* Comment text config
+
+Version 1.0
+-----------
+* Advanced tracking (compute distance etc...)
+
+
+
+EXTENSIONS
 -------------------
+* Get receiver to work
 * Digipeater mode
 * USB host mode
 * USB NMEA stream or APRS stream (to external GPS/display or PC)
