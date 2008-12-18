@@ -31,16 +31,16 @@ typedef uint8_t __trace_t[TRACE_LENGTH][2];
  * Define parameters:
  *            Name     Type     
  ***************************************************************/ 
-           
+     
 DEFINE_PARAM( MYCALL,             addr_t       );
 DEFINE_PARAM( DEST,               addr_t       );
 DEFINE_PARAM( DIGIS,              __digilist_t );
 DEFINE_PARAM( NDIGIS,             uint8_t      );
 DEFINE_PARAM( TXDELAY,            uint8_t      );
 DEFINE_PARAM( TXTAIL,             uint8_t      );
-DEFINE_PARAM( MAXFRAME,           uint8_t      ); // need command
+DEFINE_PARAM( MAXFRAME,           uint8_t      ); 
 DEFINE_PARAM( TRX_FREQ,           uint32_t     );
-DEFINE_PARAM( TRX_CALIBRATE,      int          );
+DEFINE_PARAM( TRX_CALIBRATE,      int16_t      );
 DEFINE_PARAM( TRX_TXPOWER,        double       );
 DEFINE_PARAM( TRX_AFSK_DEV,       uint16_t     );
 DEFINE_PARAM( TRX_SQUELCH,        double       );
@@ -76,11 +76,11 @@ DEFAULT_PARAM( DIGIS )               = {{"WIDE3", 3}};
 DEFAULT_PARAM( NDIGIS )              = 1;
 DEFAULT_PARAM( TXDELAY )             = 20;
 DEFAULT_PARAM( TXTAIL )              = 10;
-DEFAULT_PARAM( MAXFRAME )            = 4;
+DEFAULT_PARAM( MAXFRAME )            = 3;
 DEFAULT_PARAM( TRX_FREQ )            = 144.800e6;
 DEFAULT_PARAM( TRX_CALIBRATE )       = 0;
-DEFAULT_PARAM( TRX_TXPOWER )         = -13.0;
-DEFAULT_PARAM( TRX_AFSK_DEV )        = 3500;
+DEFAULT_PARAM( TRX_TXPOWER )         = 0.0;
+DEFAULT_PARAM( TRX_AFSK_DEV )        = 0;
 DEFAULT_PARAM( TRX_SQUELCH )         = -80;
 DEFAULT_PARAM( TRACKER_ON )          = 0;
 DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 10; 
@@ -88,7 +88,7 @@ DEFAULT_PARAM( SYMBOL)               = '.';
 DEFAULT_PARAM( SYMBOL_TABLE)         = '/';
 DEFAULT_PARAM( TIMESTAMP_ON)         = 1;
 DEFAULT_PARAM( ALTITUDE_ON)          = 0;
-DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker";
+DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker 0.6";
 DEFAULT_PARAM( GPS_BAUD )            = 4800;
 DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
 DEFAULT_PARAM( TRACKER_PAUSE_LIMIT ) = 5;
