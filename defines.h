@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.24 2008-12-13 11:36:40 la7eca Exp $ 
+ * $Id: defines.h,v 1.25 2008-12-18 21:09:46 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -27,6 +27,11 @@
 #define GPS_FIX_TIME     4  
 #define PACKET_TX_TIME   2
 
+/********************************************
+ *  Software version, etc
+ ********************************************/
+#define VERSION_STRING "v0.6 (16.12.2008)"
+#define COMMENT_PERIOD 3
 
 
 /********************************************
@@ -94,8 +99,8 @@ extern uint8_t blink_length, blink_interval;
  
 #define BATT_HIGHCHARGE_MAX 7.18
 #define BATT_LOWCHARGE_MIN  7.05 
-#define BATT_LOW_WARNING    5.0
-#define BATT_LOW_TURNOFF    4.8
+#define BATT_LOW_WARNING    5.2
+#define BATT_LOW_TURNOFF    5.0
 
 
 /*******************************************
