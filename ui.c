@@ -1,5 +1,5 @@
 /*
- * $Id: ui.c,v 1.3 2008-12-13 11:43:12 la7eca Exp $
+ * $Id: ui.c,v 1.4 2008-12-18 21:14:29 la7eca Exp $
  *
  * Polaric tracker UI, using LEDs on top of tracker unit
  */
@@ -26,6 +26,11 @@ static bool buzzer = false;
 
 static void ui_thread(void);
 static void batt_check_thread(void);
+static void wakeup_handler(void);
+
+static float _batt_voltage;
+static bool _batt_charged = false;
+
 
 
 void ui_init()
@@ -94,6 +99,14 @@ void turn_off()
      set_bit (PCMSK0, PCINT6);
      set_bit (PCICR, PCIE0); 
 }
+
+
+static void wakeup_handler()
+{
+   if (is_off && gps_hasWaiters())
+       gps_on();
+}
+
 
 
 static void onoff_handler()
@@ -278,35 +291,36 @@ static void ui_thread(void)
  * Battery stuff
  **********************************************************************/
 
-static bool batt_charged = false;
 
-
+float batt_voltage()
+  {return _batt_voltage;}
+  
+  
 static void batt_check_thread()
 {
-    float voltage;
     uint8_t cbeep = 1, cusb = 1;
     
     while (true) 
     {
        adc_enable();
-       voltage = adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
+       _batt_voltage = adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
        sleep(10);
-       voltage += adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
-       voltage /= 2;
+       _batt_voltage += adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
+       _batt_voltage /= 2;
        adc_disable();
     
-       if (voltage >= BATT_HIGHCHARGE_MAX && !batt_charged) {
-          batt_charged = true;
+       if (_batt_voltage >= BATT_HIGHCHARGE_MAX && !_batt_charged) {
+          _batt_charged = true;
           clear_port(HIGH_CHARGE);
        } 
        else
-          if (voltage < BATT_LOWCHARGE_MIN || !batt_charged) {
-             batt_charged = false;
+          if (_batt_voltage < BATT_LOWCHARGE_MIN || !_batt_charged) {
+             _batt_charged = false;
              set_port(HIGH_CHARGE);
           }
        
-       if (voltage < BATT_LOW_WARNING) 
-          if (voltage < BATT_LOW_TURNOFF)
+       if (_batt_voltage <= BATT_LOW_WARNING) 
+          if (_batt_voltage <= BATT_LOW_TURNOFF)
              turn_off();
           else {
              /* Bættery low warning */
@@ -330,7 +344,7 @@ static void batt_check_thread()
        clear_port(EXT_CHARGER);
        sleep(5);
        if (pin_is_high(EXT_CHARGER)) {
-          if (batt_charged) 
+          if (_batt_charged) 
              rgb_led_on(false,true,false);
           else
              rgb_led_on(true,false,false);
@@ -338,7 +352,7 @@ static void batt_check_thread()
        else {
           /* If only USB is connected, go briefly to green every 3rd round, 
            * if battery is fully charged */
-          if (usb_on && cusb-- == 0 && batt_charged) {
+          if (usb_on && cusb-- == 0 && _batt_charged) {
              rgb_led_on(false, true, false);
              sleep(50);
              cusb = 3;
@@ -346,6 +360,9 @@ static void batt_check_thread()
           led_usb_restore();   
           sleepmode();
        }   
+       /* Things to do if waked up by external charger */
+       wakeup_handler();
+       
        sleep(100);
     }   
 }
