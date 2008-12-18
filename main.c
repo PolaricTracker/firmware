@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.21 2008-12-13 11:40:14 la7eca Exp $
+ * $Id: main.c,v 1.22 2008-12-18 21:12:21 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -102,15 +102,17 @@ adf7021_setup_t trx_setup;
 void setup_transceiver(void)
 {
     uint32_t freq; 
+    int16_t  fcal;
     double power; 
     uint16_t dev;
     
     GET_PARAM(TRX_FREQ, &freq);
+    GET_PARAM(TRX_CALIBRATE, &fcal);
     GET_PARAM(TRX_TXPOWER, &power);
     GET_PARAM(TRX_AFSK_DEV, &dev);
     
     adf7021_setup_init(&trx_setup);
-    adf7021_set_frequency (&trx_setup, freq);
+    adf7021_set_frequency (&trx_setup, freq+fcal);
     trx_setup.vco_osc.xosc_enable = true;
     trx_setup.test_mode.analog = ADF7021_ANALOG_TEST_MODE_RSSI;
     
@@ -159,7 +161,7 @@ int main(void)
      
       /* HDLC and AFSK setup */
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
-      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
+//      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
       
       /* GPS and tracking */
       gps_init(&cdc_outstr);

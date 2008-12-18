@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.23 2008-12-13 11:38:16 la7eca Exp $
+ * $Id: commands.c,v 1.24 2008-12-18 21:11:04 la7eca Exp $
  */
  
 #include "defines.h"
@@ -19,7 +19,7 @@
 #include <avr/interrupt.h>
 #include "adc.h"
 #include "afsk.h"
-
+#include "ui.h"
 
 #define MAXTOKENS 10
 #define BUFSIZE   60
@@ -38,6 +38,7 @@ static void do_trx       (uint8_t, char**, Stream*, Stream*);
 static void do_txon      (uint8_t, char**, Stream*, Stream*);                 
 static void do_tracker   (uint8_t, char**, Stream*, Stream*);
 static void do_freq      (uint8_t, char**, Stream*);
+static void do_fcal      (uint8_t, char**, Stream*);
 static void do_power     (uint8_t, char**, Stream*);
 static void do_squelch   (uint8_t, char**, Stream*);
 static void do_rssi      (uint8_t, char**, Stream*, Stream*);
@@ -211,9 +212,7 @@ void cmdProcessor(Stream *in, Stream *out)
          else if (strncmp("vbatt", argv[0], 2) == 0)
              do_vbatt(argc, argv, out);
          else if (strncmp("listen", argv[0], 3) == 0)
-             do_listen(argc, argv, out, in);
-         else if (strncmp("charge", argv[0], 3) == 0)
-             do_hicharge(argc, argv, out, in);             
+             do_listen(argc, argv, out, in);            
          
          
          /* Commands for setting/viewing parameters */
@@ -227,6 +226,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_symbol(argc, argv, out);               
          else if (strncmp("freq",argv[0], 2) == 0)
              do_freq(argc, argv, out);  
+         else if (strncmp("fcal",argv[0], 3) == 0)
+             do_fcal(argc, argv, out);
          else if (strncmp("power", argv[0], 2) == 0)
              do_power(argc, argv, out);    
          else if (strncmp("squelch", argv[0], 2) == 0)
@@ -239,6 +240,10 @@ void cmdProcessor(Stream *in, Stream *out)
          else IF_COMMAND_PARAM_uint8
                   ( "txtail", 3, argc, argv, out,
                     TXDELAY, 0, 200, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
+                    
+         else IF_COMMAND_PARAM_uint8
+                  ( "maxframe", 5, argc, argv, out,
+                    TXDELAY, 1, 7, PSTR("MAXFRAME is %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint16
                  ( "tracktime", 6, argc, argv, out, 
@@ -289,7 +294,7 @@ static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
     for (i=0; i<60; i++)
     {
         double x = adf7021_read_rssi();
-        sprintf_P(buf, PSTR("RSSI level: %f\r\n\0"), x);
+        sprintf_P(buf, PSTR("RSSI level: %.2f\r\n\0"), x);
         putstr(out, buf);
         sleep(100);
     }
@@ -301,11 +306,8 @@ static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
  ************************************************/
 static void do_vbatt(uint8_t argc, char** argv, Stream* out)
 {
-   float vbatt;
-   adc_enable();
-   vbatt = adc_get(ADC_CHANNEL_0);
-   adc_disable();
-   sprintf_P(buf, PSTR("Battery voltage: %.2f V\r\n\0"), vbatt * ADC_VBATT_DIVIDE);
+   sprintf_P(buf, PSTR("Battery voltage: %.2f V\r\n\0"), 
+             batt_voltage());
    putstr(out, buf);
 }
 
@@ -317,23 +319,6 @@ static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
    getch(in);
    getch(in);
    afsk_disable_decoder();
-}
-
-
-/************************************************
- * High charge voltage....
- ************************************************/
- 
-static void do_hicharge(uint8_t argc, char** argv, Stream* out, Stream* in)
-{
-   if (strncmp("on", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** HIGH CHARGE ON *****\r\n"));
-      set_port(HIGH_CHARGE);
-   }
-   if (strncmp("off", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** HIGH CHARGE OFF *****\r\n"));
-      clear_port(HIGH_CHARGE);
-   }
 }
 
 
@@ -585,6 +570,12 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
 
 
 
+static void do_btext(uint8_t argc, char** argv, Stream* out)
+{
+}
+
+
+
 static void do_trace(uint8_t argc, char** argv, Stream* out)
 {
     show_trace(buf, 0, PSTR("Current run  = "), PSTR("\r\n"));
@@ -630,6 +621,24 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
     else {
        GET_PARAM(TRX_FREQ, &x);
        sprintf_P(buf, PSTR("FREQ is: %ld kHz\r\n\0"), x/1000);
+       putstr(out, buf);
+    }
+}
+/*********************************************
+ * config: transceiver frequency calibration
+ *********************************************/
+ 
+static void do_fcal(uint8_t argc, char** argv, Stream* out)
+{
+    int16_t x = 0;
+    if (argc > 1) {
+       sscanf(argv[1], " %d", &x);
+       SET_PARAM(TRX_CALIBRATE, &x);
+       putstr_P(out,PSTR("OK\r\n"));
+    } 
+    else {
+       GET_PARAM(TRX_CALIBRATE, &x);
+       sprintf_P(buf, PSTR("FREQ CALIBRATION is: %d Hz\r\n\0"), x);
        putstr(out, buf);
     }
 }
