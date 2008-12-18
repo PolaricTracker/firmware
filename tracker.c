@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.15 2008-12-13 11:41:20 la7eca Exp $
+ * $Id: tracker.c,v 1.16 2008-12-18 21:13:15 la7eca Exp $
  */
  
 #include "defines.h"
@@ -11,6 +11,8 @@
 #include "transceiver.h"
 #include "hdlc.h"
 #include "uart.h"
+#include "ui.h"
+
 
 // #include "math.h"
 
@@ -182,10 +184,12 @@ static void report_status(posdata_t* pos)
      * telemetry message instead. 
      */
     char vbatt[7];
-    adc_enable();
-    sprintf_P(vbatt, PSTR("%.1f\0"), adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE);
-    adc_disable();
-    fbuf_putstr_P(&packet, PSTR("VBATT="));
+    sprintf_P(vbatt, PSTR("%.1f\0"), batt_voltage());
+    
+    /* Send firmware version and battery voltage in status report */
+    fbuf_putstr_P(&packet, PSTR("FW="));
+    fbuf_putstr_P(&packet, PSTR(VERSION_STRING));
+    fbuf_putstr_P(&packet, PSTR(" / VBATT="));
     fbuf_putstr(&packet, vbatt);
    
     /* Send packet */
@@ -204,6 +208,7 @@ extern uint16_t course_count;
 static void report_position(posdata_t* pos)
 {
     TRACE(121);
+    static uint8_t ccount;
     FBUF packet;    
     char pbuf[14], comment[COMMENT_LENGTH];
           
@@ -240,11 +245,15 @@ static void report_position(posdata_t* pos)
     }
         
     /* Comment */
-    GET_PARAM(REPORT_COMMENT, comment);
-    if (*comment != '\0') {
-       fbuf_putChar (&packet, ' ');     /* Or should it be a slash ??*/
-       fbuf_putstr (&packet, comment);     
-    } 
+    if (ccount-- == 0) 
+    {
+       GET_PARAM(REPORT_COMMENT, comment);
+       if (*comment != '\0') {
+          fbuf_putChar (&packet, ' ');     /* Or should it be a slash ??*/
+          fbuf_putstr (&packet, comment);     
+       }
+       ccount = COMMENT_PERIOD; 
+    }
   
     /* Send packet */
     fbq_put(outframes, packet);
