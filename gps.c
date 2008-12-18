@@ -206,12 +206,15 @@ bool gps_is_fixed()
 bool gps_wait_fix()
 {   
     if (is_fixed) return false;      
-    while (!is_fixed)
+    while (!is_fixed) 
        wait(&wait_gps);
     return true;
 }         
-  
-
+ 
+bool gps_hasWaiters()
+   {return hasWaiters(&wait_gps); }
+   
+   
 uint16_t course_count = 0;  
 float altitude = -1;
        
