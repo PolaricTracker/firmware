@@ -1,3 +1,9 @@
+/* 
+ * $Id: gps.c,v 1.18 2008-12-31 01:14:51 la7eca Exp $
+ * NMEA data 
+ */
+
+
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -217,6 +223,8 @@ bool gps_hasWaiters()
    
 uint16_t course_count = 0;  
 float altitude = -1;
+       
+       
        
 /****************************************************************
  * Handle RMC line

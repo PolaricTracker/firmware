@@ -1,3 +1,8 @@
+/*
+ * $Id: adc.c,v 1.2 2008-12-31 01:13:00 la7eca Exp $
+ * Reading analog/digital converter
+ */
+ 
 #include <avr/io.h>
 #include "adc.h"
 #include "defines.h"

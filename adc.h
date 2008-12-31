@@ -1,3 +1,9 @@
+/*
+ * $Id: adc.h,v 1.2 2008-12-31 01:17:49 la7eca Exp $
+ * Reading analog/digital converter
+ */
+ 
+
 #if !defined __ADC_H__
 #define __ADC_H__
 

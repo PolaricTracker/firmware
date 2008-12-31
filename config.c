@@ -1,3 +1,10 @@
+/*
+ * $Id: config.c,v 1.6 2008-12-31 01:14:28 la7eca Exp $
+ *
+ * Code for reading/writing paramerers in EEPROM, their default values in
+ * program memory plus trace info in noinit part of RAM.
+ */
+
 #define __CONFIG_C__   /* IMPORTANT */
 #include "config.h"
 #include <stdio.h>
@@ -15,7 +22,6 @@ void show_trace(char* buf, uint8_t run, PGM_P pre, PGM_P post)
           n+= sprintf_P(buf+n, PSTR(", "));
    }
    sprintf_P(buf+n, post);
-   
 }
 
 
