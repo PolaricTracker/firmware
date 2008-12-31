@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.24 2008-12-18 21:11:04 la7eca Exp $
+ * $Id: commands.c,v 1.25 2008-12-31 01:14:09 la7eca Exp $
  */
  
 #include "defines.h"
@@ -47,7 +47,8 @@ static void do_trace     (uint8_t, char**, Stream*);
 static void do_txtone    (uint8_t, char**, Stream*, Stream*);
 static void do_vbatt     (uint8_t, char**, Stream*);
 static void do_listen    (uint8_t, char**, Stream*, Stream*);
-static void do_hicharge  (uint8_t, char**, Stream*, Stream*);
+static void do_btext     (uint8_t, char**, Stream*);
+
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -58,7 +59,7 @@ extern void tracker_off(void);
 
 /***************************************************************************************
  * Generic getter/setter commands for simple numeric parameters. 
- *     MOVE TO config.c
+ *     MOVE TO config.c  ??
  *
  * Note: the ee_addr and default_val arguments are defined by macros (see config.h) 
  * and are further passed to get_param() and set_param() 
@@ -178,8 +179,6 @@ void cmdProcessor(Stream *in, Stream *out)
     uint8_t argc;
     
     putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n"));
-    show_trace(buf, 1, PSTR("Trace = "), PSTR("\r\n\r\n"));
-    putstr(out,buf);
     
     while (1) {
          putstr(out, "cmd: ");    
@@ -232,7 +231,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_power(argc, argv, out);    
          else if (strncmp("squelch", argv[0], 2) == 0)
              do_squelch(argc, argv, out); 
-         
+         else if (strncmp("btext", argv[0], 2) == 0)
+             do_btext(argc, argv, out); 
          else IF_COMMAND_PARAM_uint8
                   ( "txdelay", 3, argc, argv, out,
                     TXDELAY, 0, 200, PSTR("TXDELAY (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );      
@@ -274,6 +274,9 @@ void cmdProcessor(Stream *in, Stream *out)
          
          else IF_COMMAND_PARAM_bool           
                  ( "timestamp", 4, argc, argv, out, TIMESTAMP_ON, PSTR("TIMESTAMP") );
+                 
+         else IF_COMMAND_PARAM_bool
+                 ( "compress", 4, argc, argv, out, COMPRESS_ON, PSTR("COMPRESS") );
                  
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));

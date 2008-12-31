@@ -1,3 +1,11 @@
+/*
+ * $Id: config.h,v 1.27 2008-12-31 01:11:44 la7eca Exp $
+ *
+ * Definition of parameters to be stored in EEPROM, their default 
+ * values in program memory plus trace info in noinit part of RAM.
+ * Macros for defining and accessing these values. 
+ */
+ 
 #if !defined __CONFIG_H__
 #define __CONFIG_H__
 
@@ -21,8 +29,10 @@
      
 #endif
 
+
 #define COMMENT_LENGTH 40
 #define TRACE_LENGTH 12
+
 typedef addr_t __digilist_t[7];  
 typedef char comment[COMMENT_LENGTH];
 typedef uint8_t __trace_t[TRACE_LENGTH][2];
@@ -49,6 +59,7 @@ DEFINE_PARAM( TRACKER_SLEEP_TIME, uint16_t     );
 DEFINE_PARAM( SYMBOL,             uint8_t      );
 DEFINE_PARAM( SYMBOL_TABLE,       uint8_t      );
 DEFINE_PARAM( TIMESTAMP_ON,       uint8_t      );
+DEFINE_PARAM( COMPRESS_ON,        uint8_t      );
 DEFINE_PARAM( ALTITUDE_ON,        uint8_t      );
 DEFINE_PARAM( REPORT_COMMENT,     comment      ); // need command
 DEFINE_PARAM( GPS_BAUD,           uint16_t     );
@@ -71,8 +82,8 @@ extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
  ***************************************************************/
 
 DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
-DEFAULT_PARAM( DEST )                = {"APPT06", 0};
-DEFAULT_PARAM( DIGIS )               = {{"WIDE3", 3}};
+DEFAULT_PARAM( DEST )                = {"APPT07", 0};
+DEFAULT_PARAM( DIGIS )               = {{"WIDE2", 2}};
 DEFAULT_PARAM( NDIGIS )              = 1;
 DEFAULT_PARAM( TXDELAY )             = 20;
 DEFAULT_PARAM( TXTAIL )              = 10;
@@ -87,8 +98,9 @@ DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 10;
 DEFAULT_PARAM( SYMBOL)               = '.';
 DEFAULT_PARAM( SYMBOL_TABLE)         = '/';
 DEFAULT_PARAM( TIMESTAMP_ON)         = 1;
+DEFAULT_PARAM( COMPRESS_ON)          = 0;
 DEFAULT_PARAM( ALTITUDE_ON)          = 0;
-DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker 0.6";
+DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker";
 DEFAULT_PARAM( GPS_BAUD )            = 4800;
 DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
 DEFAULT_PARAM( TRACKER_PAUSE_LIMIT ) = 5;
