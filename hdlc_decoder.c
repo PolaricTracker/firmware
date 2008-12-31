@@ -25,7 +25,7 @@ fbq_t* hdlc_init_decoder (stream_t *s, stream_t *outstr)
    stream = s;
    DEFINE_FBQ(fbin, HDLC_DECODER_QUEUE_SIZE);
    fbuf_new(&fbuf);
-   THREAD_START (hdlc_decode, 90);
+   THREAD_START (hdlc_decode, STACK_HDLCDECODER);
 
    return &fbin;
 }
