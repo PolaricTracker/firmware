@@ -13,18 +13,27 @@ Version 0.6
 
 Version 0.7
 -----------
-* Powersave mode for tracking (turn off GPS)
-* Compressed reports
-* Reset to default settings??? 
-* Comment text config
+* Compressed reports (but not Mic-e)
+    DONE (except altitude)
+* Watchdog timer
+    DONE
 
-Version 1.0
+
+Version 0.8
 -----------
-* Advanced tracking (compute distance etc...)
+* Proper wakeup on USB charger..
+* Comment text config
+* Altitude in compressed reports?
 
 
+Version --1.0
+-------------
+* Advanced tracking (compute distance etc.)
+* (noise) Filtering of position changes 
+* Powersave mode for tracking (turn off GPS, slowdown reporting when not moving)
 
-EXTENSIONS
+
+Further development
 -------------------
 * Get receiver to work
 * Digipeater mode

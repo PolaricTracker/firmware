@@ -50,7 +50,7 @@
     ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
 
 # Linker flags (passed via GCC).
-	LDFLAGS = -L$(LIBDIR) -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt  -lscanf_flt -lm
+	LDFLAGS = -L$(LIBDIR) -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt  -lscanf_flt -lm -lc -lm
 
 # Additional library flags (-lm = math library).
 #	LIBFLAGS = -l$(LIBS)
