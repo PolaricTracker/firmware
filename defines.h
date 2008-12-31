@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.25 2008-12-18 21:09:46 la7eca Exp $ 
+ * $Id: defines.h,v 1.26 2008-12-31 01:12:18 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -27,10 +27,11 @@
 #define GPS_FIX_TIME     4  
 #define PACKET_TX_TIME   2
 
+
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.6 (16.12.2008)"
+#define VERSION_STRING "v0.7 (28.12.2008)"
 #define COMMENT_PERIOD 3
 
 
@@ -51,13 +52,15 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
-#define STACK_MAIN             90
-#define STACK_LED              90
+#define STACK_MAIN             100
+#define STACK_LED              100
+#define STACK_BATT             100
 #define STACK_USBLISTENER      330
 #define STACK_HDLCENCODER      150
+#define STACK_HDLCDECODER      100
 #define STACK_HDLCENCODER_TEST 110
 #define STACK_GPSLISTENER      330
-#define STACK_TRACKER          300
+#define STACK_TRACKER          340
 
 
 
@@ -99,8 +102,8 @@ extern uint8_t blink_length, blink_interval;
  
 #define BATT_HIGHCHARGE_MAX 7.18
 #define BATT_LOWCHARGE_MIN  7.05 
-#define BATT_LOW_WARNING    5.2
-#define BATT_LOW_TURNOFF    5.0
+#define BATT_LOW_WARNING    5.5
+#define BATT_LOW_TURNOFF    5.2
 
 
 /*******************************************
@@ -123,8 +126,6 @@ extern uint8_t blink_length, blink_interval;
  ********************************************/
                         
  /* Common */
-
-  
 #define GPSON_PORT          PORTB
 #define GPSON_BIT           5
 #define GPSON_DDR           DDRB
