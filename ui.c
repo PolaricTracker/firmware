@@ -1,7 +1,8 @@
 /*
- * $Id: ui.c,v 1.4 2008-12-18 21:14:29 la7eca Exp $
+ * $Id: ui.c,v 1.5 2008-12-31 01:17:14 la7eca Exp $
  *
- * Polaric tracker UI, using LEDs on top of tracker unit
+ * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
+ * Handle on/off button and battery charging.
  */
  
  
@@ -35,6 +36,9 @@ static bool _batt_charged = false;
 
 void ui_init()
 {   
+      /* Enable wdt */
+      wdt_enable(WDTO_4S);
+      
       /* DDR Registers */
       make_output(LED1);
       make_output(LED2);
@@ -60,7 +64,7 @@ void ui_init()
       clear_port(EXT_CHARGER); /* No internal pull-up */
       
       THREAD_START(ui_thread, STACK_LED); 
-      THREAD_START(batt_check_thread, 90); 
+      THREAD_START(batt_check_thread, STACK_BATT); 
 }
 
 
@@ -96,13 +100,15 @@ void turn_off()
      * external charger is plugged in. We do not need an ISR for this
      * We just assume that one exists
      */
-     set_bit (PCMSK0, PCINT6);
-     set_bit (PCICR, PCIE0); 
+    set_bit (PCMSK0, PCINT6);
+    set_bit (PCICR, PCIE0); 
 }
 
 
 static void wakeup_handler()
 {
+   if (is_off & (pin_is_high(EXT_CHARGER) || usb_on)) 
+       wdt_enable(WDTO_4S);
    if (is_off && gps_hasWaiters())
        gps_on();
 }
@@ -126,6 +132,7 @@ static void sleepmode()
         clear_port(LED1);
         clear_port(LED2);
         rgb_led_off();
+        wdt_disable();
         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     }  
     else
@@ -133,6 +140,7 @@ static void sleepmode()
 }
 
 
+/* Button pin change interrupt */
 ISR(INT1_vect)
 { 
     nop();
@@ -302,6 +310,10 @@ static void batt_check_thread()
     
     while (true) 
     {
+       /* Reset WDT */
+       wdt_reset(); 
+       
+       /* Read battery voltage */
        adc_enable();
        _batt_voltage = adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
        sleep(10);
@@ -360,10 +372,10 @@ static void batt_check_thread()
           led_usb_restore();   
           sleepmode();
        }   
-       /* Things to do if waked up by external charger */
-       wakeup_handler();
        
        sleep(100);
+       /* Things to do if waked up by external charger */
+       wakeup_handler();
     }   
 }
 
