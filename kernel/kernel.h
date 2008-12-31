@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.h,v 1.2 2008-10-01 21:46:30 la7eca Exp $
+ * $Id: kernel.h,v 1.3 2008-12-31 01:19:02 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 
@@ -48,6 +48,7 @@ void cond_init(Cond* c);
 void wait(Cond* c);
 void notify(Cond* c);
 void notifyAll(Cond* c);
+bool hasWaiters(Cond* c);
 void sem_init(Semaphore*, uint16_t);
 void sem_down(Semaphore*);
 void sem_up(Semaphore*);

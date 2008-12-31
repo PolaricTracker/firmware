@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.7 2008-11-22 19:14:08 la7eca Exp $
+ * $Id: kernel.c,v 1.8 2008-12-31 01:19:31 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -164,6 +164,14 @@ void notifyAll(Cond* c)
 }
 
    
+   
+bool hasWaiters(Cond* c)
+{
+    return (c->qfirst != NULL); 
+}
+
+
+
 /**********************************************************************************
  * Initialise a semaphore
  **********************************************************************************/
