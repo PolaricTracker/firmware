@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.23 2008-11-22 19:09:37 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.24 2009-01-17 11:37:59 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -43,7 +43,7 @@ static void hdlc_encode_byte(uint8_t, bool);
 static void wait_channel_ready(void);
 static bool hdlc_idle = true;
 static Cond hdlc_idle_sig;
-;
+static fbq_t* _enc_queue;
 
    
 fbq_t* hdlc_init_encoder(stream_t* os)
@@ -55,8 +55,16 @@ fbq_t* hdlc_init_encoder(stream_t* os)
    cond_init(&hdlc_idle);
    sem_init(&test, 0);
    THREAD_START( hdlc_testsignal, STACK_HDLCENCODER_TEST);
-   return &encoder_queue;
+   return _enc_queue = &encoder_queue;
 }		
+
+
+fbq_t* hdlc_get_encoder_queue()
+   { return _enc_queue; }
+   
+bool hdlc_enc_packets_waiting()
+   { return !fbq_eof(_enc_queue); }
+
 
 
 /*******************************************************
@@ -120,14 +128,13 @@ static void hdlc_txencoder()
        * This is a blocking call.
        */ 
       buffer = fbq_get(&encoder_queue); 
-      TRACE(201);
          
       /* Wait until channel is free 
        * P-persistence algorithm 
        */
       adf7021_wait_enabled(); 
       hdlc_idle = false;
-      TRACE(202);
+
       for (;;) {
 
         wait_channel_ready(); 
@@ -137,10 +144,8 @@ static void hdlc_txencoder()
         else
             break;
       }
-      TRACE(203);
       hdlc_encode_frames();
       hdlc_idle = true; 
-      TRACE(204);
       notifyAll(&hdlc_idle_sig);
       sleep(50);
    }
