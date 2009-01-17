@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.25 2008-12-31 01:14:09 la7eca Exp $
+ * $Id: commands.c,v 1.26 2009-01-17 11:37:01 la7eca Exp $
  */
  
 #include "defines.h"
@@ -20,6 +20,7 @@
 #include "adc.h"
 #include "afsk.h"
 #include "ui.h"
+
 
 #define MAXTOKENS 10
 #define BUFSIZE   60
@@ -277,7 +278,10 @@ void cmdProcessor(Stream *in, Stream *out)
                  
          else IF_COMMAND_PARAM_bool
                  ( "compress", 4, argc, argv, out, COMPRESS_ON, PSTR("COMPRESS") );
-                 
+         
+         else IF_COMMAND_PARAM_bool
+                 ( "beep", 2, argc, argv, out, REPORT_BEEP, PSTR("BEEP") );        
+         
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
@@ -572,9 +576,22 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
 }
 
 
-
+/***********************************************
+ * config: Beacon text (comment in pos reports)
+ ***********************************************/
+ 
 static void do_btext(uint8_t argc, char** argv, Stream* out)
 {
+    if (argc > 1){
+        SET_PARAM(REPORT_COMMENT, argv[1]);
+        putstr_P(out,PSTR("OK\r\n"));
+    }
+    else {
+        char x[COMMENT_LENGTH];
+        GET_PARAM(REPORT_COMMENT, x);
+        sprintf_P(buf, PSTR("BTEXT is: \"%s\"\r\n\0"), x);
+        putstr(out, buf);
+    }
 }
 
 
@@ -696,6 +713,8 @@ static void do_squelch(uint8_t argc, char** argv, Stream* out)
  *   maxtokens - maximum number of tokens to scan for
  *   delim     - characters which can be used as delimiters between tokens
  *   merge     - if true, merge empty tokens
+ *
+ * Text which is enclosed by " " is regarded as a single token. 
  ****************************************************************************/
  
 uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim, bool merge)
@@ -703,11 +722,20 @@ uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim, bool
      register uint8_t ntokens = 0;
      while (ntokens<maxtokens)
      {
-        tokens[ntokens] = strsep(&buf, delim);          /* ER DENNE KORREKT? */
-        if ( buf == NULL)
-            break;
-        if (!merge || *tokens[ntokens] != '\0') 
-           ntokens++;
+        if (*buf == '\"') {
+            /* Special case: token is enclosed in " */
+            tokens[ntokens++] = ++buf;
+            char *endt = strchrnul(buf, '\"'); 
+            *endt = '\0';
+            buf = endt + 1;
+        }
+        else {    
+            tokens[ntokens] = strsep(&buf, delim);
+            if ( buf == NULL)
+               break;
+            if (!merge || *tokens[ntokens] != '\0') 
+               ntokens++;
+        }
      }
      return (merge && *tokens[ntokens] == '\0' ? ntokens : ntokens+1);
 }
