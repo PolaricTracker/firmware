@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.17 2008-12-31 01:16:11 la7eca Exp $
+ * $Id: tracker.c,v 1.18 2009-01-17 11:39:48 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -26,6 +26,7 @@ void tracker_init(void);
 void tracker_on(void); 
 void tracker_off(void);
 static void trackerThread(void);
+static void activate_tx(void);
 static bool should_update(posdata_t*, posdata_t*);
 static void report_position(posdata_t*);
 static void report_status(posdata_t*);
@@ -33,7 +34,7 @@ static void send_header(FBUF*);
 static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
 static void send_latlong_compressed(FBUF*, double, bool);
-static void send_cs_compressed(FBUF*, int16_t, float);
+static void send_csT_compressed(FBUF*, posdata_t*);
 
 
 double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONCE */
@@ -105,27 +106,15 @@ static void trackerThread(void)
            }
             
            /* 
-            * Send report, if criteria are satisfied or if we waited 
+            * Send report, if criteria are satisfied, or if we waited 
             * for GPS fix
             */
-           if (waited || should_update(&prev_pos, &current_pos))
-           {
-              adf7021_power_on(); 
-              sleep(50);
+           if (waited || should_update(&prev_pos, &current_pos)) {
               report_position(&current_pos);
-              prev_pos = current_pos;
-             
-              /* 
-               * Before turning off the transceiver chip, wait 
-               * a little to allow packet to be received by the 
-               * encoder. Then wait until channel is ready and packet 
-               * encoded and sent.
-               */
-              sleep(50);
-              hdlc_wait_idle();
-              adf7021_wait_tx_off();
-              adf7021_power_off(); 
+              prev_pos = current_pos;          
            }         
+           activate_tx();
+           
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
            t = (t > GPS_FIX_TIME) ?
                t - GPS_FIX_TIME : 1;
@@ -135,6 +124,31 @@ static void trackerThread(void)
            sleep(GPS_FIX_TIME * TIMER_RESOLUTION);   
        }
     }   
+}
+
+
+/*********************************************************************
+ * Activate transmitter - 
+ *  If outgoing packets waiting, turn on transmitter, send packets 
+ *  and turn off
+/*********************************************************************/
+
+static void activate_tx()
+{
+      if (hdlc_enc_packets_waiting()) {
+         adf7021_power_on(); 
+
+         /* 
+          * Before turning off the transceiver chip, wait 
+          * a little to allow packet to be received by the 
+          * encoder. Then wait until channel is ready and then until 
+          * packets are encoded and sent.
+          */
+         sleep(100);
+         hdlc_wait_idle();
+         adf7021_wait_tx_off();
+         adf7021_power_off();
+      } 
 }
 
 
@@ -152,9 +166,14 @@ static bool should_update(posdata_t* prev, posdata_t* current)
     uint16_t turn_limit; 
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
     
-    if ( ++pause_count >= GET_BYTE_PARAM(TRACKER_PAUSE_LIMIT) ||             /* Upper time limit */
-           (  current_pos.speed > 0 && prev_pos.speed > 0 &&                 /* change in course */
-              abs(current_pos.course - prev_pos.course) > turn_limit ) ) 
+    if ( ++pause_count >= GET_BYTE_PARAM(TRACKER_PAUSE_LIMIT) ||             /* Upper time limit */    
+           (  current_pos.speed > 1 && prev_pos.speed > 0 &&                 /* change in course */
+              abs(current_pos.course - prev_pos.course) > turn_limit ))  
+              
+           /****
+             OR
+             pause_count >= min-distance / est_speed() / TRACKER_MIN_PAUSE + min-time ) 
+           ****/
     {     
        pause_count = 0;
        return true;
@@ -199,12 +218,14 @@ static void report_status(posdata_t* pos)
 
 
 /**********************************************************************
- * Report position as an APRS packet
- *  Currently: Uncompressed APRS position report 
- *  (may add more options later)
+ * Report position by sending an APRS packet
+ *
  **********************************************************************/
+
 #define ASCII_BASE 33
 #define log108(x) (log((x))/0.076961) 
+#define log1002(x) (log((x))/0.001998)
+
 extern uint16_t course_count; 
 
 static void report_position(posdata_t* pos)
@@ -229,8 +250,7 @@ static void report_position(posdata_t* pos)
        send_latlong_compressed(&packet, pos->latitude, false);
        send_latlong_compressed(&packet, pos->longitude, true);
        fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL)); 
-       send_cs_compressed(&packet, pos->course, pos->speed);
-       fbuf_putChar(&packet, 0x18 + ASCII_BASE);
+       send_csT_compressed(&packet, pos);
     }
     else
     {
@@ -268,6 +288,9 @@ static void report_position(posdata_t* pos)
        }
        ccount = COMMENT_PERIOD; 
     }
+    
+    if (GET_BYTE_PARAM(REPORT_BEEP))
+      beep(4);
   
     /* Send packet */
     fbq_put(outframes, packet);
@@ -292,11 +315,23 @@ static void send_latlong_compressed(FBUF* packet, double pos, bool is_longitude)
 
 
 
-static void send_cs_compressed(FBUF* packet, int16_t course, float speed)
+static void send_csT_compressed(FBUF* packet, posdata_t* pos)
 /* FIXME: Special case where there is no course/speed */
 {
-    fbuf_putChar(packet, course / 4 + ASCII_BASE);
-    fbuf_putChar(packet, (char) log108((double) speed+1) + ASCII_BASE); 
+    if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
+       /* Send altitude */
+       uint32_t alt =  (uint32_t) log1002((double)pos->altitude / 0.3048);
+       fbuf_putChar(packet, (char) (lround(alt / 91) + ASCII_BASE));
+       alt %= 91;
+       fbuf_putChar(packet, (char) (lround(alt) + ASCII_BASE));
+       fbuf_putChar(packet, 0x10 + ASCII_BASE);
+    }
+    else {
+       /* Send course/speed (default) */
+       fbuf_putChar(packet, pos->course / 4 + ASCII_BASE);
+       fbuf_putChar(packet, (char) log108((double) pos->speed+1) + ASCII_BASE); 
+       fbuf_putChar(packet, 0x18 + ASCII_BASE);
+    }
 }
 
 
