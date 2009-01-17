@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.22 2008-12-18 21:12:21 la7eca Exp $
+ * $Id: main.c,v 1.23 2009-01-17 11:38:40 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -134,7 +134,7 @@ void setup_transceiver(void)
 /**************************************************************************
  * main thread (startup)
  **************************************************************************/
-
+extern bool is_off;
 int main(void) 
 {
       CLKPR = (1<<7);
@@ -176,6 +176,7 @@ int main(void)
       
       while(1) 
       {  
+           lbeep();
            if (t_is_idle()) 
               /* Enter idle mode or sleep mode here */
               sleep_mode();
