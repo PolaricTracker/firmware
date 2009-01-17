@@ -1,5 +1,5 @@
 /*
- * $Id: ui.c,v 1.5 2008-12-31 01:17:14 la7eca Exp $
+ * $Id: ui.c,v 1.6 2009-01-17 11:41:39 la7eca Exp $
  *
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
@@ -20,6 +20,7 @@
 #include "transceiver.h"
 #include "gps.h"
 #include "adc.h"
+#include "usb.h"
 
 
 static bool usb_on = false;
@@ -82,16 +83,13 @@ do {                        \
  
 #define BUTTON_TIME 200
 static Timer button_timer;
-static bool is_off = false;
+bool is_off = false;
 static void onoff_handler(void);
 static void sleepmode(void);
 
 
 void turn_off()
 {
-    /* External devices should be turned off. Todo: USB */
-    adf7021_power_off();
-    gps_off();
     is_off = true; 
     sleepmode();
     EIMSK = (1<<INT1); 
@@ -107,7 +105,7 @@ void turn_off()
 
 static void wakeup_handler()
 {
-   if (is_off & (pin_is_high(EXT_CHARGER) || usb_on)) 
+   if (is_off & (pin_is_high(EXT_CHARGER) || usb_on || usb_con())) 
        wdt_enable(WDTO_4S);
    if (is_off && gps_hasWaiters())
        gps_on();
@@ -128,7 +126,10 @@ static void onoff_handler()
 
 static void sleepmode()
 {
-    if (is_off && !pin_is_high(EXT_CHARGER) && !usb_on && pin_is_high(BUTTON)) {
+    if (is_off && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con() && pin_is_high(BUTTON)) {
+       /* External devices should be turned off. Todo: USB */
+        adf7021_power_off();
+        gps_off();
         clear_port(LED1);
         clear_port(LED2);
         rgb_led_off();
@@ -183,6 +184,18 @@ void beep(uint16_t t)
     sleep(t);
     buzzer = false;
     clear_port(BUZZER);
+}
+  
+void lbeep()
+{
+    static bool beeped;
+    if (!is_off || beeped)
+        return;
+    buzzer = true;
+    for (int i=0;i<400; i++) t_yield();
+    buzzer = false;
+    clear_port(BUZZER);
+    beeped = true;
 }
  
 void beeps(char* s)
@@ -355,7 +368,7 @@ static void batt_check_thread()
        make_input(EXT_CHARGER);
        clear_port(EXT_CHARGER);
        sleep(5);
-       if (pin_is_high(EXT_CHARGER)) {
+       if ((pin_is_high(EXT_CHARGER) || usb_con()) && !usb_on) {
           if (_batt_charged) 
              rgb_led_on(false,true,false);
           else
