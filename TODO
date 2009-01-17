@@ -21,9 +21,18 @@ Version 0.7
 
 Version 0.8
 -----------
-* Proper wakeup on USB charger..
-* Comment text config
+* FIX: Turn off GPS when disconnecting charger (if turned off)
+    DONE 0.7+ 
+* Beep when turned off
+    DONE 0.7++
+* Beep when sending position report
+    DONE
+* Proper indication/wakeup on USB charger..
+    DONE
+* Comment text config 
+    DONE
 * Altitude in compressed reports?
+    DONE
 
 
 Version --1.0
