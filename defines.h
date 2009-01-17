@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.26 2008-12-31 01:12:18 la7eca Exp $ 
+ * $Id: defines.h,v 1.27 2009-01-17 11:35:08 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -31,8 +31,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.7 (28.12.2008)"
-#define COMMENT_PERIOD 3
+#define VERSION_STRING "v0.8 (13.1.2009)"
+#define COMMENT_PERIOD 4
 
 
 /********************************************
@@ -55,7 +55,7 @@
 #define STACK_MAIN             100
 #define STACK_LED              100
 #define STACK_BATT             100
-#define STACK_USBLISTENER      330
+#define STACK_USBLISTENER      340
 #define STACK_HDLCENCODER      150
 #define STACK_HDLCDECODER      100
 #define STACK_HDLCENCODER_TEST 110
@@ -101,7 +101,7 @@ extern uint8_t blink_length, blink_interval;
  *******************************************/
  
 #define BATT_HIGHCHARGE_MAX 7.18
-#define BATT_LOWCHARGE_MIN  7.05 
+#define BATT_LOWCHARGE_MIN  6.8 
 #define BATT_LOW_WARNING    5.5
 #define BATT_LOW_TURNOFF    5.2
 
