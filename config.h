@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.27 2008-12-31 01:11:44 la7eca Exp $
+ * $Id: config.h,v 1.28 2009-01-17 11:33:01 la7eca Exp $
  *
  * Definition of parameters to be stored in EEPROM, their default 
  * values in program memory plus trace info in noinit part of RAM.
@@ -61,11 +61,12 @@ DEFINE_PARAM( SYMBOL_TABLE,       uint8_t      );
 DEFINE_PARAM( TIMESTAMP_ON,       uint8_t      );
 DEFINE_PARAM( COMPRESS_ON,        uint8_t      );
 DEFINE_PARAM( ALTITUDE_ON,        uint8_t      );
-DEFINE_PARAM( REPORT_COMMENT,     comment      ); // need command
+DEFINE_PARAM( REPORT_COMMENT,     comment      ); 
 DEFINE_PARAM( GPS_BAUD,           uint16_t     );
 DEFINE_PARAM( TRACKER_TURN_LIMIT, uint16_t     );
 DEFINE_PARAM( TRACKER_PAUSE_LIMIT,uint8_t      );
 DEFINE_PARAM( STATUS_TIME,        uint8_t      );
+DEFINE_PARAM( REPORT_BEEP,        uint8_t      );
 DEFINE_PARAM( GPS_POWERSAVE,      uint8_t      ); // need command
 
 
@@ -82,7 +83,7 @@ extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
  ***************************************************************/
 
 DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
-DEFAULT_PARAM( DEST )                = {"APPT07", 0};
+DEFAULT_PARAM( DEST )                = {"APPT08", 0};
 DEFAULT_PARAM( DIGIS )               = {{"WIDE2", 2}};
 DEFAULT_PARAM( NDIGIS )              = 1;
 DEFAULT_PARAM( TXDELAY )             = 20;
@@ -105,6 +106,7 @@ DEFAULT_PARAM( GPS_BAUD )            = 4800;
 DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
 DEFAULT_PARAM( TRACKER_PAUSE_LIMIT ) = 5;
 DEFAULT_PARAM( STATUS_TIME )         = 30;
+DEFAULT_PARAM( REPORT_BEEP )         = 0;
 DEFAULT_PARAM( GPS_POWERSAVE )       = 0;
 
 __trace_t trace            __attribute__ ((section (".noinit")));
