@@ -52,4 +52,6 @@
    /* Function prototypes: */
       void usb_init(void);
       void USB_USBTask(void);
+      bool usb_con(void);
+      
 #endif
