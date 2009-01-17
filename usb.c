@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.12 2008-12-13 11:44:01 la7eca Exp $
+ * $Id: usb.c,v 1.13 2009-01-17 11:42:06 la7eca Exp $
  */
  
 #include "usb.h"
@@ -27,12 +27,15 @@ CDC_Line_Coding_t LineCoding = { BaudRateBPS: 9600,
 Semaphore cdc_run;    
 Stream cdc_instr; 
 Stream cdc_outstr;
+static bool usb_connect;
 
-
+bool usb_con()
+   { return usb_connect; }
 
 EVENT_HANDLER(USB_Connect)
 {
   set_sleep_mode(SLEEP_MODE_IDLE); 
+  usb_connect = true;
 }
 
 
@@ -45,7 +48,9 @@ EVENT_HANDLER(USB_Disconnect)
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);
    Endpoint_DisableEndpoint();   	 
    USB_INT_Disable( ENDPOINT_INT_IN ); 
+   usb_connect = false;
 }
+
 
 
 EVENT_HANDLER(USB_Reset)
