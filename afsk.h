@@ -1,3 +1,8 @@
+/*
+ * $Id: afsk.h,v 1.9 2009-01-17 11:32:23 la7eca Exp $
+ * Some common definitions for AFSK modem
+ */
+ 
 #if !defined __AFSK_H__
 #define __AFSK_H__
 
@@ -9,8 +14,8 @@
 
 enum {
   UNDECIDED = -1,
-  MARK,  // 1200 Hz
-  SPACE  // 2200 Hz
+  MARK,      // 1200 Hz
+  SPACE      // 2200 Hz
 };
 
 
