@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.18 2009-01-17 11:39:48 la7eca Exp $
+ * $Id: tracker.c,v 1.19 2009-01-21 22:30:41 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -115,6 +115,10 @@ static void trackerThread(void)
            }         
            activate_tx();
            
+           /* if (powersave)
+               turn-off-gps; sleep ((MAXPAUSE-1)*t); pause_count += MAXPAUSE-1; turn-on-gps;
+            */
+            
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
            t = (t > GPS_FIX_TIME) ?
                t - GPS_FIX_TIME : 1;
@@ -144,7 +148,7 @@ static void activate_tx()
           * encoder. Then wait until channel is ready and then until 
           * packets are encoded and sent.
           */
-         sleep(100);
+         sleep(50);
          hdlc_wait_idle();
          adf7021_wait_tx_off();
          adf7021_power_off();
@@ -165,15 +169,23 @@ static bool should_update(posdata_t* prev, posdata_t* current)
 {
     uint16_t turn_limit; 
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
+    float est_speed = (current_pos.speed + prev_pos.speed) / 2;
     
-    if ( ++pause_count >= GET_BYTE_PARAM(TRACKER_PAUSE_LIMIT) ||             /* Upper time limit */    
-           (  current_pos.speed > 1 && prev_pos.speed > 0 &&                 /* change in course */
-              abs(current_pos.course - prev_pos.course) > turn_limit ))  
+    if ( ++pause_count >= GET_BYTE_PARAM(TRACKER_MAXPAUSE)     
+    
+        /* Change in course */   
+         ||  (  current_pos.speed > 1 && prev_pos.speed > 0 &&          
+              abs(current_pos.course - prev_pos.course) > turn_limit )
+                
+        /* Send report when starting or stopping */             
+         ||  (( current_pos.speed < 3/KNOTS2KMH && prev_pos.speed > 10/KNOTS2KMH ) ||   
+              ( prev_pos.speed < 3/KNOTS2KMH && current_pos.speed > 10/KNOTS2KMH ))
               
-           /****
-             OR
-             pause_count >= min-distance / est_speed() / TRACKER_MIN_PAUSE + min-time ) 
-           ****/
+        /* Time period depending on speed */
+         ||  pause_count >= (GET_BYTE_PARAM(TRACKER_MINDIST) / (est_speed * KNOTS2MPS))    
+                            / GET_BYTE_PARAM(TRACKER_SLEEP_TIME)
+                            + GET_BYTE_PARAM(TRACKER_MINPAUSE)    
+       )
     {     
        pause_count = 0;
        return true;
@@ -271,7 +283,7 @@ static void report_position(posdata_t* pos)
 
        /* Altitude */
        if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
-           uint16_t altd = (uint16_t) round(pos->altitude / 0.3048);
+           uint16_t altd = (uint16_t) round(pos->altitude * FEET2M);
            sprintf_P(pbuf,PSTR("/A=%06u\0"), altd);
            fbuf_putstr(&packet, pbuf);
        }
@@ -320,7 +332,7 @@ static void send_csT_compressed(FBUF* packet, posdata_t* pos)
 {
     if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
        /* Send altitude */
-       uint32_t alt =  (uint32_t) log1002((double)pos->altitude / 0.3048);
+       uint32_t alt =  (uint32_t) log1002((double)pos->altitude * FEET2M);
        fbuf_putChar(packet, (char) (lround(alt / 91) + ASCII_BASE));
        alt %= 91;
        fbuf_putChar(packet, (char) (lround(alt) + ASCII_BASE));
