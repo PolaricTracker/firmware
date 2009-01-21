@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.23 2009-01-17 11:38:40 la7eca Exp $
+ * $Id: main.c,v 1.24 2009-01-21 22:29:11 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -129,6 +129,18 @@ void setup_transceiver(void)
     adf7021_init (&trx_setup);
 }
 
+void reset_params()
+{
+    /* If version was changed */
+    if (GET_BYTE_PARAM(VERSION_KEY) != CURRENT_VERSION_KEY)
+    {
+        /* Some of the EEPROM parameters may need to be reset */
+        RESET_PARAM(DEST);
+        RESET_PARAM(DIGIS);
+        RESET_PARAM(NDIGIS);
+        SET_BYTE_PARAM(VERSION_KEY, CURRENT_VERSION_KEY);
+    }
+}
 
 
 /**************************************************************************
@@ -155,6 +167,7 @@ int main(void)
    
       TRACE_INIT;
       sei();
+      reset_params();
                             
       /* Transceiver setup */
       setup_transceiver(); 
