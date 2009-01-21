@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.24 2009-01-17 11:37:59 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.25 2009-01-21 22:28:32 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -63,7 +63,7 @@ fbq_t* hdlc_get_encoder_queue()
    { return _enc_queue; }
    
 bool hdlc_enc_packets_waiting()
-   { return !fbq_eof(_enc_queue); }
+   { return !fbq_eof(_enc_queue) || !BUFFER_EMPTY; }
 
 
 
@@ -136,7 +136,6 @@ static void hdlc_txencoder()
       hdlc_idle = false;
 
       for (;;) {
-
         wait_channel_ready(); 
         int r  = rand(); 
         if (r > PERSISTENCE * 255)
@@ -172,7 +171,7 @@ static void wait_channel_ready()
 static void hdlc_encode_frames()
 {
      uint16_t crc = 0xffff;
-     uint8_t txbyte, i;
+     uint8_t txbyte, i, sbytes = 0;
      uint8_t txdelay = GET_BYTE_PARAM(TXDELAY);
      uint8_t txtail  = GET_BYTE_PARAM(TXTAIL);
      uint8_t maxfr   = GET_BYTE_PARAM(MAXFRAME);
@@ -189,7 +188,9 @@ static void hdlc_encode_frames()
             txbyte = fbuf_getChar(&buffer);        
             crc = _crc_ccitt_update (crc, txbyte);
             hdlc_encode_byte(txbyte, false);
+            sbytes++;
         }
+        TRACE(sbytes);
         fbuf_release(&buffer);
         hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB

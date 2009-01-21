@@ -35,11 +35,20 @@ Version 0.8
     DONE
 
 
-Version --1.0
+Version 0.9
 -------------
-* Advanced tracking (compute distance etc.)
-* (noise) Filtering of position changes 
-* Powersave mode for tracking (turn off GPS, slowdown reporting when not moving)
+* Advanced tracking (period depending on speed), start/stop detection
+    DONE
+* Reset params in EEPROM 
+    DONE
+* Serious bugfix: transmit when outgoing packets..    
+    DONE
+    
+
+Version -> 1.0
+--------------
+* Powersave mode for tracking (turn off GPS)
+
 
 
 Further development
