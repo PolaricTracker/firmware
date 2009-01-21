@@ -1,5 +1,5 @@
 /* 
- * $Id: gps.c,v 1.18 2008-12-31 01:14:51 la7eca Exp $
+ * $Id: gps.c,v 1.19 2009-01-21 22:27:43 la7eca Exp $
  * NMEA data 
  */
 
@@ -87,8 +87,7 @@ static void nmeaListener()
     while (1) {
          uint8_t checksum = 0; 
          int c_checksum;
-         
-         TRACE(151);         
+                 
          getstr(in, buf, NMEA_BUFSIZE, '\n');
          
          if (buf[0] != '$')
@@ -251,7 +250,6 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
       
     lock_cnt = 1;
     notify_fix(true);
-    TRACE(161);
        
     /* get timestamp */
     nmea2time(&current_pos.timestamp, argv[1], argv[9]);
@@ -286,7 +284,7 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
     if (monitor_pos) {
         sprintf_P(buf, PSTR("TIME: %s, POS: lat=%f, long=%f, SPEED: %f km/h, COURSE: %u deg\r\n"), 
           time2str(tbuf, current_pos.timestamp), current_pos.latitude, current_pos.longitude, 
-          current_pos.speed*1.856, current_pos.course);
+          current_pos.speed*KNOTS2KMH, current_pos.course);
         putstr(out, buf);
     }
 }
@@ -298,7 +296,6 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
 
 static void do_gga(uint8_t argc, char** argv, Stream *out)
 {
-    TRACE(171);
     if (argc == 15 && *argv[6] > '0')
        sscanf(argv[9], "%f", &altitude);
     else

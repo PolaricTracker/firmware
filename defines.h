@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.27 2009-01-17 11:35:08 la7eca Exp $ 
+ * $Id: defines.h,v 1.28 2009-01-21 22:23:19 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -31,8 +31,17 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.8 (13.1.2009)"
+#define VERSION_STRING "v0.9 (19.1.2009)"
+#define CURRENT_VERSION_KEY 4 
 #define COMMENT_PERIOD 4
+
+
+/********************************************
+ * Conversions 
+ ********************************************/
+#define KNOTS2KMH 1.853
+#define KNOTS2MPS 0.5148
+#define FEET2M 3.2898
 
 
 /********************************************
@@ -55,12 +64,12 @@
 #define STACK_MAIN             100
 #define STACK_LED              100
 #define STACK_BATT             100
-#define STACK_USBLISTENER      340
-#define STACK_HDLCENCODER      150
+#define STACK_USBLISTENER      350
+#define STACK_HDLCENCODER      160
 #define STACK_HDLCDECODER      100
 #define STACK_HDLCENCODER_TEST 110
 #define STACK_GPSLISTENER      330
-#define STACK_TRACKER          340
+#define STACK_TRACKER          350
 
 
 
@@ -68,8 +77,8 @@
  * Buffers, memory management
  *******************************************/
  
-#define UART_BUF_SIZE	   16		
-#define FBUF_SLOTS         32
+#define UART_BUF_SIZE	   32		
+#define FBUF_SLOTS         64
 #define FBUF_SLOTSIZE      16
 
 #define AFSK_ENCODER_BUFFER_SIZE 128
