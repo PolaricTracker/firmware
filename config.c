@@ -1,5 +1,5 @@
 /*
- * $Id: config.c,v 1.6 2008-12-31 01:14:28 la7eca Exp $
+ * $Id: config.c,v 1.7 2009-01-21 22:26:53 la7eca Exp $
  *
  * Code for reading/writing paramerers in EEPROM, their default values in
  * program memory plus trace info in noinit part of RAM.
@@ -22,6 +22,15 @@ void show_trace(char* buf, uint8_t run, PGM_P pre, PGM_P post)
           n+= sprintf_P(buf+n, PSTR(", "));
    }
    sprintf_P(buf+n, post);
+}
+
+
+
+void reset_param(void* ee_addr, uint8_t size)
+{   
+   while (!eeprom_is_ready())
+      t_yield();
+   eeprom_write_byte(ee_addr+size, 0xff);
 }
 
 
