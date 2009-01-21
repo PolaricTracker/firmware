@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.26 2009-01-17 11:37:01 la7eca Exp $
+ * $Id: commands.c,v 1.27 2009-01-21 22:26:22 la7eca Exp $
  */
  
 #include "defines.h"
@@ -240,7 +240,7 @@ void cmdProcessor(Stream *in, Stream *out)
          
          else IF_COMMAND_PARAM_uint8
                   ( "txtail", 3, argc, argv, out,
-                    TXDELAY, 0, 200, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
+                    TXTAIL, 0, 200, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
                     
          else IF_COMMAND_PARAM_uint8
                   ( "maxframe", 5, argc, argv, out,
@@ -264,11 +264,19 @@ void cmdProcessor(Stream *in, Stream *out)
                         
          else IF_COMMAND_PARAM_uint8 
                  ( "maxpause", 6, argc, argv, out, 
-                    TRACKER_PAUSE_LIMIT, 1, 200, PSTR("Tracker pause limit is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
+                    TRACKER_MAXPAUSE, 1, 200, PSTR("Tracker pause limit is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
+       
+         else IF_COMMAND_PARAM_uint8 
+                 ( "minpause", 6, argc, argv, out, 
+                    TRACKER_MINPAUSE, 1, 200, PSTR("Tracker minimum pause (straight forward movement) is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
+    
+         else IF_COMMAND_PARAM_uint8 
+                 ( "mindist", 6, argc, argv, out, 
+                    TRACKER_MINDIST, 1, 200, PSTR("Tracker distance (at low speed) is %d meters\r\n\0"), PSTR(" %d") );                                 
          
          else IF_COMMAND_PARAM_uint8 
                  ( "statustime", 7, argc, argv, out, 
-                    TRACKER_PAUSE_LIMIT, 1, 200, PSTR("Status time is %d units (see tracktime)\r\n\0"), PSTR(" %d") );
+                    STATUS_TIME, 1, 200, PSTR("Status time is %d units (see tracktime)\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_bool 
                  ( "altitude", 3, argc, argv, out, ALTITUDE_ON, PSTR("ALTITUDE") );
