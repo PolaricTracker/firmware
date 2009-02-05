@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.27 2009-01-21 22:26:22 la7eca Exp $
+ * $Id: commands.c,v 1.28 2009-02-05 19:30:25 la7eca Exp $
  */
  
 #include "defines.h"
@@ -228,7 +228,7 @@ void cmdProcessor(Stream *in, Stream *out)
              do_freq(argc, argv, out);  
          else if (strncmp("fcal",argv[0], 3) == 0)
              do_fcal(argc, argv, out);
-         else if (strncmp("power", argv[0], 2) == 0)
+         else if (strncmp("txpower", argv[0], 4) == 0)
              do_power(argc, argv, out);    
          else if (strncmp("squelch", argv[0], 2) == 0)
              do_squelch(argc, argv, out); 
@@ -286,7 +286,10 @@ void cmdProcessor(Stream *in, Stream *out)
                  
          else IF_COMMAND_PARAM_bool
                  ( "compress", 4, argc, argv, out, COMPRESS_ON, PSTR("COMPRESS") );
-         
+                 
+         else IF_COMMAND_PARAM_bool
+                 ( "powersave", 6, argc, argv, out, GPS_POWERSAVE, PSTR("POWERSAVE") );  
+                          
          else IF_COMMAND_PARAM_bool
                  ( "beep", 2, argc, argv, out, REPORT_BEEP, PSTR("BEEP") );        
          

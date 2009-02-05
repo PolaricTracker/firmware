@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.22 2008-11-22 19:05:58 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.23 2009-02-05 19:29:26 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -67,7 +67,6 @@ void afsk_high_tone(bool t)
  
 void afsk_ptt_on()
 {        
-    TRACE(251);
     TCCR3B = _PRESCALER3_SETTING   /* Pre-scaler for timer3 */             
              | (1<<WGM32) ;        /* CTC mode */   
 //    TCCR3A |= (1<<COM3A0);         /* Toggle OC3A on compare match. */
@@ -87,7 +86,6 @@ void afsk_ptt_on()
 
 void afsk_ptt_off(void)
 {
-    TRACE(252);
     TIMSK3 = 0x00;
     TCCR3A &= ~(1<<COM3A0);           /* Toggle OC3A on compare match: OFF. */
     transmit = false; 
@@ -99,7 +97,6 @@ void afsk_ptt_off(void)
 #endif
     adf7021_disable_tx();
     start_tone = _TXI_MARK;
-    TRACE(253);
 }
 
 
