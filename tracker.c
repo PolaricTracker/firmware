@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.19 2009-01-21 22:30:41 la7eca Exp $
+ * $Id: tracker.c,v 1.20 2009-02-05 19:32:54 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -21,6 +21,9 @@ Semaphore tracker_run;
 posdata_t prev_pos; 
 extern fbq_t* outframes;  
 extern Stream cdc_outstr;
+static bool maxpause_reached = false;
+static uint8_t pause_count = 0;
+static bool waited = false;
 
 void tracker_init(void);
 void tracker_on(void); 
@@ -90,7 +93,7 @@ static void trackerThread(void)
           /*
            * Wait for a fix on position. 
            */  
-           bool waited = gps_wait_fix();   
+           waited = gps_wait_fix();   
            
            /* Pause GPS serial data to avoid interference with modulation 
             * and to save CPU cycles. 
@@ -109,17 +112,22 @@ static void trackerThread(void)
             * Send report, if criteria are satisfied, or if we waited 
             * for GPS fix
             */
-           if (waited || should_update(&prev_pos, &current_pos)) {
+           if (should_update(&prev_pos, &current_pos)) {
               report_position(&current_pos);
               prev_pos = current_pos;          
            }         
            activate_tx();
            
-           /* if (powersave)
-               turn-off-gps; sleep ((MAXPAUSE-1)*t); pause_count += MAXPAUSE-1; turn-on-gps;
-            */
-            
            GET_PARAM(TRACKER_SLEEP_TIME, &t);
+           
+           /* Powersave mode */
+           if (maxpause_reached && current_pos.speed < 1 && GET_BYTE_PARAM(GPS_POWERSAVE)) {
+                gps_off();
+                pause_count = GET_BYTE_PARAM(TRACKER_MAXPAUSE) - 1;
+                sleep (pause_count * t * TIMER_RESOLUTION); 
+                gps_on();
+           }
+
            t = (t > GPS_FIX_TIME) ?
                t - GPS_FIX_TIME : 1;
            sleep(t * TIMER_RESOLUTION); 
@@ -164,15 +172,15 @@ static void activate_tx()
  * the previous update. 
  *********************************************************************/
 
-static uint8_t pause_count = 0;
 static bool should_update(posdata_t* prev, posdata_t* current)
 {
     uint16_t turn_limit; 
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
-    float est_speed = (current_pos.speed + prev_pos.speed) / 2;
+    float est_speed = max(current_pos.speed, (current_pos.speed + prev_pos.speed) / 2);
     
-    if ( ++pause_count >= GET_BYTE_PARAM(TRACKER_MAXPAUSE)     
-    
+    maxpause_reached = ( ++pause_count >= GET_BYTE_PARAM(TRACKER_MAXPAUSE));     
+    if ( maxpause_reached || waited
+       
         /* Change in course */   
          ||  (  current_pos.speed > 1 && prev_pos.speed > 0 &&          
               abs(current_pos.course - prev_pos.course) > turn_limit )
@@ -182,7 +190,7 @@ static bool should_update(posdata_t* prev, posdata_t* current)
               ( prev_pos.speed < 3/KNOTS2KMH && current_pos.speed > 10/KNOTS2KMH ))
               
         /* Time period depending on speed */
-         ||  pause_count >= (GET_BYTE_PARAM(TRACKER_MINDIST) / (est_speed * KNOTS2MPS))    
+         ||  pause_count >= (uint8_t) (GET_BYTE_PARAM(TRACKER_MINDIST) / ((est_speed+1) * KNOTS2MPS))    
                             / GET_BYTE_PARAM(TRACKER_SLEEP_TIME)
                             + GET_BYTE_PARAM(TRACKER_MINPAUSE)    
        )
