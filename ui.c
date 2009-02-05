@@ -1,5 +1,5 @@
 /*
- * $Id: ui.c,v 1.6 2009-01-17 11:41:39 la7eca Exp $
+ * $Id: ui.c,v 1.7 2009-02-05 19:34:12 la7eca Exp $
  *
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
@@ -368,7 +368,7 @@ static void batt_check_thread()
        make_input(EXT_CHARGER);
        clear_port(EXT_CHARGER);
        sleep(5);
-       if ((pin_is_high(EXT_CHARGER) || usb_con()) && !usb_on) {
+       if (((pin_is_high(EXT_CHARGER) && _batt_voltage >= 6.75) || usb_con()) && !usb_on) {
           if (_batt_charged) 
              rgb_led_on(false,true,false);
           else
