@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.25 2009-01-21 22:28:32 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.26 2009-02-05 19:31:19 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -171,7 +171,7 @@ static void wait_channel_ready()
 static void hdlc_encode_frames()
 {
      uint16_t crc = 0xffff;
-     uint8_t txbyte, i, sbytes = 0;
+     uint8_t txbyte, i; 
      uint8_t txdelay = GET_BYTE_PARAM(TXDELAY);
      uint8_t txtail  = GET_BYTE_PARAM(TXTAIL);
      uint8_t maxfr   = GET_BYTE_PARAM(MAXFRAME);
@@ -188,9 +188,7 @@ static void hdlc_encode_frames()
             txbyte = fbuf_getChar(&buffer);        
             crc = _crc_ccitt_update (crc, txbyte);
             hdlc_encode_byte(txbyte, false);
-            sbytes++;
         }
-        TRACE(sbytes);
         fbuf_release(&buffer);
         hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
