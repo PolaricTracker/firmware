@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.28 2009-01-21 22:23:19 la7eca Exp $ 
+ * $Id: defines.h,v 1.29 2009-02-05 19:21:34 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -31,7 +31,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.9 (19.1.2009)"
+#define VERSION_STRING "v0.9+ (29.1.2009)"
 #define CURRENT_VERSION_KEY 4 
 #define COMMENT_PERIOD 4
 
@@ -62,14 +62,14 @@
  *********************************************/
 
 #define STACK_MAIN             100
-#define STACK_LED              100
+#define STACK_LED              110
 #define STACK_BATT             100
-#define STACK_USBLISTENER      350
+#define STACK_USBLISTENER      360
 #define STACK_HDLCENCODER      160
 #define STACK_HDLCDECODER      100
 #define STACK_HDLCENCODER_TEST 110
 #define STACK_GPSLISTENER      330
-#define STACK_TRACKER          350
+#define STACK_TRACKER          390
 
 
 
