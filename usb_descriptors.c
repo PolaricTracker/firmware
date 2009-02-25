@@ -171,7 +171,7 @@ USB_Descriptor_String_t ProductString PROGMEM =
 {
 	Header:                 {Size: USB_STRING_LEN(14), Type: DTYPE_String},
 		
-	UnicodeString:          {'M','y','U','S','B',' ','C','D','C',' ','D','e','m','o'}
+	UnicodeString:          {'L','A','3','T',' ','-',' ','T ','R','A','C','K','E','R'}
 };
 
 USB_Descriptor_String_t SerialNumberString PROGMEM =
