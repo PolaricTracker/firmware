@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_rx.c,v 1.8 2008-12-13 11:37:50 la7eca Exp $
+ * $Id: afsk_rx.c,v 1.9 2009-03-15 00:13:25 la7eca Exp $
  * AFSK receiver/demodulator
  */
  
@@ -16,7 +16,8 @@
 #include "transceiver.h"
 
 
-#define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/128/AFSK_BAUD)-1)         /*  52.083 */
+#define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/128/AFSK_BAUD))         /*  52.083 */
+#define SYMBOL_SAMPLE_RESYNC   ((SCALED_F_CPU/128/AFSK_BAUD))/2
 
 #define TXTONE_MID ((AFSK_TXTONE_MARK+AFSK_TXTONE_SPACE)/2)
 #define CENTER_FREQUENCY ((SCALED_F_CPU/64)/(TXTONE_MID*2)-1)           /*  36.764 */
@@ -38,7 +39,7 @@ stream_t afsk_rx_stream;
 static void _afsk_stop_decoder (void);
 static void _afsk_start_decoder (void);
 static void _afsk_abort (void);
-
+static void sample_bit(void);
 
 
 stream_t* afsk_init_decoder ()
@@ -75,11 +76,19 @@ static void _afsk_start_decoder ()
   make_input(TXDATA);
   set_bit (PCMSK0, PCINT2);
   set_bit (PCICR, PCIE0);
+  
+  make_output(TP5);
+  make_output(TP17);
+  
+     OCR2A = SYMBOL_SAMPLE_INTERVAL;
+     set_bit (TIMSK2, OCIE2A);   /* Enable Compare Match A Interrupt */
+  set_port(LED2);
 }
 
 
 static void _afsk_stop_decoder ()
 {  
+  clear_port(LED2);
   decoder_running = false;
   /* Disable pin change interrupt on input pin from receiver */
   clear_bit (PCICR, PCIE0);
@@ -126,10 +135,10 @@ void afsk_check_channel ()
 
 ISR(PCINT0_vect)
 {
-
   /* We assume for now that PCINT2 is the only enabled pin change
      interrupt, so we just go about doing decoding without further
      check of interrupt source. */  
+     
   int8_t symbol;
   uint8_t counts = TCNT0; /* Counts on Timer0 since last change */
   TCNT0 = 0;
@@ -144,15 +153,16 @@ ISR(PCINT0_vect)
          counts < CENTER_FREQUENCY )
      symbol = SPACE;
 
+
   if (symbol != UNDECIDED && symbol != hard_symbol)
   {
     /* If toggle, reset Timer2 and set compare match register 
-     * to 2/3 of a bit 
+     * to 1/2 of a bit 
      */
-    TCNT2 = 0;
-    OCR2A = SYMBOL_SAMPLE_INTERVAL * 2 / 3;
-    set_bit (TIMSK2, OCIE2A);   /* Enable Compare Match A Interrupt */
-    hard_symbol = symbol;
+      TCNT2 = 0;
+      OCR2A = SYMBOL_SAMPLE_RESYNC;
+      set_bit (TIMSK2, OCIE2A);   /* Enable Compare Match A Interrupt */
+      hard_symbol = symbol;
   }
 
   if (symbol == UNDECIDED && soft_symbol == UNDECIDED)
@@ -162,6 +172,7 @@ ISR(PCINT0_vect)
       valid_symbol = true;
   soft_symbol = symbol;
 }
+
 
 
 
@@ -180,24 +191,19 @@ static void _afsk_abort ()
 }
 
 
-/******************************************************************************
- * Interrupt routine to be called to sample input symbols at the baud rate    *
- ******************************************************************************/
-
-ISR(TIMER2_COMPA_vect)
-{
+static void sample_bit()
+{ 
    static int8_t prev_symbol;
    static uint8_t bit_count = 0;
    static uint8_t octet;
-   if (valid_symbol) {
-//      set_port (LED2);
-
+   if (valid_symbol) 
+   {  
       octet = (octet >> 1) | ((hard_symbol == prev_symbol) ? 0x80 : 0x00);
       prev_symbol = hard_symbol;
      
       bit_count++;
       if (bit_count == 8) 
-      {
+      { 
          /* Always leave room for abort token */
          if (afsk_rx_stream.length.cnt < afsk_rx_stream.size) 
             stream_put_nb (&afsk_rx_stream, octet);
@@ -212,8 +218,18 @@ ISR(TIMER2_COMPA_vect)
       }
    } else {
       _afsk_abort();
-//      clear_port (LED2);
-   }
-  
+   } 
+}
+
+
+
+
+/******************************************************************************
+ * Interrupt routine to be called to sample input symbols at the baud rate    *
+ ******************************************************************************/
+
+ISR(TIMER2_COMPA_vect)
+{
    OCR2A = SYMBOL_SAMPLE_INTERVAL;
+   sample_bit();
 }

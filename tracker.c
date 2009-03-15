@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.20 2009-02-05 19:32:54 la7eca Exp $
+ * $Id: tracker.c,v 1.21 2009-03-15 00:16:01 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -45,6 +45,8 @@ int abs(int);
 double round(double);
 double log(double);
 long lround(double);
+
+extern bool is_off;   /* FIXME: Use accessor function */
 
 
 /***************************************************************
@@ -147,7 +149,7 @@ static void trackerThread(void)
 
 static void activate_tx()
 {
-      if (hdlc_enc_packets_waiting()) {
+      if (!is_off && hdlc_enc_packets_waiting()) {
          adf7021_power_on(); 
 
          /* 

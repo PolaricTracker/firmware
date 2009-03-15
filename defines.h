@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.30 2009-02-11 22:00:13 la7eca Exp $ 
+ * $Id: defines.h,v 1.31 2009-03-15 00:12:10 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -31,7 +31,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.9+ (11.2.2009)"
+#define VERSION_STRING "v0.9+ (3.3.2009)"
 #define CURRENT_VERSION_KEY 4 
 #define COMMENT_PERIOD 4
 
@@ -109,7 +109,7 @@ extern uint8_t blink_length, blink_interval;
  * Bættery stuff
  *******************************************/
  
-#define BATT_HIGHCHARGE_MAX 7.18
+#define BATT_HIGHCHARGE_MAX 7.15
 #define BATT_LOWCHARGE_MIN  6.8 
 #define BATT_LOW_WARNING    5.5
 #define BATT_LOW_TURNOFF    5.2
@@ -173,6 +173,14 @@ extern uint8_t blink_length, blink_interval;
 #define EXT_CHARGER_BIT     6
 #define EXT_CHARGER_DDR     DDRB
 #define EXT_CHARGER_PIN     PINB
+
+#define TP5_PORT PORTA
+#define TP5_BIT  1
+#define TP5_DDR  DDRA
+
+#define TP17_PORT PORTA
+#define TP17_BIT  5
+#define TP17_DDR  DDRA
 
 
 #if defined USBKEY_TEST  

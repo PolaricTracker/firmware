@@ -39,7 +39,7 @@ char* fbuf_read     (FBUF* b, uint8_t size, char *buf);
 void  fbuf_merge    (FBUF* b, FBUF* x, uint8_t pos);
 
 #define fbuf_eof(b) ((b)->rslot == NILPTR)
-
+#define fbuf_length(b) ((b)->length)
 
 
 /*********************************

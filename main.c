@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.24 2009-01-21 22:29:11 la7eca Exp $
+ * $Id: main.c,v 1.25 2009-03-15 00:15:29 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -167,14 +167,14 @@ int main(void)
    
       TRACE_INIT;
       sei();
-      reset_params();
+//      reset_params();
                             
       /* Transceiver setup */
       setup_transceiver(); 
      
       /* HDLC and AFSK setup */
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
-//      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
+      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
       
       /* GPS and tracking */
       gps_init(&cdc_outstr);
