@@ -65,6 +65,7 @@ void fbuf_new (FBUF* bb)
 {
     bb->head = bb->wslot = bb->rslot = NILPTR; 
     bb->rpos = 0;
+    bb->length = 0;
 }
 
 
@@ -97,14 +98,17 @@ void fbuf_reset(FBUF* b)
 
 void fbuf_rseek(FBUF* b, const uint8_t pos)
 {
-   register uint8_t i=0;
+   register uint8_t i=pos;
    if (pos > b->length)
        return;
    fbuf_reset(b);
-   while (pos > _fbuf_length[b->rslot])
-        i -= _fbuf_length[b->rslot++];
+   while (i > _fbuf_length[b->rslot]) {
+        i -= _fbuf_length[b->rslot];
+        b->rslot = _fbuf_next[b->rslot];
+   }
    b->rpos = i;
 }
+
 
 
 
@@ -130,6 +134,7 @@ void fbuf_putChar (FBUF* b, const char c)
     _fbuf_length[b->wslot]++; 
     b->length++;
 }
+
 
 
 /*******************************************************
