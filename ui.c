@@ -1,5 +1,5 @@
 /*
- * $Id: ui.c,v 1.7 2009-02-05 19:34:12 la7eca Exp $
+ * $Id: ui.c,v 1.8 2009-03-15 00:17:28 la7eca Exp $
  *
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
@@ -107,8 +107,8 @@ static void wakeup_handler()
 {
    if (is_off & (pin_is_high(EXT_CHARGER) || usb_on || usb_con())) 
        wdt_enable(WDTO_4S);
-   if (is_off && gps_hasWaiters())
-       gps_on();
+   /* if (is_off && gps_hasWaiters())
+        gps_on(); */
 }
 
 
