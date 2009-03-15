@@ -1,5 +1,5 @@
 /*
- * $Id: ax25.c,v 1.11 2008-10-01 21:34:45 la7eca Exp $
+ * $Id: ax25.c,v 1.12 2009-03-15 00:13:48 la7eca Exp $
  */
  
 #include "ax25.h"
@@ -47,6 +47,7 @@ void str2addr(addr_t* addr, const char* string)
 }
 
 
+
 /*************************************************************************
  * Convert AX.25 address field into string
  * Format: <callsign>-<ssid> 
@@ -54,9 +55,13 @@ void str2addr(addr_t* addr, const char* string)
 
 char* addr2str(char* string, const addr_t* addr)
 {
-    sprintf_P(string, PSTR("%s-%d\0"), addr->callsign, addr->ssid);
+    if (addr->ssid == 0)
+        sprintf_P(string, PSTR("%s\0"), addr->callsign);
+    else
+        sprintf_P(string, PSTR("%s-%d\0"), addr->callsign, addr->ssid);
     return string;
 }
+
    
    
 /**********************************************************************
@@ -98,12 +103,12 @@ uint8_t ax25_decode_header(FBUF* b, addr_t* from,
                                     uint8_t* ctrl,
                                     uint8_t* pid)
 {
-    register uint8_t i;
-    decode_addr(b, from);
+    register uint8_t i = -1;
     decode_addr(b, to);
-    for (i=0; i<7; i++)
-        if ( decode_addr(b, &digis[i]) | FLAG_LAST)   
-            break;
+    if (!(decode_addr(b, from) & FLAG_LAST));
+       for (i=0; i<7; i++)
+           if ( decode_addr(b, &digis[i]) & FLAG_LAST)   
+              break;
     *ctrl = fbuf_getChar(b);
     *pid = fbuf_getChar(b);
     return i+1;
@@ -129,7 +134,8 @@ static uint8_t decode_addr(FBUF *b, addr_t* a)
     }
     *c = '\0';
     x = fbuf_getChar(b);
-    a->ssid = (x & 0x8e) >> 1; 
+    a->ssid = (x & 0x0E) >> 1; 
+    a->flags = x & 0x81;
     return x & 0x81;
 }
 
@@ -155,6 +161,44 @@ static void encode_addr(FBUF *b, char* c, uint8_t ssid, uint8_t flags)
      fbuf_putChar(b, ((ssid & 0x0f) << 1) | (flags & 0x81) | 0x60 );
 }
       
+ 
       
+/**************************************************************************
+ * Display AX.25 frame (on output stream)
+ **************************************************************************/
+void ax25_display_addr(Stream* out, addr_t* a)
+{
+    char buf[10];
+    addr2str(buf, a);
+    putstr(out, buf);
+}
 
+void ax25_display_frame(Stream* out, FBUF *b)
+{
+    fbuf_reset(b);
+    addr_t to, from;
+    addr_t digis[7];
+    uint8_t ctrl;
+    uint8_t pid;
+    uint8_t ndigis = ax25_decode_header(b, &from, &to, digis, &ctrl, &pid);
+    ax25_display_addr(out, &from); 
+    putstr_P(out, PSTR(">"));
+    ax25_display_addr(out, &to);
+    uint8_t i;
+    for (i=0; i<ndigis; i++) {
+       putstr_P(out, PSTR(","));
+       ax25_display_addr(out, &digis[i]);
+       if (digis[i].flags & FLAG_DIGI)
+           putstr_P(out, PSTR("*"));
+    }
+    if (ctrl == FTYPE_UI)
+    {
+       putstr_P(out, PSTR(":"));    
+       for (i=0; i < fbuf_length(b) - (14+2+ndigis*7)-2; i++)
+          putch(out, fbuf_getChar(b));
+    }
+    else
+       putstr_P(out, PSTR(" *** NON-UI FRAME ***")); 
+
+}
 
