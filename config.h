@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.30 2009-02-05 19:21:05 la7eca Exp $
+ * $Id: config.h,v 1.31 2009-03-26 22:08:34 la7eca Exp $
  *
  * Definition of parameters to be stored in EEPROM, their default 
  * values in program memory plus trace info in noinit part of RAM.
@@ -54,6 +54,7 @@ DEFINE_PARAM( TRX_CALIBRATE,      int16_t      );
 DEFINE_PARAM( TRX_TXPOWER,        double       );
 DEFINE_PARAM( TRX_AFSK_DEV,       uint16_t     );
 DEFINE_PARAM( TRX_SQUELCH,        double       );
+DEFINE_PARAM( TRX_AFC,            uint16_t     );
 DEFINE_PARAM( TRACKER_ON,         uint8_t      );
 DEFINE_PARAM( TRACKER_SLEEP_TIME, uint16_t     ); 
 DEFINE_PARAM( SYMBOL,             uint8_t      );
@@ -96,6 +97,7 @@ DEFAULT_PARAM( TRX_CALIBRATE )       = 0;
 DEFAULT_PARAM( TRX_TXPOWER )         = 0.0;
 DEFAULT_PARAM( TRX_AFSK_DEV )        = 0;
 DEFAULT_PARAM( TRX_SQUELCH )         = -80;
+DEFAULT_PARAM( TRX_AFC )             = 2000;
 DEFAULT_PARAM( TRACKER_ON )          = 0;
 DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 10; 
 DEFAULT_PARAM( SYMBOL)               = '.';
