@@ -115,7 +115,7 @@ static void hdlc_decode ()
 
 
    sleep(5);   
-   if (crc_match(&fbuf, length)) {
+   if (crc_match(&fbuf, length)) {     
       /* Display frame */
       ax25_display_frame(out, &fbuf);
       putstr_P(out, PSTR("\r\n"));
@@ -132,13 +132,13 @@ static void hdlc_decode ()
 
 bool crc_match(FBUF* b, uint8_t length)
 {
-   /* Calculate frame from frame content */
+   /* Calculate FCS from frame content */
    uint16_t crc = 0xFFFF;
    uint8_t i;
    for (i=0; i<length-2; i++)
        crc = _crc_ccitt_update(crc, fbuf_getChar(b)); 
        
-   /* Get CRC from 2 last bytes of frame */
+   /* Get FCS from 2 last bytes of frame */
    uint16_t rcrc; 
    fbuf_rseek(b, length-2);
    rcrc = (uint16_t) fbuf_getChar(b) ^ 0xFF;

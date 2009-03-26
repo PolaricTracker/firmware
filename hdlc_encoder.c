@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.26 2009-02-05 19:31:19 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.27 2009-03-26 22:15:33 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -156,7 +156,7 @@ static void wait_channel_ready()
     double sqlevel; 
     GET_PARAM(TRX_SQUELCH, &sqlevel);
     while (adf7021_read_rssi() > sqlevel) 
-       sleep(5);
+       sleep(10);
 }
 
 
