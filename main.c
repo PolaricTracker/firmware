@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.25 2009-03-15 00:15:29 la7eca Exp $
+ * $Id: main.c,v 1.26 2009-03-26 22:17:13 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -48,13 +48,13 @@ fbq_t *outframes, *inframes;
  ***************************************************************************/ 
 
  
-ISR(TIMER1_COMPA_vect) 
+ISR(TIMER2_COMPA_vect) 
 {
-     static uint8_t ticks, txticks; 
+     static uint8_t ticks, txticks, rxticks; 
      sei(); /* Enable nested interrupts. MAY BE DANGEROUS???? */
      
      /*
-      * count 8 ticks to get to a 1200Hz rate
+      * count 2 ticks to get to a 1200Hz rate
       */
      if (++txticks == 2) {
          afsk_txBitClock();
@@ -67,9 +67,11 @@ ISR(TIMER1_COMPA_vect)
      if (++ticks == 24) { 
         timer_tick();  
         ticks = 0; 
-        afsk_check_channel ();
      }  
-     
+     if (++rxticks == 240) {
+        rxticks = 0; 
+        afsk_check_channel ();
+     }
      ui_clock();
 }
 
@@ -105,11 +107,13 @@ void setup_transceiver(void)
     int16_t  fcal;
     double power; 
     uint16_t dev;
+    uint16_t afc;
     
     GET_PARAM(TRX_FREQ, &freq);
     GET_PARAM(TRX_CALIBRATE, &fcal);
     GET_PARAM(TRX_TXPOWER, &power);
     GET_PARAM(TRX_AFSK_DEV, &dev);
+    GET_PARAM(TRX_AFC, &afc);
     
     adf7021_setup_init(&trx_setup);
     adf7021_set_frequency (&trx_setup, freq+fcal);
@@ -118,11 +122,11 @@ void setup_transceiver(void)
     
     adf7021_set_data_rate (&trx_setup, 4400);    
     adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, dev);
-    adf7021_set_power (&trx_setup, power, ADF7021_PA_RAMP_OFF);
-    
+    adf7021_set_power (&trx_setup, power, ADF7021_PA_RAMP_OFF);   
     adf7021_set_demodulation (&trx_setup, ADF7021_DEMOD_2FSK_LINEAR);
+    adf7021_enable_AFC(&trx_setup, afc);
     trx_setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
-    adf7021_set_post_demod_filter (&trx_setup, 3500);
+    adf7021_set_post_demod_filter (&trx_setup, 3500); 
     ADF7021_INIT_REGISTER(trx_setup.test_mode, ADF7021_TEST_MODE_REGISTER);
     trx_setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
 
@@ -160,10 +164,10 @@ int main(void)
       init_kernel(STACK_MAIN); 
       
       /* Timer */    
-      TCCR1B = 0x02                   /* Pre-scaler for timer0 */             
-             | (1<<WGM12);            /* CTC mode */             
-      TIMSK1 = 1<<OCIE1A;             /* Interrupt on compare match */
-      OCR1A  = (SCALED_F_CPU / 8 / 2400) - 1;
+      TCCR2B = 0x03;                   /* Pre-scaler for timer0 */             
+      TCCR2A = 1<<WGM21;            /* CTC mode */             
+      TIMSK2 = 1<<OCIE2A;             /* Interrupt on compare match */
+      OCR2A  = (SCALED_F_CPU / 32 / 2400) - 1;
    
       TRACE_INIT;
       sei();
