@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_rx.c,v 1.9 2009-03-15 00:13:25 la7eca Exp $
+ * $Id: afsk_rx.c,v 1.10 2009-03-26 22:13:02 la7eca Exp $
  * AFSK receiver/demodulator
  */
  
@@ -16,8 +16,9 @@
 #include "transceiver.h"
 
 
-#define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/128/AFSK_BAUD))         /*  52.083 */
-#define SYMBOL_SAMPLE_RESYNC   ((SCALED_F_CPU/128/AFSK_BAUD))/2
+#define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/8/AFSK_BAUD))       
+#define SYMBOL_SAMPLE_RESYNC   ((SCALED_F_CPU/8/AFSK_BAUD))/2
+
 
 #define TXTONE_MID ((AFSK_TXTONE_MARK+AFSK_TXTONE_SPACE)/2)
 #define CENTER_FREQUENCY ((SCALED_F_CPU/64)/(TXTONE_MID*2)-1)           /*  36.764 */
@@ -39,8 +40,8 @@ stream_t afsk_rx_stream;
 static void _afsk_stop_decoder (void);
 static void _afsk_start_decoder (void);
 static void _afsk_abort (void);
-static void sample_bit(void);
-
+static void sample_bits(void);
+static void add_bit(bool);
 
 stream_t* afsk_init_decoder ()
 {
@@ -63,43 +64,37 @@ static void _afsk_start_decoder ()
   set_bit (TCCR0B, CS01);    /*  } Prescaler set to 64  */
   clear_bit (TCCR0B, CS02);  /* /                       */  
   
-  /* Setup Timer2 for symbol sampling at 1200 baud*/
-  clear_bit (TCCR2A, WGM20); /* \                       */
-  set_bit (TCCR2A, WGM21);   /*  } Enable CTC mode      */
-  clear_bit (TCCR2B, WGM22); /* /                       */ 
-  clear_bit (ASSR, AS2);     /* I/O clock as source     */
-  set_bit (TCCR2B, CS20);    /* \                       */
-  clear_bit (TCCR2B, CS21);  /*  } Prescaler set to 128 */
-  set_bit (TCCR2B, CS22);    /* /                       */
+  /* Setup Timer1 for symbol sampling at 1200 baud*/
+  clear_bit (TCCR1A, WGM10); /* \                       */
+  clear_bit (TCCR1A, WGM11); /*  } Enable normal mode   */
+  clear_bit (TCCR1B, WGM12); /* /                       */ 
+ //  clear_bit (ASSR, AS2);   /* I/O clock as source     */
+  clear_bit (TCCR1B, CS10);  /* \                       */
+  set_bit (TCCR1B, CS11);    /*  } Prescaler set to 8   */
+  clear_bit (TCCR1B, CS12);  /* /                       */
 
   /* Enable pin change interrupt on rx data from receiver */
   make_input(TXDATA);
   set_bit (PCMSK0, PCINT2);
   set_bit (PCICR, PCIE0);
-  
-  make_output(TP5);
-  make_output(TP17);
-  
-     OCR2A = SYMBOL_SAMPLE_INTERVAL;
-     set_bit (TIMSK2, OCIE2A);   /* Enable Compare Match A Interrupt */
-  set_port(LED2);
+
+  pri_rgb_led_on(true,true,false);
 }
+
 
 
 static void _afsk_stop_decoder ()
 {  
-  clear_port(LED2);
   decoder_running = false;
   /* Disable pin change interrupt on input pin from receiver */
   clear_bit (PCICR, PCIE0);
   clear_bit (PCMSK0, PCINT2);
   
-  /* Disable Timer2 interrupt */
-  clear_bit (TIMSK2, OCIE2A);
-  clear_port(LED2);
+  pri_rgb_led_off();
   _afsk_abort (); // Just in case the decoder is disabled while the HDLC
                   // decoder is still in sync
 }
+
 
 
 void afsk_enable_decoder ()
@@ -111,6 +106,8 @@ void afsk_disable_decoder ()
      _afsk_stop_decoder(); }
 
 
+
+
 /***************************************************************************
  * To be called periodically to see if there is a signal on the channel    *
  ***************************************************************************/
@@ -120,9 +117,9 @@ void afsk_check_channel ()
     if (!decoder_enabled)
        return;    
     if ((!decoder_running) && (adf7021_read_rssi() > sqlevel))
-       _afsk_start_decoder();
+        _afsk_start_decoder();
     else if (decoder_running && (adf7021_read_rssi() <= sqlevel))
-       _afsk_stop_decoder();   
+        _afsk_stop_decoder();   
 }
 
 
@@ -153,24 +150,64 @@ ISR(PCINT0_vect)
          counts < CENTER_FREQUENCY )
      symbol = SPACE;
 
-
-  if (symbol != UNDECIDED && symbol != hard_symbol)
-  {
-    /* If toggle, reset Timer2 and set compare match register 
-     * to 1/2 of a bit 
-     */
-      TCNT2 = 0;
-      OCR2A = SYMBOL_SAMPLE_RESYNC;
-      set_bit (TIMSK2, OCIE2A);   /* Enable Compare Match A Interrupt */
-      hard_symbol = symbol;
+  /* If toggle between mark and space */
+  if (symbol != UNDECIDED && symbol != soft_symbol)
+      sample_bits();
+  
+  if (symbol == UNDECIDED && soft_symbol == UNDECIDED) {
+     if (valid_symbol) 
+         _afsk_abort();
+     valid_symbol = false;
   }
-
-  if (symbol == UNDECIDED && soft_symbol == UNDECIDED)
-    valid_symbol = false;
   else
     if (symbol != UNDECIDED && soft_symbol != UNDECIDED)
-      valid_symbol = true;
+        valid_symbol = true;
   soft_symbol = symbol;
+}
+
+
+
+static void sample_bits()
+{
+    /* The number of 1-bits is determined by the timer count */
+     uint16_t counts = TCNT1;
+     TCNT1 = 0;
+     uint8_t ones = (uint8_t) 
+        ((counts - (uint16_t) SYMBOL_SAMPLE_RESYNC) / (uint16_t) SYMBOL_SAMPLE_INTERVAL);
+
+     if (ones >= 8) 
+         _afsk_abort();
+     else {
+         for (uint8_t i = 0; i<ones; i++)
+            add_bit(true);  
+         add_bit(false);
+    }
+}
+
+
+
+static uint8_t bit_count = 0;
+
+static void add_bit(bool bit)
+{ 
+   static uint8_t octet;
+   octet = (octet >> 1) | (bit ? 0x80 : 0x00);
+   bit_count++;
+   
+   if (bit_count == 8) 
+   {        
+      /* Always leave room for abort token */
+      if (afsk_rx_stream.length.cnt < afsk_rx_stream.size-1) 
+         stream_put_nb (&afsk_rx_stream, octet);
+      else
+         /* This should never happend, but if if it does it can only be
+          * caused by the buffer being too short or a thread running too
+          * long. Having some kind of log to report such errors would be
+          * a good idea. 
+          */ 
+          _afsk_abort();
+      bit_count = 0;
+   }
 }
 
 
@@ -187,49 +224,8 @@ static void _afsk_abort ()
      * If the buffer full, an abort token has already been
      * written to the stream 
      */
-    stream_put_nb (&afsk_rx_stream, 0xFF);
-}
-
-
-static void sample_bit()
-{ 
-   static int8_t prev_symbol;
-   static uint8_t bit_count = 0;
-   static uint8_t octet;
-   if (valid_symbol) 
-   {  
-      octet = (octet >> 1) | ((hard_symbol == prev_symbol) ? 0x80 : 0x00);
-      prev_symbol = hard_symbol;
-     
-      bit_count++;
-      if (bit_count == 8) 
-      { 
-         /* Always leave room for abort token */
-         if (afsk_rx_stream.length.cnt < afsk_rx_stream.size) 
-            stream_put_nb (&afsk_rx_stream, octet);
-         else
-            /* This should never happend, but if if it does it can only be
-             * caused by the buffer being too short or a thread running too
-             * long. Having some kind of log to report such errors would be
-             * a good idea. 
-             */
-             _afsk_abort();
-         bit_count = 0;
-      }
-   } else {
-      _afsk_abort();
-   } 
-}
-
-
-
-
-/******************************************************************************
- * Interrupt routine to be called to sample input symbols at the baud rate    *
- ******************************************************************************/
-
-ISR(TIMER2_COMPA_vect)
-{
-   OCR2A = SYMBOL_SAMPLE_INTERVAL;
-   sample_bit();
+    bit_count = 0;
+    if (afsk_rx_stream.length.cnt < afsk_rx_stream.size)
+       stream_put_nb (&afsk_rx_stream, 0xFF);
+    
 }
