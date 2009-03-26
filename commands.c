@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.28 2009-02-05 19:30:25 la7eca Exp $
+ * $Id: commands.c,v 1.29 2009-03-26 22:14:21 la7eca Exp $
  */
  
 #include "defines.h"
@@ -178,8 +178,11 @@ void cmdProcessor(Stream *in, Stream *out)
 {
     char* argv[MAXTOKENS];
     uint8_t argc;
-    
-    putstr_P(out, PSTR("\n\rVelkommen til LA3T 'Polaric Tracker' firmware\r\n"));
+    putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
+    putstr_P(out, PSTR("\n\r Velkommen til 'Polaric Tracker' firmware "));
+    putstr_P(out, PSTR(VERSION_STRING));
+    putstr_P(out, PSTR("\r\n Utviklet av LA3T, Tromsøgruppen av NRRL"));
+    putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
     
     while (1) {
          putstr(out, "cmd: ");    
@@ -246,6 +249,10 @@ void cmdProcessor(Stream *in, Stream *out)
                   ( "maxframe", 5, argc, argv, out,
                     TXDELAY, 1, 7, PSTR("MAXFRAME is %d\r\n\0"), PSTR(" %d") );
          
+         else IF_COMMAND_PARAM_uint16
+                 ("afc", 3, argc, argv, out, 
+                    TRX_AFC, 0, 12000, PSTR("AFC range is %d Hz\r\n\0"), PSTR(" %d") );
+                   
          else IF_COMMAND_PARAM_uint16
                  ( "tracktime", 6, argc, argv, out, 
                    TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 3600, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
@@ -330,11 +337,15 @@ static void do_vbatt(uint8_t argc, char** argv, Stream* out)
 }
 
 
+
+/************************************************
+ * Decode and show incoming packets
+ ************************************************/
+ 
 static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** LISTEN ON RECEIVER *****\r\n"));
    afsk_enable_decoder();
-   getch(in);
    getch(in);
    afsk_disable_decoder();
 }
@@ -373,7 +384,6 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
      return;
 
   /* And wait until some character has been typed */
-  getch(in);
   getch(in);
   gps_mon_off();
 }
@@ -435,7 +445,6 @@ static void do_txon(uint8_t argc, char** argv, Stream* out, Stream* in)
    adf7021_enable_tx();
 
    getch(in);
-   getch(in);
    adf7021_disable_tx();
 }
 
@@ -459,7 +468,6 @@ static void do_teston(uint8_t argc, char** argv, Stream* out, Stream* in)
     
      /* And wait until some character has been typed */
     getch(in);
-    getch(in);
     hdlc_test_off();
 }
 
@@ -482,7 +490,6 @@ static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
   } 
   
  /* And wait until some character has been typed */
-  getch(in);
   getch(in);
   hdlc_test_off();
 }
