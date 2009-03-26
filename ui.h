@@ -14,5 +14,7 @@ void batt_extcharger_event(void);
 float batt_voltage(void);
 void turn_off(void);
 void led_usb_restore(void);
+void pri_rgb_led_on(bool, bool, bool);
+void pri_rgb_led_off(void);
 
 #endif
