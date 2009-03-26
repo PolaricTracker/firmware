@@ -1,5 +1,5 @@
 /*
- * $Id: ui.c,v 1.8 2009-03-15 00:17:28 la7eca Exp $
+ * $Id: ui.c,v 1.9 2009-03-26 22:11:57 la7eca Exp $
  *
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
@@ -235,11 +235,15 @@ void led_usb_off()
 }
 
 
+
+static bool pri_rgb_on = false;
 /*************************************************************************
  * Make the led blue if usb is on
  *************************************************************************/
 void led_usb_restore()
 {
+   if (pri_rgb_on) 
+       return;
     rgb_led_off();
     if (usb_on)
       rgb_led_on(false, false, true);
@@ -252,6 +256,8 @@ void led_usb_restore()
  
 void rgb_led_on(bool red, bool green, bool blue)
 {
+   if (pri_rgb_on) 
+       return;
    rgb_led_off();
    if (red)
        clear_port(LED5);
@@ -268,9 +274,31 @@ void rgb_led_on(bool red, bool green, bool blue)
  
 void rgb_led_off()
 {
+    if (pri_rgb_on)
+       return;
     set_port(LED3);
     set_port(LED4);
     set_port(LED5);
+}
+
+
+
+/************************************************************************
+ * Turn on priority RGB led(s). This cannot be overridden and can only
+ * be turned off by pri_rgb_led_off()
+ ************************************************************************/
+ 
+void pri_rgb_led_on(bool red, bool green, bool blue)
+{
+   rgb_led_on(red,green,blue);
+   pri_rgb_on = true;
+}
+
+
+void pri_rgb_led_off()
+{
+   pri_rgb_on = false;
+   led_usb_restore();
 }
 
 
@@ -375,10 +403,10 @@ static void batt_check_thread()
              rgb_led_on(true,false,false);
        }
        else {
-          /* If only USB is connected, go briefly to green every 3rd round, 
-           * if battery is fully charged */
-          if (usb_on && cusb-- == 0 && _batt_charged) {
-             rgb_led_on(false, true, false);
+          /* If only USB is connected, go briefly to red every 3rd round, 
+           * if battery is not fully charged */
+          if (usb_on && cusb-- == 0 && !_batt_charged) {
+             rgb_led_on(true, false, false);
              sleep(50);
              cusb = 3;
           }
