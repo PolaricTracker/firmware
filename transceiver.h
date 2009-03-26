@@ -1,5 +1,5 @@
 /*
- * $Id: transceiver.h,v 1.11 2008-11-22 19:02:22 la7eca Exp $
+ * $Id: transceiver.h,v 1.12 2009-03-26 22:09:49 la7eca Exp $
  */
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
@@ -531,6 +531,7 @@ extern bool adf7021_enabled;
 extern bool adf7021_tx_enabled;
 
 
+void adf7021_enable_AFC (adf7021_setup_t *setup, uint16_t range);
 void adf7021_setup_init(adf7021_setup_t *setup);
 void adf7021_set_power (adf7021_setup_t *setup, double dBm,  adf7021_pa_ramp_t ramp);
 void adf7021_set_frequency (adf7021_setup_t *setup, uint32_t freq);

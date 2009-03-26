@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.21 2008-12-13 11:42:18 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.22 2009-03-26 22:10:18 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -8,6 +8,7 @@
 #include "kernel/kernel.h"
 #include "kernel/timer.h"
 #include "kernel/stream.h"
+#include <avr/signal.h>
 
 #define MINIMUM_N 23
 
@@ -29,6 +30,21 @@ void adf7021_setup_init(adf7021_setup_t *setup) {
   setup->if_filter.calibrate = true;
   setup->if_filter.divider = ADF7021_XTAL / 50e3;
 }
+
+
+void adf7021_enable_AFC (adf7021_setup_t *setup, uint16_t range)
+{
+   ADF7021_INIT_REGISTER(setup->afc, ADF7021_AFC_REGISTER);
+   if (range == 0)
+      setup->afc.enable = 0;
+   else 
+      setup->afc.enable = 1;
+   setup->afc.scaling_factor = (unsigned) round(8388608000 / ADF7021_XTAL);           
+   setup->afc.ki = 11;
+   setup->afc.kp = 4;
+   setup->afc.max_range = (unsigned) (range / 500);
+}
+
 
 
 
@@ -332,9 +348,9 @@ void adf7021_wait_tx_off()
   /* Be sure that transmitter is off */
    while (adf7021_tx_enabled) 
       wait(&adf7021_tx_idle);
-   TRACE(50);
 //   sleep (setup->ramp_time);     
 }
+
 
 
 void adf7021_power_off ()
@@ -412,11 +428,9 @@ void adf7021_write_register (uint32_t data)
 
 uint16_t adf7021_read_register (uint32_t readback)
 {
-
   uint32_t data;
   uint32_t counter = 0xffff8000; // We need to clock in 17 bits, of which the
                                  // first will be discarded
-  
   _write_register (readback);
   
   asm ("L_%=: "
@@ -446,9 +460,9 @@ uint16_t adf7021_read_register (uint32_t readback)
   set_port (ADF7021_SCLK);  
   clear_port (ADF7021_SLE);
   clear_port (ADF7021_SCLK);
-
   return (uint16_t)data;
 }
+
 
 
 double adf7021_read_rssi ()
