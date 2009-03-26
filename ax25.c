@@ -1,5 +1,5 @@
 /*
- * $Id: ax25.c,v 1.12 2009-03-15 00:13:48 la7eca Exp $
+ * $Id: ax25.c,v 1.13 2009-03-26 22:13:48 la7eca Exp $
  */
  
 #include "ax25.h"
@@ -105,7 +105,7 @@ uint8_t ax25_decode_header(FBUF* b, addr_t* from,
 {
     register uint8_t i = -1;
     decode_addr(b, to);
-    if (!(decode_addr(b, from) & FLAG_LAST));
+    if (!(decode_addr(b, from) & FLAG_LAST))
        for (i=0; i<7; i++)
            if ( decode_addr(b, &digis[i]) & FLAG_LAST)   
               break;
@@ -134,7 +134,7 @@ static uint8_t decode_addr(FBUF *b, addr_t* a)
     }
     *c = '\0';
     x = fbuf_getChar(b);
-    a->ssid = (x & 0x0E) >> 1; 
+    a->ssid = (x & 0x1E) >> 1; 
     a->flags = x & 0x81;
     return x & 0x81;
 }
@@ -158,7 +158,7 @@ static void encode_addr(FBUF *b, char* c, uint8_t ssid, uint8_t flags)
          else
             fbuf_putChar(b, ASCII_SPC << 1);
      }
-     fbuf_putChar(b, ((ssid & 0x0f) << 1) | (flags & 0x81) | 0x60 );
+     fbuf_putChar(b, ((ssid & 0x0F) << 1) | (flags & 0x81) | 0x60 );
 }
       
  
@@ -188,7 +188,7 @@ void ax25_display_frame(Stream* out, FBUF *b)
     for (i=0; i<ndigis; i++) {
        putstr_P(out, PSTR(","));
        ax25_display_addr(out, &digis[i]);
-       if (digis[i].flags & FLAG_DIGI)
+       if (digis[i].flags & FLAG_DIGI && (i >= ndigis-1 || !(digis[i+1].flags & FLAG_DIGI)))
            putstr_P(out, PSTR("*"));
     }
     if (ctrl == FTYPE_UI)
