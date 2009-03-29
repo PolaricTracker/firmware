@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.8 2008-12-31 01:19:31 la7eca Exp $
+ * $Id: kernel.c,v 1.9 2009-03-29 18:17:00 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -216,14 +216,13 @@ bool sem_nb_down(Semaphore* s)
 void sem_down(Semaphore* s)
 {  CONTAINS_CRITICAL;
    enter_critical();
-   if (s->cnt == 0) {
+   while (s->cnt == 0) {
       leave_critical();
       wait(&s->waiters);
+      enter_critical();
    }
-   else {
-      s->cnt--; 
-      leave_critical();
-   }
+   s->cnt--; 
+   leave_critical();
 }
 
 
@@ -235,9 +234,8 @@ void sem_down(Semaphore* s)
 void sem_up(Semaphore* s)
 {   CONTAINS_CRITICAL;
     enter_critical();
-    if (s->waiters.qfirst == NULL)
-       s->cnt++;
-    else
+    s->cnt++;
+    if (s->waiters.qfirst != NULL)
        notify(&s->waiters);
     leave_critical();
 }
