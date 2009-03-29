@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.3 2008-10-01 21:47:43 la7eca Exp $
+ * $Id: stream.c,v 1.4 2009-03-29 18:17:47 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -85,15 +85,27 @@ void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
  *  Blocking receive of a line (from a terminal) to a string buffer. 
  *  Returns when len characters are received or when reaching end of line. 
  *  Can use backspace to correct. Echo to terminal. 
+ *
+ *  NOTE: This uses a static variable and there should not be more than one 
+ *  thread using this at the same time...
  ********************************************************************************/
  
 void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
 {
     uint16_t i = 0;
     register char x = '\0';
+    static bool wait_lf = false;
+    static bool wait_cr = false;
     while ( i<len ) 
     {
        x = getch(in); 
+       
+       if (wait_lf || wait_cr) {
+          if ((wait_lf && x == '\n') || (wait_cr && x == '\r'))
+              x = getch(in);
+          wait_lf = wait_cr = false;   
+       }
+          
        if (x == '\b' && i > 0) {
            putstr(out, "\b \b");
            i--;  
@@ -101,13 +113,17 @@ void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
        }
        else if (x < ' ' && x != '\n' && x != '\r') 
            continue;  
-       else 
-           stream_sendByte(out, x);          
-       if (x == '\n')
+         
+       if (x == '\r' || x == '\n') {
+           if (x == '\r')
+              wait_lf = true;
+           else 
+              wait_cr = true;
+           putstr(out, "\r\n"); /* Should EOLN be configurable? */
            break;
-
-       if (x != '\r') 
-           addr[i++] = x;
+       }
+       stream_sendByte(out, x); 
+       addr[i++] = x;
     }
     addr[i] = '\0';  
 }
