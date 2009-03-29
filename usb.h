@@ -7,7 +7,7 @@
 		#include <avr/pgmspace.h>
 
 		#include "usb_descriptors.h"
-		#include <MyUSB/Drivers/USB/USB.h>                // USB Functionality
+		#include <LUFA/Drivers/USB/USB.h>                // USB Functionality
 
 
 	/* Macros: */
@@ -15,11 +15,24 @@
 		#define SET_LINE_CODING              0x20
 		#define SET_CONTROL_LINE_STATE       0x22
 
+	/* Macros: */
+		/** CDC Class specific request to get the current virtual serial port configuration settings. */
+		#define REQ_GetLineEncoding          0x21
+
+		/** CDC Class specific request to set the current virtual serial port configuration settings. */
+		#define REQ_SetLineEncoding          0x20
+
+		/** CDC Class specific request to set the current virtual serial port handshake line states. */
+		#define REQ_SetControlLineState      0x22
+		
+
+
+
 	/* Event Handlers: */
       HANDLES_EVENT(USB_Reset);
 		HANDLES_EVENT(USB_Connect);
 		HANDLES_EVENT(USB_Disconnect);
-		HANDLES_EVENT(USB_CreateEndpoints);
+		HANDLES_EVENT(USB_ConfigurationChanged);
 		HANDLES_EVENT(USB_UnhandledControlPacket);
 		
 	/* Type Defines: */

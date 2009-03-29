@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.13 2009-01-17 11:42:06 la7eca Exp $
+ * $Id: usb.c,v 1.14 2009-03-29 18:15:01 la7eca Exp $
  */
  
 #include "usb.h"
@@ -10,11 +10,7 @@
 #include <avr/sleep.h>
 
 
-#define CDC_BUF_SIZE 32
-
-/* MyUSB Bug fix */
-#define ENDPOINT_INT_IN     UEIENX, (1 << TXINE) , UEINTX, (1 << TXINI)
-#define ENDPOINT_INT_OUT    UEIENX, (1 << RXOUTE), UEINTX, (1 << RXOUTI)
+#define CDC_BUF_SIZE 64
 
 
 
@@ -64,7 +60,7 @@ EVENT_HANDLER(USB_Reset)
 
 
 
-EVENT_HANDLER(USB_CreateEndpoints)
+EVENT_HANDLER(USB_ConfigurationChanged)
 {  CONTAINS_CRITICAL;
 	/* Setup CDC Notification, Rx and Tx Endpoints */
 	Endpoint_ConfigureEndpoint(CDC_NOTIFICATION_EPNUM, EP_TYPE_INTERRUPT,
@@ -95,62 +91,65 @@ EVENT_HANDLER(USB_CreateEndpoints)
 
 
 
-
-
 EVENT_HANDLER(USB_UnhandledControlPacket)
 {
 	uint8_t* LineCodingData = (uint8_t*)&LineCoding;
 
-	Endpoint_Ignore_Word();
-
-	/* Process CDC specific control requests */	switch (Request)
+	/* Process CDC specific control requests */
+	switch (bRequest)
 	{
-		case GET_LINE_CODING:
-			if (RequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
-			{
+		case REQ_GetLineEncoding:
+			if (bmRequestType == (REQDIR_DEVICETOHOST | REQTYPE_CLASS | REQREC_INTERFACE))
+			{	
+				/* Acknowedge the SETUP packet, ready for data transfer */
 				Endpoint_ClearSetupReceived();
 
-				for (uint8_t i = 0; i < sizeof(LineCoding); i++)
-				  Endpoint_Write_Byte(*(LineCodingData++));	
+				/* Write the line coding data to the control endpoint */
+				Endpoint_Write_Control_Stream_LE(LineCodingData, sizeof(CDC_Line_Coding_t));
 				
-				Endpoint_Setup_In_Clear();
-				while (!(Endpoint_Setup_In_IsReady()));
-				
-				while (!(Endpoint_Setup_Out_IsReceived()));
-				Endpoint_Setup_Out_Clear();
+				/* Finalize the stream transfer to send the last packet or clear the host abort */
+				Endpoint_ClearSetupOUT();
 			}
 			
 			break;
-		case SET_LINE_CODING:
-			if (RequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
+		case REQ_SetLineEncoding:
+			if (bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
 			{
+				/* Acknowedge the SETUP packet, ready for data transfer */
 				Endpoint_ClearSetupReceived();
 
-				while (!(Endpoint_Setup_Out_IsReceived()));
+				/* Read the line coding data in from the host into the global struct */
+				Endpoint_Read_Control_Stream_LE(LineCodingData, sizeof(CDC_Line_Coding_t));
 
-				for (uint8_t i = 0; i < sizeof(LineCoding); i++)
-				  *(LineCodingData++) = Endpoint_Read_Byte();
-
-				Endpoint_Setup_Out_Clear();
-
-				Endpoint_Setup_In_Clear();
-				while (!(Endpoint_Setup_In_IsReady()));
+				/* Finalize the stream transfer to clear the last packet from the host */
+				Endpoint_ClearSetupIN();
 			}
 	
 			break;
-		case SET_CONTROL_LINE_STATE:
-			if (RequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
+		case REQ_SetControlLineState:
+			if (bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
 			{
+#if 0
+				/* NOTE: Here you can read in the line state mask from the host, to get the current state of the output handshake
+				         lines. The mask is read in from the wValue parameter, and can be masked against the CONTROL_LINE_OUT_* masks
+				         to determine the RTS and DTR line states using the following code:
+				*/
+
+				uint16_t wIndex = Endpoint_Read_Word_LE();
+					
+				// Do something with the given line states in wIndex
+#endif
+				
+				/* Acknowedge the SETUP packet, ready for data transfer */
 				Endpoint_ClearSetupReceived();
 				
-				Endpoint_Setup_In_Clear();
-				while (!(Endpoint_Setup_In_IsReady()));
+				/* Send an empty packet to acknowedge the command */
+				Endpoint_ClearSetupIN();
 			}
 	
 			break;
 	}
 }
-
 
 
 
@@ -162,14 +161,14 @@ void usb_kickout(void)
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);	     
    while ( !stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
        Endpoint_Write_Byte( stream_get_nb(&cdc_outstr) );  
-   Endpoint_FIFOCON_Clear();
+   Endpoint_ClearCurrentBank();
    leave_critical();    
 }
 
 
 
 
-ISR(ENDPOINT_PIPE_vect)
+ISR(ENDPOINT_PIPE_vect, ISR_BLOCK)
 { 
 	if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
 	{
@@ -187,7 +186,7 @@ ISR(ENDPOINT_PIPE_vect)
          if (Endpoint_ReadWriteAllowed()){
              while (Endpoint_BytesInEndpoint() && !stream_full(&cdc_instr) )
                  stream_put_nb(&cdc_instr, Endpoint_Read_Byte());
-             Endpoint_FIFOCON_Clear();
+             Endpoint_ClearCurrentBank();
          }   
       }
 
@@ -210,7 +209,7 @@ void usb_init()
 { 
    /* Initialize USB Subsystem */
    /* See makefile for mode constraints */
-	USB_Init( USB_OPT_REG_ENABLED );
+	USB_Init();
 
    sem_init(&cdc_run, 0);
   

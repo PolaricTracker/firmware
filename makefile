@@ -17,6 +17,12 @@
     OBJDUMP = avr-objdump
     HEXSIZE = @avr-size --target=$(FORMAT) $(TARGET).hex
     ELFSIZE = @avr-size $(TARGET).elf
+    
+# LUFA compile
+    BOARD    = POLARIC
+    MCU      = at90usb1287    
+    LUFADEFS = -DBOARD=BOARD_$(BOARD) -DUSE_NONSTANDARD_DESCRIPTOR_NAMES -DNO_STREAM_CALLBACKS
+    LUFADEFS += -DUSB_DEVICE_ONLY -DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
 
 # MCU name and clock speed
 	MCU = at90usb1287
@@ -31,10 +37,10 @@
 
 # List C source files here.
 	SRC = usb_descriptors.c \
-              MyUSB/Drivers/USB/LowLevel/LowLevel.c MyUSB/Drivers/USB/HighLevel/USBTask.c \
-              MyUSB/Drivers/USB/HighLevel/USBInterrupt.c MyUSB/Drivers/USB/HighLevel/Events.c \
-              MyUSB/Drivers/USB/LowLevel/DevChapter9.c MyUSB/Drivers/USB/LowLevel/Endpoint.c \
-              MyUSB/Drivers/USB/HighLevel/StdDescriptors.c config.c ui.c\
+              LUFA/Drivers/USB/LowLevel/LowLevel.c LUFA/Drivers/USB/HighLevel/USBTask.c \
+              LUFA/Drivers/USB/HighLevel/USBInterrupt.c LUFA/Drivers/USB/HighLevel/Events.c \
+              LUFA/Drivers/USB/LowLevel/DevChapter9.c LUFA/Drivers/USB/LowLevel/Endpoint.c \
+              LUFA/Drivers/USB/HighLevel/StdDescriptors.c config.c ui.c\
               kernel/kernel.c kernel/timer.c kernel/stream.c uart.c gps.c transceiver.c \
               afsk_tx.c afsk_rx.c hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c usb.c commands.c adc.c \
               tracker.c main.c 
@@ -44,7 +50,7 @@
 # setjmp/setjmp.s 
 
 # Compiler flags.
-	CPFLAGS = -DUSB_CAN_BE_DEVICE -DUSB_DEVICE_ONLY -DF_CPU=$(F_CPU)UL -ggdb -funsigned-char --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
+	CPFLAGS = $(LUFADEFS) -DF_CPU=$(F_CPU)UL -ggdb -funsigned-char --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
 
 # Assembler flags.
     ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
