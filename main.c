@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.26 2009-03-26 22:17:13 la7eca Exp $
+ * $Id: main.c,v 1.27 2009-03-29 18:13:50 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -142,6 +142,12 @@ void reset_params()
         RESET_PARAM(DEST);
         RESET_PARAM(DIGIS);
         RESET_PARAM(NDIGIS);
+        RESET_PARAM(TRACKER_TURN_LIMIT);
+        RESET_PARAM(TRACKER_MAXPAUSE);
+        RESET_PARAM(TRACKER_MINPAUSE);
+        RESET_PARAM(SYMBOL);
+        RESET_PARAM(TIMESTAMP_ON);
+        RESET_PARAM(TRX_AFC);
         SET_BYTE_PARAM(VERSION_KEY, CURRENT_VERSION_KEY);
     }
 }
@@ -171,7 +177,7 @@ int main(void)
    
       TRACE_INIT;
       sei();
-//      reset_params();
+      reset_params();
                             
       /* Transceiver setup */
       setup_transceiver(); 

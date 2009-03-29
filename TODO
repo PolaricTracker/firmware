@@ -45,16 +45,24 @@ Version 0.9
     DONE
     
 
-Version -> 1.0
+Version 0.10
 --------------
 * Powersave mode for tracking (turn off GPS)
     DONE
-
+* Receive packets 
+    DONE (demod, decode, DCD-LED, display packets, AFC, lots of testing)
+* Fix serious bug: signed char ... (might have affected TX as well as RX)
+    DONE
+* Fix serious bug: Dijkstra semaphore -> character stream
+    DONE
+* Fix command line reading. 
+    DONE
+* Latest LUFA (USB driver) version
+    DONE
 
 
 Further development
 -------------------
-* Get receiver to work
 * Digipeater mode
 * USB host mode
 * USB NMEA stream or APRS stream (to external GPS/display or PC)

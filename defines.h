@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.32 2009-03-26 22:08:57 la7eca Exp $ 
+ * $Id: defines.h,v 1.33 2009-03-29 18:11:08 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -31,8 +31,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.9+ (22.3.2009)"
-#define CURRENT_VERSION_KEY 4 
+#define VERSION_STRING "v0.10 (28.3.2009)"
+#define CURRENT_VERSION_KEY 6 
 #define COMMENT_PERIOD 4
 
 
@@ -61,12 +61,12 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
-#define STACK_MAIN             170
+#define STACK_MAIN             180
 #define STACK_LED              140
 #define STACK_BATT             140
-#define STACK_USBLISTENER      410
+#define STACK_USBLISTENER      420
 #define STACK_HDLCENCODER      180
-#define STACK_HDLCDECODER      170
+#define STACK_HDLCDECODER      190
 #define STACK_HDLCENCODER_TEST 140
 #define STACK_GPSLISTENER      350
 #define STACK_TRACKER          410
@@ -83,8 +83,8 @@
 
 #define AFSK_ENCODER_BUFFER_SIZE 128
 #define AFSK_DECODER_BUFFER_SIZE 128
-#define HDLC_DECODER_QUEUE_SIZE  4
-#define HDLC_ENCODER_QUEUE_SIZE  4
+#define HDLC_DECODER_QUEUE_SIZE  5
+#define HDLC_ENCODER_QUEUE_SIZE  5
 
 
 /********************************************
