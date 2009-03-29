@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.31 2009-03-26 22:08:34 la7eca Exp $
+ * $Id: config.h,v 1.32 2009-03-29 18:10:38 la7eca Exp $
  *
  * Definition of parameters to be stored in EEPROM, their default 
  * values in program memory plus trace info in noinit part of RAM.
@@ -41,8 +41,10 @@ typedef uint8_t __trace_t[TRACE_LENGTH][2];
  * Define parameters:
  *            Name     Type     
  ***************************************************************/ 
-     
+ 
+ 
 DEFINE_PARAM( MYCALL,             addr_t       );
+DEFINE_PARAM( VERSION_KEY,        uint8_t      );     
 DEFINE_PARAM( DEST,               addr_t       );
 DEFINE_PARAM( DIGIS,              __digilist_t );
 DEFINE_PARAM( NDIGIS,             uint8_t      );
@@ -71,7 +73,7 @@ DEFINE_PARAM( TRACKER_MINPAUSE,   uint8_t      );
 DEFINE_PARAM( STATUS_TIME,        uint8_t      );
 DEFINE_PARAM( REPORT_BEEP,        uint8_t      );
 DEFINE_PARAM( GPS_POWERSAVE,      uint8_t      ); 
-DEFINE_PARAM( VERSION_KEY,        uint8_t      ); 
+
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
 extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
@@ -86,7 +88,8 @@ extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
  ***************************************************************/
 
 DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
-DEFAULT_PARAM( DEST )                = {"APPT09", 0};
+DEFAULT_PARAM( VERSION_KEY )         = 0;
+DEFAULT_PARAM( DEST )                = {"APPT0A", 0};
 DEFAULT_PARAM( DIGIS )               = {{"WIDE1",1}, {"WIDE2", 2}};
 DEFAULT_PARAM( NDIGIS )              = 2;
 DEFAULT_PARAM( TXDELAY )             = 20;
@@ -107,14 +110,14 @@ DEFAULT_PARAM( COMPRESS_ON)          = 0;
 DEFAULT_PARAM( ALTITUDE_ON)          = 0;
 DEFAULT_PARAM( REPORT_COMMENT )      = "Polaric Tracker";
 DEFAULT_PARAM( GPS_BAUD )            = 4800;
-DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 45;
-DEFAULT_PARAM( TRACKER_MAXPAUSE )    = 5;
+DEFAULT_PARAM( TRACKER_TURN_LIMIT )  = 35;
+DEFAULT_PARAM( TRACKER_MAXPAUSE )    = 12;
 DEFAULT_PARAM( TRACKER_MINDIST )     = 100;
 DEFAULT_PARAM( TRACKER_MINPAUSE )    = 3;
 DEFAULT_PARAM( STATUS_TIME )         = 30;
 DEFAULT_PARAM( REPORT_BEEP )         = 0;
 DEFAULT_PARAM( GPS_POWERSAVE )       = 0;
-DEFAULT_PARAM( VERSION_KEY )         = 0;
+
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
