@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.29 2009-03-26 22:14:21 la7eca Exp $
+ * $Id: commands.c,v 1.30 2009-03-29 18:13:23 la7eca Exp $
  */
  
 #include "defines.h"
@@ -247,7 +247,7 @@ void cmdProcessor(Stream *in, Stream *out)
                     
          else IF_COMMAND_PARAM_uint8
                   ( "maxframe", 5, argc, argv, out,
-                    TXDELAY, 1, 7, PSTR("MAXFRAME is %d\r\n\0"), PSTR(" %d") );
+                    MAXFRAME, 1, 7, PSTR("MAXFRAME is %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint16
                  ("afc", 3, argc, argv, out, 
@@ -558,6 +558,8 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    }   
 }
 
+
+
 /*********************************************
  * config: digipeater path
  *********************************************/
@@ -643,6 +645,7 @@ static void do_symbol(uint8_t argc, char** argv, Stream* out)
    }   
 }
 
+
 /*********************************************
  * config: transceiver frequency
  *********************************************/
@@ -662,6 +665,9 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
        putstr(out, buf);
     }
 }
+
+
+
 /*********************************************
  * config: transceiver frequency calibration
  *********************************************/
