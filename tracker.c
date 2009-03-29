@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.21 2009-03-15 00:16:01 la7eca Exp $
+ * $Id: tracker.c,v 1.22 2009-03-29 18:14:23 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -83,7 +83,7 @@ void tracker_off()
 static void trackerThread(void)
 {
     uint16_t t;
-    uint8_t st_count = 0;
+    uint8_t st_count = GET_BYTE_PARAM( STATUS_TIME);
     
     while (true) 
     {
@@ -105,7 +105,7 @@ static void trackerThread(void)
            /*
             * Send status report
             */
-           if (++st_count == GET_BYTE_PARAM( STATUS_TIME)) {
+           if (++st_count >= GET_BYTE_PARAM( STATUS_TIME)) {
               st_count = 0;
               report_status(&current_pos);
            }
