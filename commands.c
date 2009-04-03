@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.30 2009-03-29 18:13:23 la7eca Exp $
+ * $Id: commands.c,v 1.31 2009-04-03 11:45:32 la7eca Exp $
  */
  
 #include "defines.h"
@@ -123,11 +123,11 @@ static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out,
     }
     putstr_P(out, PSTR("***** "));
     putstr_P(out, name);
-    if (strncmp("on", argv[1], 2) == 0) {   
+    if (strncasecmp("on", argv[1], 2) == 0) {   
        putstr_P(out, PSTR(" ON *****\r\n"));
        set_byte_param(ee_addr, 1);
     }  
-    if (strncmp("off", argv[1], 2) == 0) {     
+    if (strncasecmp("off", argv[1], 2) == 0) {     
        putstr_P(out, PSTR(" OFF *****\r\n"));
        set_byte_param(ee_addr, 0);
     }
@@ -152,15 +152,15 @@ static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out,
  ***************************************************************************************/
 
 #define IF_COMMAND_PARAM_uint16(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
-    if (strncmp(command, argv[0], cmpchars) == 0) \
+    if (strncasecmp(command, argv[0], cmpchars) == 0) \
         _parameter_setting_uint16(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
 #define IF_COMMAND_PARAM_uint8(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
-    if (strncmp(command, argv[0], cmpchars) == 0) \
+    if (strncasecmp(command, argv[0], cmpchars) == 0) \
         _parameter_setting_uint8(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
 
 #define IF_COMMAND_PARAM_bool(command, cmpchars, argc, argv, out, x, name)  \
-    if (strncmp(command, argv[0], cmpchars) == 0) \
+    if (strncasecmp(command, argv[0], cmpchars) == 0) \
         _parameter_setting_bool(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, name) 
 
 
@@ -194,48 +194,48 @@ void cmdProcessor(Stream *in, Stream *out)
          /* Select command handler: 
           * misc commands 
           */         
-         if (strncmp("teston", argv[0], 6) == 0)
+         if (strncasecmp("teston", argv[0], 6) == 0)
              do_teston(argc, argv, out, in);
-         else if (strncmp("txtone", argv[0], 7) == 0)
+         else if (strncasecmp("txtone", argv[0], 7) == 0)
              do_txtone(argc, argv, out, in);
-         else if (strncmp("testpacket",  argv[0], 5) == 0)
+         else if (strncasecmp("testpacket",  argv[0], 5) == 0)
              do_testpacket(argc, argv, out);                               
-         else if (strncmp("gps",     argv[0], 4) == 0)
+         else if (strncasecmp("gps",     argv[0], 4) == 0)
              do_nmea(argc, argv, out, in);     
-         else if (strncmp("trx",     argv[0], 3) == 0)
+         else if (strncasecmp("trx",     argv[0], 3) == 0)
              do_trx(argc, argv, out, in);        
-         else if (strncmp("tracker", argv[0], 6) == 0)
+         else if (strncasecmp("tracker", argv[0], 6) == 0)
              do_tracker(argc, argv, out, in);
-         else if (strncmp("txon",     argv[0], 4) == 0)
+         else if (strncasecmp("txon",     argv[0], 4) == 0)
              do_txon(argc, argv, out, in);             
-         else if (strncmp("rssi", argv[0], 2) == 0)
+         else if (strncasecmp("rssi", argv[0], 2) == 0)
              do_rssi(argc, argv, out, in);       
-         else if (strncmp("trace", argv[0], 5) == 0)
+         else if (strncasecmp("trace", argv[0], 5) == 0)
              do_trace(argc, argv, out); 
-         else if (strncmp("vbatt", argv[0], 2) == 0)
+         else if (strncasecmp("vbatt", argv[0], 2) == 0)
              do_vbatt(argc, argv, out);
-         else if (strncmp("listen", argv[0], 3) == 0)
+         else if (strncasecmp("listen", argv[0], 3) == 0)
              do_listen(argc, argv, out, in);            
          
          
          /* Commands for setting/viewing parameters */
-         else if (strncmp("mycall", argv[0], 2) == 0)
+         else if (strncasecmp("mycall", argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
-         else if (strncmp("dest", argv[0], 3) == 0)
+         else if (strncasecmp("dest", argv[0], 3) == 0)
              do_dest(argc, argv, out);  
-         else if (strncmp("digipath", argv[0], 4) == 0)  
+         else if (strncasecmp("digipath", argv[0], 4) == 0)  
              do_digipath(argc, argv, out);
-         else if (strncmp("symbol", argv[0], 3) == 0)
+         else if (strncasecmp("symbol", argv[0], 3) == 0)
              do_symbol(argc, argv, out);               
-         else if (strncmp("freq",argv[0], 2) == 0)
+         else if (strncasecmp("freq",argv[0], 2) == 0)
              do_freq(argc, argv, out);  
-         else if (strncmp("fcal",argv[0], 3) == 0)
+         else if (strncasecmp("fcal",argv[0], 3) == 0)
              do_fcal(argc, argv, out);
-         else if (strncmp("txpower", argv[0], 4) == 0)
+         else if (strncasecmp("txpower", argv[0], 4) == 0)
              do_power(argc, argv, out);    
-         else if (strncmp("squelch", argv[0], 2) == 0)
+         else if (strncasecmp("squelch", argv[0], 2) == 0)
              do_squelch(argc, argv, out); 
-         else if (strncmp("btext", argv[0], 2) == 0)
+         else if (strncasecmp("btext", argv[0], 2) == 0)
              do_btext(argc, argv, out); 
          else IF_COMMAND_PARAM_uint8
                   ( "txdelay", 3, argc, argv, out,
@@ -362,21 +362,21 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   if (argc < 2)
       putstr_P(out, PSTR("Usage: GPS on|off|nmea|pos\r\n"));
       
-  if (strncmp("on", argv[1], 2) == 0) {
+  if (strncasecmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS ON *****\r\n"));
       gps_on();
       return;
   } 
-  if (strncmp("off", argv[1], 2) == 0) {
+  if (strncasecmp("off", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS OFF *****\r\n"));
       gps_off();
       return;
   }  
-  if (strncmp("nmea", argv[1], 1) == 0) {
+  if (strncasecmp("nmea", argv[1], 1) == 0) {
       putstr_P(out, PSTR("***** NMEA PACKETS *****\r\n"));
       gps_mon_raw();
   } 
-  else if (strncmp("pos", argv[1], 3) == 0){
+  else if (strncasecmp("pos", argv[1], 3) == 0){
       putstr_P(out, PSTR("***** VALID POSITION REPORTS (GPRMC) *****\r\n"));
       gps_mon_pos();
   }     
@@ -397,12 +397,12 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
  
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-   if (strncmp("on", argv[1], 2) == 0) {
+   if (strncasecmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TRX CHIP ON *****\r\n"));
       setup_transceiver();
       adf7021_power_on ();
    }
-   if (strncmp("off", argv[1], 2) == 0) {
+   if (strncasecmp("off", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TRX CHIP OFF *****\r\n"));
       adf7021_power_off ();
    }
@@ -423,11 +423,11 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
           putstr_P(out, PSTR("Tracker is OFF\r\n"));
       return;
   }
-  if (strncmp("on", argv[1], 2) == 0) {   
+  if (strncasecmp("on", argv[1], 2) == 0) {   
       putstr_P(out, PSTR("***** TRACKER ON *****\r\n"));
       tracker_on();
   }  
-  if (strncmp("off", argv[1], 2) == 0) {     
+  if (strncasecmp("off", argv[1], 2) == 0) {     
       putstr_P(out, PSTR("***** TRACKER OFF *****\r\n"));
       tracker_off();
   }
@@ -478,12 +478,12 @@ static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
       return;
   }
  
-  if (strncmp("hi", argv[1], 2) == 0) {
+  if (strncasecmp("hi", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TEST TONE HIGH *****\r\n"));
       afsk_high_tone(true);
       hdlc_test_on(0xff);
   }
-  else if (strncmp("low", argv[1], 2) == 0) {
+  else if (strncasecmp("low", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TEST TONE LOW *****\r\n"));
       afsk_high_tone(false);
       hdlc_test_on(0xff);
@@ -571,19 +571,25 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
     char cbuf[11]; 
     
     if (argc > 1) {
-       ndigis = argc - 1;
-       if (ndigis > 7) 
-           ndigis = 7;
-       for (i=0; i<ndigis; i++)
-           str2addr(&digis[i], argv[i+1]);
+       if (argc==2 && strncasecmp("off", argv[1], 3)==0)
+           ndigis = 0;
+       else{
+         ndigis = argc - 1;
+         if (ndigis > 7) 
+             ndigis = 7;
+         for (i=0; i<ndigis; i++)
+             str2addr(&digis[i], argv[i+1]);
+         SET_PARAM(DIGIS, digis);     
+       }
        SET_BYTE_PARAM(NDIGIS, ndigis);
-       SET_PARAM(DIGIS, digis);
        putstr_P(out,PSTR("OK\r\n")); 
     }
     else  {
        ndigis = GET_BYTE_PARAM(NDIGIS);
        GET_PARAM(DIGIS, &digis);
        putstr_P(out, PSTR("Digipeater path is ")); 
+       if (ndigis==0)
+           putstr_P(out, PSTR(" <EMPTY>\r\n"));
        for (i=0; i<ndigis; i++)
        {   
            putstr(out, addr2str(cbuf, &digis[i]));           
