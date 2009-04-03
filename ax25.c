@@ -1,5 +1,5 @@
 /*
- * $Id: ax25.c,v 1.13 2009-03-26 22:13:48 la7eca Exp $
+ * $Id: ax25.c,v 1.14 2009-04-03 11:44:37 la7eca Exp $
  */
  
 #include "ax25.h"
@@ -8,22 +8,11 @@
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 
-#define AXLEN           7 
-#define TO_POS    1
-#define FROM_POS  (AXLEN + 1)
-#define DIGI_POS  (AXLEN + AXLEN + 1)
 
+/* Static functions */
 static void encode_addr(FBUF *, char*, uint8_t, uint8_t);
 static uint8_t decode_addr(FBUF *, addr_t* );
 
-
-
-addr_t* addr(addr_t* x, char* c, uint8_t s) 
-{ 
-   strncpy(x->callsign, c, 7); 
-   x->ssid=s; 
-   return x;
-} 
 
    
 /*************************************************************************
@@ -33,8 +22,8 @@ addr_t* addr(addr_t* x, char* c, uint8_t s)
 
 void str2addr(addr_t* addr, const char* string)
 {
-   uint8_t ssid = 0;
-   int i;
+   register uint8_t ssid = 0;
+   register uint8_t i;
    for (i=0; i<7 && string[i] != 0; i++) {
       if (string[i] == '-') {
          ssid = (uint8_t) atoi( string+i+1 );
@@ -103,15 +92,15 @@ uint8_t ax25_decode_header(FBUF* b, addr_t* from,
                                     uint8_t* ctrl,
                                     uint8_t* pid)
 {
-    register uint8_t i = -1;
+    register int8_t i=-1;
     decode_addr(b, to);
-    if (!(decode_addr(b, from) & FLAG_LAST))
+    if (!(decode_addr(b, from) & FLAG_LAST)) 
        for (i=0; i<7; i++)
            if ( decode_addr(b, &digis[i]) & FLAG_LAST)   
               break;
     *ctrl = fbuf_getChar(b);
     *pid = fbuf_getChar(b);
-    return i+1;
+    return (i==-1 ? 0 : i+1);
 }
 
 
@@ -166,6 +155,7 @@ static void encode_addr(FBUF *b, char* c, uint8_t ssid, uint8_t flags)
 /**************************************************************************
  * Display AX.25 frame (on output stream)
  **************************************************************************/
+ 
 void ax25_display_addr(Stream* out, addr_t* a)
 {
     char buf[10];
@@ -194,8 +184,11 @@ void ax25_display_frame(Stream* out, FBUF *b)
     if (ctrl == FTYPE_UI)
     {
        putstr_P(out, PSTR(":"));    
-       for (i=0; i < fbuf_length(b) - (14+2+ndigis*7)-2; i++)
-          putch(out, fbuf_getChar(b));
+       for (i=0; i < fbuf_length(b) - (14+2+ndigis*7)-2; i++) {
+          register char c = fbuf_getChar(b); 
+          if (c!='\n' && c!='\r' && c>=' ')
+              putch(out, c);
+       }
     }
     else
        putstr_P(out, PSTR(" *** NON-UI FRAME ***")); 
