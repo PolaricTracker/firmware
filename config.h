@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.32 2009-03-29 18:10:38 la7eca Exp $
+ * $Id: config.h,v 1.33 2009-04-03 11:42:42 la7eca Exp $
  *
  * Definition of parameters to be stored in EEPROM, their default 
  * values in program memory plus trace info in noinit part of RAM.
@@ -89,7 +89,7 @@ extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
 
 DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
 DEFAULT_PARAM( VERSION_KEY )         = 0;
-DEFAULT_PARAM( DEST )                = {"APPT0A", 0};
+DEFAULT_PARAM( DEST )                = {"APPT0B", 0};
 DEFAULT_PARAM( DIGIS )               = {{"WIDE1",1}, {"WIDE2", 2}};
 DEFAULT_PARAM( NDIGIS )              = 2;
 DEFAULT_PARAM( TXDELAY )             = 20;
@@ -99,7 +99,7 @@ DEFAULT_PARAM( TRX_FREQ )            = 144.800e6;
 DEFAULT_PARAM( TRX_CALIBRATE )       = 0;
 DEFAULT_PARAM( TRX_TXPOWER )         = 0.0;
 DEFAULT_PARAM( TRX_AFSK_DEV )        = 0;
-DEFAULT_PARAM( TRX_SQUELCH )         = -80;
+DEFAULT_PARAM( TRX_SQUELCH )         = -90;
 DEFAULT_PARAM( TRX_AFC )             = 2000;
 DEFAULT_PARAM( TRACKER_ON )          = 0;
 DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 10; 

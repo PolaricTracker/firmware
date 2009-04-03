@@ -29,6 +29,7 @@
 #define PID_NO_L3    0xf0
 
 
+/* AX.25 Address Field type */
 typedef struct {
     char callsign[7];
     uint8_t ssid;
@@ -40,11 +41,15 @@ addr_t* addr(addr_t*, char*, uint8_t);
 void str2addr(addr_t*, const char*);
 char* addr2str(char*, const addr_t*);
 
+
+/* Encode or decode header */
 void ax25_encode_header( FBUF*, addr_t*, addr_t*, addr_t[], uint8_t, 
                         uint8_t, uint8_t );
 uint8_t ax25_decode_header(FBUF*, addr_t*, addr_t*, addr_t[],
                         uint8_t*, uint8_t*);
 
+
+/* Display information about frame */
 void ax25_display_frame(Stream*, FBUF *);
 void ax25_display_addr(Stream*, addr_t*);
 

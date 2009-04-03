@@ -1,5 +1,5 @@
 /*
- * $Id: usb.c,v 1.14 2009-03-29 18:15:01 la7eca Exp $
+ * $Id: usb.c,v 1.15 2009-04-03 11:46:19 la7eca Exp $
  */
  
 #include "usb.h"
@@ -28,6 +28,8 @@ static bool usb_connect;
 bool usb_con()
    { return usb_connect; }
 
+
+
 EVENT_HANDLER(USB_Connect)
 {
   set_sleep_mode(SLEEP_MODE_IDLE); 
@@ -37,7 +39,6 @@ EVENT_HANDLER(USB_Connect)
 
 EVENT_HANDLER(USB_Disconnect)
 {
-   led_usb_off();
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_DisableEndpoint();
    USB_INT_Disable( ENDPOINT_INT_OUT ); 
@@ -45,6 +46,7 @@ EVENT_HANDLER(USB_Disconnect)
    Endpoint_DisableEndpoint();   	 
    USB_INT_Disable( ENDPOINT_INT_IN ); 
    usb_connect = false;
+   led_usb_off();
 }
 
 

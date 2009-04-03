@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.33 2009-03-29 18:11:08 la7eca Exp $ 
+ * $Id: defines.h,v 1.34 2009-04-03 11:43:27 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -7,10 +7,6 @@
 #include <ctype.h>
 
 // #define USBKEY_TEST     /* Define if compiling for the USBKEY */
-
-#if defined USBKEY_TEST || !defined TRACKER_MK1
-#define AFSK_DAC_METHOD    /* Use 4-bit DAC for modulation */
-#endif
 
 #define TRUE   (1)
 #define FALSE  (0)
@@ -31,8 +27,9 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.10 (28.3.2009)"
-#define CURRENT_VERSION_KEY 6 
+#define VERSION_STRING "v0.11 (3.4.2009)"
+#define CURRENT_VERSION_KEY 7
+#define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
 
 
@@ -61,16 +58,16 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
+
 #define STACK_MAIN             180
-#define STACK_LED              140
-#define STACK_BATT             140
+#define STACK_LED              150
+#define STACK_BATT             150
 #define STACK_USBLISTENER      420
 #define STACK_HDLCENCODER      180
-#define STACK_HDLCDECODER      190
-#define STACK_HDLCENCODER_TEST 140
+#define STACK_HDLCDECODER      300
+#define STACK_HDLCENCODER_TEST 150
 #define STACK_GPSLISTENER      350
 #define STACK_TRACKER          410
-
 
 
 /******************************************* 
