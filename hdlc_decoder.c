@@ -15,14 +15,38 @@
 static stream_t *out; 
 static stream_t *stream;
 static fbuf_t fbuf;
-static fbq_t fbin;
+static fbq_t *fqueue = NULL;
 
 static void hdlc_decode (void);
 static bool crc_match(FBUF*, uint8_t);
 
 
+/***********************************************************
+ * Subscribe or unsubscribe to packets from decoder
+ * packets are put into the given buffer queue.
+ ***********************************************************/
+ 
+void hdlc_subscribe(fbq_t* q)
+{
+    if (fqueue != NULL)
+        fbq_clear(fqueue);
+    fqueue = q;
+}
 
-fbq_t* hdlc_init_decoder (stream_t *s, stream_t *outstr)
+void hdlc_unsubscribe(uint8_t index)
+{
+    if (fqueue != NULL)
+       fbq_clear(fqueue);
+    fqueue = NULL;
+}
+
+
+
+/***********************************************************
+ * init hdlc-deoder
+ ***********************************************************/
+ 
+fbq_t* hdlc_init_decoder (stream_t *s, stream_t* outstr)
 {   
    out = outstr;
    stream = s;
@@ -34,7 +58,11 @@ fbq_t* hdlc_init_decoder (stream_t *s, stream_t *outstr)
 }
 
 
-
+/***********************************************************
+ * Get a bit from the demodulator layer.
+ * .. or a FLAG
+ ***********************************************************/
+ 
 static uint8_t get_bit ()
 {
    static uint16_t bits = 0xffff;
@@ -60,7 +88,10 @@ static uint8_t get_bit ()
 
 
 
-extern uint8_t decode_addr(FBUF *b, addr_t* a);
+
+/***********************************************************
+ * Main decoder thread.
+ ***********************************************************/
 
 static void hdlc_decode ()
 {
@@ -115,13 +146,20 @@ static void hdlc_decode ()
 
 
    sleep(5);   
-   if (crc_match(&fbuf, length)) {     
+   if (crc_match(&fbuf, length)) 
+   {     
       /* Display frame */
       ax25_display_frame(out, &fbuf);
       putstr_P(out, PSTR("\r\n"));
-      fbuf_release(&fbuf);
-      // fbq_put(&fbin, fbuf);       
-      // fbuf_new(&fbuf);
+      
+      /* Send packets to subscriber, if any */
+      if (fqueue) {      
+          fbq_put( fqueue, fbuf);
+          fbuf_new(&fbuf);
+      }
+      else    
+         fbuf_release(&fbuf);
+
    }
   
    goto frame_sync; // Two consecutive frames may share the same flag
@@ -129,6 +167,9 @@ static void hdlc_decode ()
 
 
 
+/***********************************************************
+ * CRC check
+ ***********************************************************/
 
 bool crc_match(FBUF* b, uint8_t length)
 {
