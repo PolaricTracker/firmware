@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_tx.c,v 1.23 2009-02-05 19:29:26 la7eca Exp $
+ * $Id: afsk_tx.c,v 1.24 2009-04-04 20:43:36 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -17,17 +17,11 @@
 
 
 /* Internal config */
-#if !defined AFSK_DAC_METHOD
-#define _PRESCALER3  8
-#define _PRESCALER3_SETTING 0x02
-#define _TXI_MARK   ((SCALED_F_CPU / _PRESCALER3 / AFSK_TXTONE_MARK / 2) - 1)
-#define _TXI_SPACE  ((SCALED_F_CPU / _PRESCALER3 / AFSK_TXTONE_SPACE / 2) - 1)
-#else
+
 #define _PRESCALER3  1
 #define _PRESCALER3_SETTING 0x01
 #define _TXI_MARK   ((SCALED_F_CPU / _PRESCALER3 / (AFSK_TXTONE_MARK) ) /16 - 1 )
 #define _TXI_SPACE  ((SCALED_F_CPU / _PRESCALER3 / (AFSK_TXTONE_SPACE) ) /16 - 1 )
-#endif
 
 
 
@@ -41,10 +35,8 @@ stream_t* afsk_init_encoder(void)
 {
     STREAM_INIT(afsk_tx_stream, AFSK_ENCODER_BUFFER_SIZE);   
 
-#if defined AFSK_DAC_METHOD
     DAC_DDR |= DAC_MASK;
     DAC_PORT = 0;
-#endif
     /* Clear TXDATA pin, even when using DAC method */
     make_output(TXDATA);
     clear_port(TXDATA);
@@ -90,11 +82,7 @@ void afsk_ptt_off(void)
     TCCR3A &= ~(1<<COM3A0);           /* Toggle OC3A on compare match: OFF. */
     transmit = false; 
     clear_port(LED2);                 /* LED / PTT */
-#if defined AFSK_DAC_METHOD
     DAC_PORT = 0;
-#else     
-    clear_port(TXDATA);               /* out signal */
-#endif
     adf7021_disable_tx();
     start_tone = _TXI_MARK;
 }
@@ -170,23 +158,6 @@ void afsk_txBitClock(void)
 
 
 
-#if !defined AFSK_DAC_METHOD
-
-/******************************************************************************
- * Simple method of generating a clock signal at 1200 and 2200 Hz. 
- * This is output to ADF TXRXCLK pin. 
- ******************************************************************************/
- 
-ISR(TIMER3_COMPA_vect)
-{   
-     toggle_port( TXDATA );
-     OCR3A = timertop;  
-} 
-
-
-#else
-
-
 /*********************************************************************************
  * Alternative method of generating a sine signal at 1200 and 2200 Hz (4 bit DAC). 
  * This is output to the 4 lowest bits of port C. 
@@ -213,4 +184,3 @@ ISR(TIMER3_COMPA_vect)
 }               
  
 
-#endif
