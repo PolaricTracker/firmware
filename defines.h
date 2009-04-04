@@ -1,5 +1,5 @@
 /*
- * $Id: defines.h,v 1.34 2009-04-03 11:43:27 la7eca Exp $ 
+ * $Id: defines.h,v 1.35 2009-04-04 20:41:42 la7eca Exp $ 
  */
 
 #include <stdint.h>
@@ -7,6 +7,7 @@
 #include <ctype.h>
 
 // #define USBKEY_TEST     /* Define if compiling for the USBKEY */
+
 
 #define TRUE   (1)
 #define FALSE  (0)
@@ -27,7 +28,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.11 (3.4.2009)"
+#define VERSION_STRING "v0.11.1 (4.4.2009)"
 #define CURRENT_VERSION_KEY 7
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4

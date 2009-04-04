@@ -60,14 +60,18 @@ Version 0.10
 * Latest LUFA (USB driver) version
     DONE
 
-Verson 1.0
-----------
+Verson 0.11
+-----------
 * Stability issues w/ receiving
     DONE (I hope)
 * Make commands case insensitive
     DONE    
 * 'OFF' option for DIGI
     DONE
+    
+    
+Version 1.0
+-----------
 * Use packet queue for receiving. 
 * 'converse' mode
 

@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_rx.c,v 1.10 2009-03-26 22:13:02 la7eca Exp $
+ * $Id: afsk_rx.c,v 1.11 2009-04-04 20:43:11 la7eca Exp $
  * AFSK receiver/demodulator
  */
  
@@ -18,7 +18,6 @@
 
 #define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/8/AFSK_BAUD))       
 #define SYMBOL_SAMPLE_RESYNC   ((SCALED_F_CPU/8/AFSK_BAUD))/2
-
 
 #define TXTONE_MID ((AFSK_TXTONE_MARK+AFSK_TXTONE_SPACE)/2)
 #define CENTER_FREQUENCY ((SCALED_F_CPU/64)/(TXTONE_MID*2)-1)           /*  36.764 */
@@ -43,6 +42,11 @@ static void _afsk_abort (void);
 static void sample_bits(void);
 static void add_bit(bool);
 
+
+/************************************************************
+ * Init afsk decoder 
+ ************************************************************/
+ 
 stream_t* afsk_init_decoder ()
 {
     STREAM_INIT(afsk_rx_stream, AFSK_DECODER_BUFFER_SIZE);
@@ -50,6 +54,11 @@ stream_t* afsk_init_decoder ()
 }
 
 
+
+/****************************************************************************
+ * Start the decoding of a signal. 
+ ****************************************************************************/
+ 
 static void _afsk_start_decoder ()
 {  
   decoder_running = true;
@@ -82,7 +91,10 @@ static void _afsk_start_decoder ()
 }
 
 
-
+/****************************************************************************
+ * Stop the decoding (typically used when a signal drops). 
+ ****************************************************************************/
+ 
 static void _afsk_stop_decoder ()
 {  
   decoder_running = false;
@@ -97,6 +109,12 @@ static void _afsk_stop_decoder ()
 
 
 
+/****************************************************************************
+ * Enable/disable decoder. I.e. start/stop listening to radio receiver 
+ * to see if there is a signal. If this is enabled, the AFSK decoder will
+ * be activated when incoming signal is stronger than squelch level. 
+ ****************************************************************************/
+ 
 void afsk_enable_decoder ()
    { decoder_enabled = true; 
      GET_PARAM(TRX_SQUELCH, &sqlevel); }
@@ -166,7 +184,11 @@ ISR(PCINT0_vect)
 }
 
 
-
+/*******************************************************************************
+ * To be called when a toggle between mark and space is detected, to 
+ * sample incoming bits. 
+ *******************************************************************************/
+ 
 static void sample_bits()
 {
     /* The number of 1-bits is determined by the timer count */
@@ -176,6 +198,8 @@ static void sample_bits()
         ((counts - (uint16_t) SYMBOL_SAMPLE_RESYNC) / (uint16_t) SYMBOL_SAMPLE_INTERVAL);
 
      if (ones >= 8) 
+         /* Bit stuffing/FLAG will ensure that there should not be more than 
+          * six 1-bits in a valid frame */ 
          _afsk_abort();
      else {
          for (uint8_t i = 0; i<ones; i++)
@@ -186,6 +210,10 @@ static void sample_bits()
 
 
 
+/********************************************************************************
+ * Send a single bit to the HDLC decoder
+ ********************************************************************************/
+ 
 static uint8_t bit_count = 0;
 
 static void add_bit(bool bit)
