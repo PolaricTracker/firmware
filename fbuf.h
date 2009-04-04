@@ -60,8 +60,9 @@ typedef struct _fbq
  ************************************************/
  
 void  _fbq_init (FBQ* q, FBUF* buf, const uint16_t size); 
-void  fbq_put (FBQ* q, FBUF b); 
-FBUF  fbq_get (FBQ* q);
+void  fbq_clear (FBQ* q);
+void  fbq_put   (FBQ* q, FBUF b); 
+FBUF  fbq_get   (FBQ* q);
 
 
 // #define fbq_length(q) ((q)->length.cnt)

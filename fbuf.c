@@ -275,12 +275,17 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
  
 void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 {
-    register uint8_t i;
-
     q->size = sz;
     q->buf = buf;
     sem_init(&q->length, 0);
     sem_init(&q->capacity, sz);
+    fbq_clear(q);
+}
+
+
+void fbq_clear(FBQ* q)
+{
+    register uint8_t i;
     for (i=q->index; i< q->index+q->length.cnt; i++)
         fbuf_release(&q->buf[i]);
 }
