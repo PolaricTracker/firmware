@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.c,v 1.9 2009-03-29 18:17:00 la7eca Exp $
+ * $Id: kernel.c,v 1.10 2009-05-15 22:56:31 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
  
@@ -169,6 +169,39 @@ bool hasWaiters(Cond* c)
 {
     return (c->qfirst != NULL); 
 }
+
+
+
+/**********************************************************************************
+ *  Boolean condition variable
+ **********************************************************************************/
+ 
+void bcond_init(BCond* c, bool v) 
+{ 
+    cond_init(&c->waiters); 
+    c->val = v;
+}
+
+
+void bcond_set(BCond* c)
+{   CONTAINS_CRITICAL;
+    enter_critical();
+    c->val = true;
+    notifyAll(&c->waiters);
+    leave_critical();
+}
+
+
+void bcond_clear(BCond* c)
+   { c->val = false; }
+   
+   
+void bcond_wait(BCond* c)
+{
+   while (!c->val)
+       wait(&c->waiters);
+}
+
 
 
 
