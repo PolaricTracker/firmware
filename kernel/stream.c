@@ -1,5 +1,5 @@
 /*
- * $Id: stream.c,v 1.4 2009-03-29 18:17:47 la7eca Exp $
+ * $Id: stream.c,v 1.5 2009-05-15 22:57:57 la7eca Exp $
  * Simple stream buffer routines (to be used with serial ports)
  */
  
@@ -90,7 +90,7 @@ void getstr(Stream *b, char* addr, const uint16_t len, const char marker)
  *  thread using this at the same time...
  ********************************************************************************/
  
-void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
+bool readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
 {
     uint16_t i = 0;
     register char x = '\0';
@@ -106,6 +106,9 @@ void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
           wait_lf = wait_cr = false;   
        }
           
+       if (x == 0x03)     /* CTRL-C */
+           return false;
+              
        if (x == '\b' && i > 0) {
            putstr(out, "\b \b");
            i--;  
@@ -125,7 +128,8 @@ void readLine(Stream *in, Stream *out, char* addr, const uint16_t len)
        stream_sendByte(out, x); 
        addr[i++] = x;
     }
-    addr[i] = '\0';  
+    addr[i] = '\0'; 
+    return true; 
 }
 
 
@@ -162,7 +166,7 @@ void stream_sendByte_nb(Stream *b, const char chr)
  * Read a character from stream buffer 
  ***************************************************************************/
  
-static char _stream_get(Stream* b)    /* inline? */
+static char _stream_get(Stream* b) 
 {
     CONTAINS_CRITICAL;
     enter_critical(); 
@@ -197,7 +201,7 @@ char stream_get_nb(Stream* b)
  * Write a character to stream buffer 
  ***************************************************************************/
  
-static void _stream_put(Stream* b, const char c)  /* inline? */
+static void _stream_put(Stream* b, const char c)  
 {
     CONTAINS_CRITICAL;
     enter_critical(); 
