@@ -1,5 +1,5 @@
 /*
- * $Id: afsk_rx.c,v 1.11 2009-04-04 20:43:11 la7eca Exp $
+ * $Id: afsk_rx.c,v 1.12 2009-05-15 22:47:08 la7eca Exp $
  * AFSK receiver/demodulator
  */
  
@@ -26,10 +26,12 @@
 #define FREQUENCY_DEVIATION 24
 
 
-int8_t hard_symbol; /* Most recent detected symbol. */
-int8_t soft_symbol; /* Differs from the above by also having UNDECIDED as valid state */
-bool valid_symbol;  /* (DCD) Will always be true when using the simple detector */
-
+int8_t hard_symbol;  /* Most recent detected symbol. */
+int8_t soft_symbol;  /* Differs from the above by also having UNDECIDED as valid state */
+bool valid_symbol;   /* (DCD) Will always be true when using the simple detector */
+extern bool transmit; 
+extern BCond mon_ok; 
+ 
 bool decoder_running = false; 
 bool decoder_enabled = false;
 double sqlevel; 
@@ -88,6 +90,7 @@ static void _afsk_start_decoder ()
   set_bit (PCICR, PCIE0);
 
   pri_rgb_led_on(true,true,false);
+  bcond_clear(&mon_ok);
 }
 
 
@@ -97,6 +100,7 @@ static void _afsk_start_decoder ()
  
 static void _afsk_stop_decoder ()
 {  
+  bcond_set(&mon_ok);
   decoder_running = false;
   /* Disable pin change interrupt on input pin from receiver */
   clear_bit (PCICR, PCIE0);
@@ -132,7 +136,7 @@ void afsk_disable_decoder ()
  
 void afsk_check_channel ()
 {
-    if (!decoder_enabled)
+    if (!decoder_enabled || transmit)
        return;    
     if ((!decoder_running) && (adf7021_read_rssi() > sqlevel))
         _afsk_start_decoder();
