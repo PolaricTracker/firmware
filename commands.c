@@ -1,5 +1,5 @@
 /*
- * $Id: commands.c,v 1.31 2009-04-03 11:45:32 la7eca Exp $
+ * $Id: commands.c,v 1.32 2009-05-15 22:48:11 la7eca Exp $
  */
  
 #include "defines.h"
@@ -23,7 +23,7 @@
 
 
 #define MAXTOKENS 10
-#define BUFSIZE   60
+#define BUFSIZE   90
 
 
 void setup_transceiver(void);
@@ -48,14 +48,17 @@ static void do_trace     (uint8_t, char**, Stream*);
 static void do_txtone    (uint8_t, char**, Stream*, Stream*);
 static void do_vbatt     (uint8_t, char**, Stream*);
 static void do_listen    (uint8_t, char**, Stream*, Stream*);
+static void do_converse  (uint8_t, char**, Stream*, Stream*);
 static void do_btext     (uint8_t, char**, Stream*);
 
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
 
+/* May be moved to tracker.h ??*/
 extern void tracker_on(void);
 extern void tracker_off(void);
+void tracker_controls_trx(bool c);
 
 
 /***************************************************************************************
@@ -172,12 +175,14 @@ static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out,
  *    buf on the stack instead. 
  **************************************************************************/
 
-void readLine(Stream*, Stream*, char*, const uint16_t); // Move to stream.h
+bool readLine(Stream*, Stream*, char*, const uint16_t); 
+ /* Move to stream.h, or move the actual code here... */
        
 void cmdProcessor(Stream *in, Stream *out)
 {
     char* argv[MAXTOKENS];
     uint8_t argc;
+    sleep (10);
     putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
     putstr_P(out, PSTR("\n\r Velkommen til 'Polaric Tracker' firmware "));
     putstr_P(out, PSTR(VERSION_STRING));
@@ -216,7 +221,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_vbatt(argc, argv, out);
          else if (strncasecmp("listen", argv[0], 3) == 0)
              do_listen(argc, argv, out, in);            
-         
+         else if (strncasecmp("converse", argv[0], 4) == 0)
+             do_converse(argc, argv, out, in);   
          
          /* Commands for setting/viewing parameters */
          else if (strncasecmp("mycall", argv[0], 2) == 0)
@@ -299,7 +305,10 @@ void cmdProcessor(Stream *in, Stream *out)
                           
          else IF_COMMAND_PARAM_bool
                  ( "beep", 2, argc, argv, out, REPORT_BEEP, PSTR("BEEP") );        
-         
+                          
+         else IF_COMMAND_PARAM_bool
+                 ( "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TX MONITOR") );   
+                          
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
@@ -346,9 +355,34 @@ static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** LISTEN ON RECEIVER *****\r\n"));
    afsk_enable_decoder();
+   mon_activate(true);
    getch(in);
    afsk_disable_decoder();
+   mon_activate(false);
 }
+
+static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+   putstr_P(out, PSTR("***** CONVERSE MODE *****\r\n"));
+   afsk_enable_decoder();
+   mon_activate(true);
+   while ( readLine(in, out, buf, BUFSIZE)) {
+        FBUF packet;    
+        addr_t from, to; 
+        GET_PARAM(MYCALL, &from);
+        GET_PARAM(DEST, &to);       
+        addr_t digis[7];
+        uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
+        GET_PARAM(DIGIS, &digis);   
+        ax25_encode_header(&packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
+        fbuf_putstr(&packet, buf);                        
+        fbq_put(outframes, packet);
+   }
+   afsk_disable_decoder();
+   mon_activate(false);
+}
+
+
 
 
 /************************************************
@@ -399,12 +433,14 @@ static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    if (strncasecmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TRX CHIP ON *****\r\n"));
+      tracker_controls_trx(false);
       setup_transceiver();
       adf7021_power_on ();
    }
    if (strncasecmp("off", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TRX CHIP OFF *****\r\n"));
       adf7021_power_off ();
+      tracker_controls_trx(true);
    }
 }
 
