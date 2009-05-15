@@ -68,13 +68,29 @@ Verson 0.11
     DONE    
 * 'OFF' option for DIGI
     DONE
-    
-    
-Version 1.0
------------
-* Use packet queue for receiving. 
-* 'converse' mode
 
+    
+Version 0.12/1.0
+----------------
+* 'converse' mode
+     DONE
+
+* Possibility to disable tracker control over transceiver. 
+  TRX command now does that. Must now remember to do TRX OFF to give control
+  back to tracker module. 
+     DONE
+
+* Fix bug: multiple frames in one transmission doesn't work 
+     DONE (must reset CRC)
+       
+* Monitoring of transmitted packets. 
+     DONE (but see interference problem below)
+
+* Implicit activation of trx by commands that use it 
+  Eliminate need for explicit TRX command. 
+     
+* Monitoring (USB stream) and GPS interferes with packet decoding. 
+  Problem when multiple frames in one transmission. Fix?
 
 
 
