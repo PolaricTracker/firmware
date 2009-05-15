@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.33 2009-04-03 11:42:42 la7eca Exp $
+ * $Id: config.h,v 1.34 2009-05-15 22:48:52 la7eca Exp $
  *
  * Definition of parameters to be stored in EEPROM, their default 
  * values in program memory plus trace info in noinit part of RAM.
@@ -72,7 +72,8 @@ DEFINE_PARAM( TRACKER_MINDIST,    uint8_t      );
 DEFINE_PARAM( TRACKER_MINPAUSE,   uint8_t      ); 
 DEFINE_PARAM( STATUS_TIME,        uint8_t      );
 DEFINE_PARAM( REPORT_BEEP,        uint8_t      );
-DEFINE_PARAM( GPS_POWERSAVE,      uint8_t      ); 
+DEFINE_PARAM( GPS_POWERSAVE,      uint8_t      );
+DEFINE_PARAM( TXMON_ON,           uint8_t      ); 
 
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
@@ -117,7 +118,7 @@ DEFAULT_PARAM( TRACKER_MINPAUSE )    = 3;
 DEFAULT_PARAM( STATUS_TIME )         = 30;
 DEFAULT_PARAM( REPORT_BEEP )         = 0;
 DEFAULT_PARAM( GPS_POWERSAVE )       = 0;
-
+DEFAULT_PARAM( TXMON_ON )            = 0;
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
