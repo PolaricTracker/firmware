@@ -1,5 +1,5 @@
 /*
- * $Id: hdlc_encoder.c,v 1.27 2009-03-26 22:15:33 la7eca Exp $
+ * $Id: hdlc_encoder.c,v 1.28 2009-05-15 22:54:25 la7eca Exp $
  * AFSK Modulator/Transmitter
  */
  
@@ -23,11 +23,13 @@
 // Buffers
 FBQ encoder_queue; 
 static FBUF buffer;                                 
-static stream_t* outstream;
+static stream_t *outstream;
+static fbq_t *mqueue;
 
 static Semaphore test; 
 static bool test_active;
 static uint8_t testbyte;
+static bool monitor = false;
 
 #define BUFFER_EMPTY (fbuf_eof(&buffer))            
 
@@ -44,6 +46,16 @@ static void wait_channel_ready(void);
 static bool hdlc_idle = true;
 static Cond hdlc_idle_sig;
 static fbq_t* _enc_queue;
+
+
+
+void hdlc_monitor_tx(fbq_t* q)
+{ 
+   if (mqueue != NULL)
+        fbq_clear(mqueue);
+    mqueue = q;
+}
+
 
    
 fbq_t* hdlc_init_encoder(stream_t* os)
@@ -181,15 +193,21 @@ static void hdlc_encode_frames()
          hdlc_encode_byte(HDLC_FLAG, true);
      
      for (i=0;i<maxfr;i++) 
-     {
+     {        
         fbuf_reset(&buffer);
+        crc = 0xffff;
         while(!BUFFER_EMPTY)
         {
             txbyte = fbuf_getChar(&buffer);        
             crc = _crc_ccitt_update (crc, txbyte);
             hdlc_encode_byte(txbyte, false);
         }
-        fbuf_release(&buffer);
+        
+        if (mqueue) 
+           fbq_put( mqueue, buffer);
+        else
+           fbuf_release(&buffer);
+           
         hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
         
@@ -201,7 +219,7 @@ static void hdlc_encode_frames()
            break;
      }
        
-     /* Postample of TXTAIL flags */  
+     /* Postamble of TXTAIL flags */  
      for (i=0; i<txtail; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
 }
