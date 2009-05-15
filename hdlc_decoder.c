@@ -12,19 +12,28 @@
 #include "ax25.h"
 
 
-static stream_t *out; 
 static stream_t *stream;
 static fbuf_t fbuf;
-static fbq_t *fqueue = NULL;
+static fbq_t *fqueue = NULL, *mqueue = NULL;
+static bool monitor = false;
 
 static void hdlc_decode (void);
 static bool crc_match(FBUF*, uint8_t);
 
 
+   
 /***********************************************************
  * Subscribe or unsubscribe to packets from decoder
  * packets are put into the given buffer queue.
  ***********************************************************/
+ 
+void hdlc_monitor_rx(fbq_t* q)
+{ 
+    if (mqueue != NULL)
+        fbq_clear(mqueue);
+    mqueue = q;
+}
+   
  
 void hdlc_subscribe(fbq_t* q)
 {
@@ -33,22 +42,14 @@ void hdlc_subscribe(fbq_t* q)
     fqueue = q;
 }
 
-void hdlc_unsubscribe(uint8_t index)
-{
-    if (fqueue != NULL)
-       fbq_clear(fqueue);
-    fqueue = NULL;
-}
-
 
 
 /***********************************************************
  * init hdlc-deoder
  ***********************************************************/
  
-fbq_t* hdlc_init_decoder (stream_t *s, stream_t* outstr)
+fbq_t* hdlc_init_decoder (stream_t *s)
 {   
-   out = outstr;
    stream = s;
    DEFINE_FBQ(fbin, HDLC_DECODER_QUEUE_SIZE);
    fbuf_new(&fbuf);
@@ -56,6 +57,7 @@ fbq_t* hdlc_init_decoder (stream_t *s, stream_t* outstr)
 
    return &fbin;
 }
+
 
 
 /***********************************************************
@@ -69,20 +71,20 @@ static uint8_t get_bit ()
    static uint8_t bit_count = 0;
   
    if (bit_count < 8) {
-     register uint8_t byte = getch(stream);
-     bits |= ((uint16_t) byte << bit_count);
-     bit_count += 8;
+      register uint8_t byte = getch(stream);
+      bits |= ((uint16_t) byte << bit_count);
+      bit_count += 8;
    }
    if ((uint8_t) (bits & 0x00ff) == HDLC_FLAG) {
-     bits >>= 8;
-     bit_count -= 8;
-     return HDLC_FLAG;
+      bits >>= 8;
+      bit_count -= 8;
+      return HDLC_FLAG;
    } 
    else {
-     uint8_t bit = (uint8_t) bits & 0x0001;
-     bits >>= 1;
-     bit_count--;
-     return bit;
+      uint8_t bit = (uint8_t) bits & 0x0001;
+      bits >>= 1;
+      bit_count--;
+      return bit;
   }
 }
 
@@ -145,21 +147,18 @@ static void hdlc_decode ()
    } while (bit != HDLC_FLAG);
 
 
-   sleep(5);   
    if (crc_match(&fbuf, length)) 
    {     
-      /* Display frame */
-      ax25_display_frame(out, &fbuf);
-      putstr_P(out, PSTR("\r\n"));
-      
-      /* Send packets to subscriber, if any */
-      if (fqueue) {      
-          fbq_put( fqueue, fbuf);
+      /* Send packets to subscriber, if any 
+       * FIXME: Check for fqueue as well. buffer must be "shared".
+       */
+      if (mqueue) {      
+          fbq_put( mqueue, fbuf);
           fbuf_new(&fbuf);
       }
       else    
          fbuf_release(&fbuf);
-
+        
    }
   
    goto frame_sync; // Two consecutive frames may share the same flag
