@@ -1,5 +1,5 @@
 /*
- * $Id: main.c,v 1.28 2009-04-03 11:45:57 la7eca Exp $
+ * $Id: main.c,v 1.29 2009-05-15 22:55:09 la7eca Exp $
  *
  * Polaric tracker main program.
  * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
@@ -162,8 +162,8 @@ int main(void)
       
       /* Timer */    
       TCCR2B = 0x03;                   /* Pre-scaler for timer0 */             
-      TCCR2A = 1<<WGM21;            /* CTC mode */             
-      TIMSK2 = 1<<OCIE2A;             /* Interrupt on compare match */
+      TCCR2A = 1<<WGM21;               /* CTC mode */             
+      TIMSK2 = 1<<OCIE2A;              /* Interrupt on compare match */
       OCR2A  = (SCALED_F_CPU / 32 / 2400) - 1;
    
       TRACE_INIT;
@@ -174,8 +174,9 @@ int main(void)
       setup_transceiver(); 
      
       /* HDLC and AFSK setup */
+      mon_init(&cdc_outstr);
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
-      inframes  = hdlc_init_decoder( afsk_init_decoder(), &cdc_outstr );
+      inframes  = hdlc_init_decoder( afsk_init_decoder() );
       
       /* GPS and tracking */
       gps_init(&cdc_outstr);

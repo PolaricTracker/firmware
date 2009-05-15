@@ -1,5 +1,5 @@
 /* 
- * $Id: kernel.h,v 1.3 2008-12-31 01:19:02 la7eca Exp $
+ * $Id: kernel.h,v 1.4 2009-05-15 22:56:47 la7eca Exp $
  * Non-preemptive multithreading kernel. 
  */
 
@@ -32,6 +32,13 @@ typedef struct _cond {
     TCB *qfirst, *qlast;
 } Cond;
 
+
+typedef struct _bcond {
+    bool val;
+    Cond waiters;
+} BCond;
+
+    
 typedef struct _sem {
     uint16_t cnt; 
     Cond waiters;
@@ -49,6 +56,12 @@ void wait(Cond* c);
 void notify(Cond* c);
 void notifyAll(Cond* c);
 bool hasWaiters(Cond* c);
+
+void bcond_init(BCond* c, bool v);
+void bcond_set(BCond* c);
+void bcond_clear(BCond* c);
+void bcond_wait(BCond* c);
+
 void sem_init(Semaphore*, uint16_t);
 void sem_down(Semaphore*);
 void sem_up(Semaphore*);
