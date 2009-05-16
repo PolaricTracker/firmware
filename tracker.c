@@ -1,5 +1,5 @@
 /*
- * $Id: tracker.c,v 1.22 2009-03-29 18:14:23 la7eca Exp $
+ * $Id: tracker.c,v 1.23 2009-05-16 16:03:34 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -24,6 +24,7 @@ extern Stream cdc_outstr;
 static bool maxpause_reached = false;
 static uint8_t pause_count = 0;
 static bool waited = false;
+static bool trx_control = true;
 
 void tracker_init(void);
 void tracker_on(void); 
@@ -74,11 +75,17 @@ void tracker_off()
     sem_nb_down(&tracker_run);
 }
 
+/***************************************************************
+ * Tell tracker module that other modules are activating the
+ * transceiver (false) or that tracker should activate it (true)
+ ***************************************************************/
+void tracker_controls_trx(bool c)
+   { trx_control = c; }
 
 
-/**************************************************************
+/***************************************************************
  * main thread for tracking
- **************************************************************/
+ ***************************************************************/
  
 static void trackerThread(void)
 {
@@ -150,7 +157,8 @@ static void trackerThread(void)
 static void activate_tx()
 {
       if (!is_off && hdlc_enc_packets_waiting()) {
-         adf7021_power_on(); 
+         if (trx_control) 
+             adf7021_power_on(); 
 
          /* 
           * Before turning off the transceiver chip, wait 
@@ -161,7 +169,8 @@ static void activate_tx()
          sleep(50);
          hdlc_wait_idle();
          adf7021_wait_tx_off();
-         adf7021_power_off();
+         if (trx_control)
+             adf7021_power_off();
       } 
 }
 
