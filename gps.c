@@ -1,5 +1,5 @@
 /* 
- * $Id: gps.c,v 1.19 2009-01-21 22:27:43 la7eca Exp $
+ * $Id: gps.c,v 1.20 2009-06-03 07:38:36 la7eca Exp $
  * NMEA data 
  */
 
@@ -22,6 +22,7 @@
 #define NMEA_BUFSIZE   80
 #define NMEA_MAXTOKENS 16
 
+
 /* Defined in commands.c */
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
@@ -29,6 +30,7 @@ uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 Stream* uart_tx_init(uint16_t);
 Stream* uart_rx_init(uint16_t, bool);
 
+/* Current position */
 posdata_t current_pos; 
 
 /* Local handlers */
@@ -290,9 +292,9 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
 }
 
 
-/* 
+/******************************************* 
  * Get altitude from GGA line
- */
+ *******************************************/
 
 static void do_gga(uint8_t argc, char** argv, Stream *out)
 {

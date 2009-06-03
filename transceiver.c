@@ -1,4 +1,4 @@
-/* $Id: transceiver.c,v 1.22 2009-03-26 22:10:18 la7eca Exp $ */
+/* $Id: transceiver.c,v 1.23 2009-06-03 07:39:09 la7eca Exp $ */
 
 #include <avr/io.h>
 #include <math.h>
@@ -260,11 +260,8 @@ void adf7021_init (adf7021_setup_t* s)
 
 
 
-
-void adf7021_power_on ()
-{  
-  set_port (ADF7021_ON);  
-  
+static void _adf7021_startup()
+{
   /* Wait for transceiver to become ready */
   ADF7021_MUXOUT_WAIT ();
   //sleep(1); // Wait for clock (??????) 1.01ms 
@@ -326,10 +323,30 @@ void adf7021_power_on ()
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->test_mode))
     adf7021_write_register (ADF7021_REGISTER_DEREF (setup->test_mode));
    
+}
+
+
+
+void adf7021_power_on ()
+{  
+  set_port (ADF7021_ON);  
+  _adf7021_startup();
+
   adf7021_enabled = true; 
   notifyAll(&adf7021_on_signal);
 }
 
+
+
+void adf7021_power_off ()
+{
+  notifyAll(&adf7021_tx_idle);
+  /* Turn it off */
+  adf7021_enabled = adf7021_tx_enabled =  false;
+  
+  set_port (INV_PA_ON);  
+  clear_port (ADF7021_ON);
+}
 
 
 /*
@@ -351,17 +368,6 @@ void adf7021_wait_tx_off()
 //   sleep (setup->ramp_time);     
 }
 
-
-
-void adf7021_power_off ()
-{
-  notifyAll(&adf7021_tx_idle);
-  /* Turn it off */
-  adf7021_enabled = adf7021_tx_enabled =  false;
-  
-  set_port (INV_PA_ON);  
-  clear_port (ADF7021_ON);
-}
 
 
 
