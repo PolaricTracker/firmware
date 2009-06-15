@@ -1,79 +1,80 @@
-# Makefile for AVR target
-
-# Define directories.
-  INCDIR = .
-  LIBDIR = .
-    LIBS =
-
-# Define programs.
-    SHELL = sh
-    AR = ar
-    COMPILE = avr-gcc
-    ASSEMBLE = avr-gcc -x assembler-with-cpp
-    REMOVE = rm -f
-    COPY = cp
-    MOVE = mv
-    OBJCOPY = avr-objcopy
-    OBJDUMP = avr-objdump
-    HEXSIZE = @avr-size --target=$(FORMAT) $(TARGET).hex
-    ELFSIZE = @avr-size $(TARGET).elf
-    
-# LUFA compile
-    BOARD    = POLARIC
-    MCU      = at90usb1287    
-    LUFADEFS = -DBOARD=BOARD_$(BOARD) -DUSE_NONSTANDARD_DESCRIPTOR_NAMES -DNO_STREAM_CALLBACKS
-    LUFADEFS += -DUSB_DEVICE_ONLY -DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
-
-# MCU name and clock speed
-	MCU = at90usb1287
-        F_CPU = 8000000
-        
-        
-# Output format. Can be [srec|ihex].
-    FORMAT = ihex
+# Makefile for Polaric Tracker
 
 # Target file name (without extension).
-	TARGET = test
+TARGET = firmware
+
+# Output format for .hex files, can be [srec|ihex|binary].
+FORMAT = binary
+
+# MCU name and clock speed
+MCU = at90usb1287
+F_CPU = 8000000
+
+# Define programs.
+SHELL = sh
+AR = ar
+COMPILE = avr-gcc
+ASSEMBLE = avr-gcc -x assembler-with-cpp
+REMOVE = rm -f
+COPY = cp
+MOVE = mv
+OBJCOPY = avr-objcopy
+OBJDUMP = avr-objdump
+HEXSIZE = @avr-size --target=$(FORMAT) $(TARGET).hex
+ELFSIZE = @avr-size $(TARGET).elf
+
+
+# LUFA definitions
+USB_CFLAGS = \
+	-DF_CLOCK=$(F_CPU)UL -DUSE_NONSTANDARD_DESCRIPTOR_NAMES \
+        -DNO_STREAM_CALLBACKS -DUSB_DEVICE_ONLY \
+        -DFIXED_CONTROL_ENDPOINT_SIZE=8  -DUSE_SINGLE_DEVICE_CONFIGURATION \
+	-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
+USB_PATH = LUFA/Drivers/USB
+USB_SRC = $(USB_PATH)/LowLevel/LowLevel.c $(USB_PATH)/HighLevel/USBTask.c \
+          $(USB_PATH)/HighLevel/USBInterrupt.c $(USB_PATH)/HighLevel/Events.c \
+          $(USB_PATH)/LowLevel/DevChapter9.c $(USB_PATH)/LowLevel/Endpoint.c \
+          $(USB_PATH)/HighLevel/StdDescriptors.c usb_descriptors.c usb.c
+USB_INCLUDE = -I$(USB_PATH)
 
 # List C source files here.
-	SRC = usb_descriptors.c \
-              LUFA/Drivers/USB/LowLevel/LowLevel.c LUFA/Drivers/USB/HighLevel/USBTask.c \
-              LUFA/Drivers/USB/HighLevel/USBInterrupt.c LUFA/Drivers/USB/HighLevel/Events.c \
-              LUFA/Drivers/USB/LowLevel/DevChapter9.c LUFA/Drivers/USB/LowLevel/Endpoint.c \
-              LUFA/Drivers/USB/HighLevel/StdDescriptors.c config.c ui.c\
-              kernel/kernel.c kernel/timer.c kernel/stream.c uart.c gps.c transceiver.c \
-              afsk_tx.c afsk_rx.c hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c usb.c commands.c adc.c \
-              monitor.c tracker.c main.c 
+SRC = config.c ui.c kernel/kernel.c kernel/timer.c kernel/stream.c	\
+      uart.c gps.c transceiver.c afsk_tx.c afsk_rx.c hdlc_encoder.c	\
+      hdlc_decoder.c fbuf.c ax25.c commands.c adc.c monitor.c		\
+      tracker.c main.c $(USB_SRC)
 
 # List Assembler source files here.
-	ASRC =
-# setjmp/setjmp.s 
+#     Make them always end in a capital .S.  Files ending in a lowercase .s
+#     will not be considered source files but generated files (assembler
+#     output from the compiler), and will be deleted upon "make clean"!
+#     Even though the DOS/Win* filesystem matches both .s and .S the same,
+#     it will preserve the spelling of the filenames, and gcc itself does
+#     care about how the name is spelled on its command-line.
+ASRC =
+
 
 # Compiler flags.
-	CPFLAGS = $(LUFADEFS) -DF_CPU=$(F_CPU)UL -ggdb -funsigned-char --std=gnu99 -Wall -Wstrict-prototypes -Wa,-ahlms=$(<:.c=.lst)
+CFLAGS = -O2 $(USB_CFLAGS) $(USB_INCLUDE) -I. -DF_CPU=$(F_CPU)UL -funsigned-char --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst) -fno-strict-aliasing -fshort-enums
 
 # Assembler flags.
-    ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
+ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
 
 # Linker flags (passed via GCC).
-	LDFLAGS = -L$(LIBDIR) -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt  -lscanf_flt -lm -lc -lm
-
-# Additional library flags (-lm = math library).
-#	LIBFLAGS = -l$(LIBS)
+LDFLAGS = -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm
 
 # Define all project specific object files.
-	OBJ	= $(SRC:.c=.o) $(ASRC:.s=.o) 	
+OBJ = $(SRC:.c=.o) $(ASRC:.s=.o) 	
 
 # Define all listing files.
-	LST = $(ASRC:.s=.lst) $(SRC:.c=.lst)
+LST = $(ASRC:.s=.lst) $(SRC:.c=.lst)
 
 # Compiler flags to generate dependency files.
-	GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
+GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
 
 # Add target processor to flags.
-	CPFLAGS += -mmcu=$(MCU) $(GENDEPFLAGS)
-	ASFLAGS += -mmcu=$(MCU)
-	LDFLAGS += -mmcu=$(MCU)	
+CFLAGS += -mmcu=$(MCU) $(GENDEPFLAGS)
+ASFLAGS += -mmcu=$(MCU)
+LDFLAGS += -mmcu=$(MCU)	
 
 .PHONY : build
 build: $(TARGET).elf $(TARGET).hex $(TARGET).lss $(TARGET).bin line1 overallsize line2
@@ -101,15 +102,19 @@ overallsize:
 .SECONDARY : $(TRG).elf
 .PRECIOUS : $(OBJ)
 %.elf: $(OBJ)
-	$(COMPILE) $(LDFLAGS) $(OBJ) $(LIBFLAGS) --output $@
+	$(COMPILE) $(OBJ) $(LDFLAGS)  --output $@
+
+# I need to specify this rule explicit for some reason - la7dja
+$(TARGET).elf: $(OBJ)
+	$(COMPILE) $(OBJ) $(LDFLAGS) --output $@
 
 # Compile: create object files from C source files.
 %.o : %.c
-	$(COMPILE) -c $(CPFLAGS) -I$(INCDIR) $< -o $@ 
+	$(COMPILE) -c $(CFLAGS) $< -o $@ 
 
 # Compile: create assembler files from C source files.
 %.s : %.c
-	$(COMPILE) -S -fverbose-asm $(CPFLAGS) -I$(INCDIR) $< -o $@ 
+	$(COMPILE) -S -fverbose-asm $(CFLAGS) $< -o $@ 
 
 # Assemble: create object files from assembler files.
 
@@ -121,6 +126,12 @@ dfu: $(TARGET).hex
 	dfu-programmer $(MCU) erase
 	dfu-programmer $(MCU) flash $(TARGET).hex
 	dfu-programmer $(MCU) start
+
+# device firmware upload via JTAG
+JTAGID=jtagmkII
+JTAGDEV=usb
+jtag: $(TARGET).hex
+	avrdude -p$(MCU) -P$(JTAGDEV) -c$(JTAGID) -Uflash:w:$(TARGET).hex
 
 
 # Target: line1 project.
