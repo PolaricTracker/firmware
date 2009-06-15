@@ -200,7 +200,7 @@ USB_Descriptor_String_t PROGMEM ManufacturerString =
 {
 	Header:                 {Size: USB_STRING_LEN(11), Type: DTYPE_String},
 		
-	UnicodeString:          L"Dean Camera"
+	UnicodeString:          L"LA3T"
 };
 
 /** Product descriptor string. This is a Unicode string containing the product's details in human readable form,
@@ -211,7 +211,7 @@ USB_Descriptor_String_t PROGMEM ProductString =
 {
 	Header:                 {Size: USB_STRING_LEN(12), Type: DTYPE_String},
 		
-	UnicodeString:          L"LA3T Tracker"
+	UnicodeString:          L"Polaric Tracker"
 };
 
 /** This function is called by the library when in device mode, and must be overridden (see StdDescriptors.h

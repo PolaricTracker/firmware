@@ -98,38 +98,38 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 	uint8_t* LineCodingData = (uint8_t*)&LineCoding;
 
 	/* Process CDC specific control requests */
-	switch (bRequest)
+	switch (USB_ControlRequest.bRequest)
 	{
 		case REQ_GetLineEncoding:
-			if (bmRequestType == (REQDIR_DEVICETOHOST | REQTYPE_CLASS | REQREC_INTERFACE))
+			if (USB_ControlRequest.bmRequestType == (REQDIR_DEVICETOHOST | REQTYPE_CLASS | REQREC_INTERFACE))
 			{	
 				/* Acknowedge the SETUP packet, ready for data transfer */
-				Endpoint_ClearSetupReceived();
+				Endpoint_ClearSETUP();
 
 				/* Write the line coding data to the control endpoint */
 				Endpoint_Write_Control_Stream_LE(LineCodingData, sizeof(CDC_Line_Coding_t));
 				
 				/* Finalize the stream transfer to send the last packet or clear the host abort */
-				Endpoint_ClearSetupOUT();
+				Endpoint_ClearOUT();
 			}
 			
 			break;
 		case REQ_SetLineEncoding:
-			if (bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
+			if (USB_ControlRequest.bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
 			{
 				/* Acknowedge the SETUP packet, ready for data transfer */
-				Endpoint_ClearSetupReceived();
+				Endpoint_ClearSETUP();
 
 				/* Read the line coding data in from the host into the global struct */
 				Endpoint_Read_Control_Stream_LE(LineCodingData, sizeof(CDC_Line_Coding_t));
 
 				/* Finalize the stream transfer to clear the last packet from the host */
-				Endpoint_ClearSetupIN();
+				Endpoint_ClearIN();
 			}
 	
 			break;
 		case REQ_SetControlLineState:
-			if (bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
+			if (USB_ControlRequest.bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_CLASS | REQREC_INTERFACE))
 			{
 #if 0
 				/* NOTE: Here you can read in the line state mask from the host, to get the current state of the output handshake
@@ -143,10 +143,10 @@ EVENT_HANDLER(USB_UnhandledControlPacket)
 #endif
 				
 				/* Acknowedge the SETUP packet, ready for data transfer */
-				Endpoint_ClearSetupReceived();
+				Endpoint_ClearSETUP();
 				
 				/* Send an empty packet to acknowedge the command */
-				Endpoint_ClearSetupIN();
+				Endpoint_ClearIN();
 			}
 	
 			break;
@@ -161,9 +161,9 @@ void usb_kickout(void)
    CONTAINS_CRITICAL;
    enter_critical();
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);	     
-   while ( !stream_empty(&cdc_outstr) && Endpoint_ReadWriteAllowed())   
+   while ( !stream_empty(&cdc_outstr) && Endpoint_IsReadWriteAllowed())   
        Endpoint_Write_Byte( stream_get_nb(&cdc_outstr) );  
-   Endpoint_ClearCurrentBank();
+   Endpoint_ClearIN (); //Endpoint_ClearCurrentBank();
    leave_critical();    
 }
 
@@ -185,10 +185,10 @@ ISR(ENDPOINT_PIPE_vect, ISR_BLOCK)
 
 		if ( USB_INT_HasOccurred(ENDPOINT_INT_OUT) ) {
          USB_INT_Clear(ENDPOINT_INT_OUT);
-         if (Endpoint_ReadWriteAllowed()){
+         if (Endpoint_IsReadWriteAllowed()){
              while (Endpoint_BytesInEndpoint() && !stream_full(&cdc_instr) ) 
                  stream_put_nb(&cdc_instr, Endpoint_Read_Byte());
-             Endpoint_ClearCurrentBank();
+             Endpoint_ClearIN (); //Endpoint_ClearCurrentBank();
          }   
       }
 

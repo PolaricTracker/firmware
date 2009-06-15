@@ -7,7 +7,7 @@
 		#include <avr/pgmspace.h>
 
 		#include "usb_descriptors.h"
-		#include <LUFA/Drivers/USB/USB.h>                // USB Functionality
+		#include <USB.h>                // USB Functionality
 
 
 	/* Macros: */
