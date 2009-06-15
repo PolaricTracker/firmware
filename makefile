@@ -4,7 +4,7 @@
 TARGET = firmware
 
 # Output format for .hex files, can be [srec|ihex|binary].
-FORMAT = binary
+FORMAT = ihex
 
 # MCU name and clock speed
 MCU = at90usb1287
@@ -25,16 +25,16 @@ ELFSIZE = @avr-size $(TARGET).elf
 
 
 # LUFA definitions
-USB_CFLAGS = \
-	-DF_CLOCK=$(F_CPU)UL -DUSE_NONSTANDARD_DESCRIPTOR_NAMES \
-        -DNO_STREAM_CALLBACKS -DUSB_DEVICE_ONLY \
-        -DFIXED_CONTROL_ENDPOINT_SIZE=8  -DUSE_SINGLE_DEVICE_CONFIGURATION \
-	-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
 USB_PATH = LUFA/Drivers/USB
-USB_SRC = $(USB_PATH)/LowLevel/LowLevel.c $(USB_PATH)/HighLevel/USBTask.c \
+USB_CFLAGS = \
+	-I$(USB_PATH) -DF_CLOCK=$(F_CPU)UL -DUSE_NONSTANDARD_DESCRIPTOR_NAMES \
+        -DNO_STREAM_CALLBACKS -DUSB_DEVICE_ONLY \
+	-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
+USB_SRC = usb_descriptors.c usb.c \
+          $(USB_PATH)/LowLevel/LowLevel.c $(USB_PATH)/HighLevel/USBTask.c \
           $(USB_PATH)/HighLevel/USBInterrupt.c $(USB_PATH)/HighLevel/Events.c \
           $(USB_PATH)/LowLevel/DevChapter9.c $(USB_PATH)/LowLevel/Endpoint.c \
-          $(USB_PATH)/HighLevel/StdDescriptors.c usb_descriptors.c usb.c
+          $(USB_PATH)/HighLevel/StdDescriptors.c 
 USB_INCLUDE = -I$(USB_PATH)
 
 # List C source files here.
@@ -54,7 +54,7 @@ ASRC =
 
 
 # Compiler flags.
-CFLAGS = -O2 $(USB_CFLAGS) $(USB_INCLUDE) -I. -DF_CPU=$(F_CPU)UL -funsigned-char --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst) -fno-strict-aliasing -fshort-enums
+CFLAGS = -O2 $(USB_CFLAGS) -I. -DF_CPU=$(F_CPU)UL -funsigned-char --std=gnu99 -Wall -Wa,-ahlms=$(<:.c=.lst) -fno-strict-aliasing -fshort-enums
 
 # Assembler flags.
 ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
