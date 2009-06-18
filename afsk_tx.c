@@ -24,11 +24,13 @@
 #define _TXI_SPACE  ((SCALED_F_CPU / _PRESCALER3 / (AFSK_TXTONE_SPACE) ) /16 - 1 )
 
 
-
-bool     transmit;              
 stream_t afsk_tx_stream;
 static uint16_t timertop, start_tone;
-   
+
+bool     transmit;     /* True when transmitter(modulator) is active. */        
+extern BCond mon_ok;   /* since activity on USB/serial port disturbs modulation,
+                          there must be synchronisation to prevent those two things
+                          from running at the same time */   
    
    
 stream_t* afsk_init_encoder(void) 
@@ -59,14 +61,16 @@ void afsk_high_tone(bool t)
  
 void afsk_ptt_on()
 {        
-    TCCR3B = _PRESCALER3_SETTING   /* Pre-scaler for timer3 */             
-             | (1<<WGM32) ;        /* CTC mode */   
+    TCCR3B = _PRESCALER3_SETTING     /* Pre-scaler for timer3 */             
+             | (1<<WGM32) ;          /* CTC mode */   
 //    TCCR3A |= (1<<COM3A0);         /* Toggle OC3A on compare match. */
     OCR3A  = timertop = start_tone;
-    TIMSK3 = 1<<OCIE3A;            /* Interrupt on compare match */ 
-    transmit = true; 
+    TIMSK3 = 1<<OCIE3A;              /* Interrupt on compare match */ 
     adf7021_enable_tx();
+    
     set_port(LED2);
+    transmit = true; 
+    bcond_clear(&mon_ok);
 }
 
 
@@ -78,10 +82,12 @@ void afsk_ptt_on()
 
 void afsk_ptt_off(void)
 {
+    bcond_set(&mon_ok);
+    transmit = false;    
+    clear_port(LED2);                /* LED / PTT */
+    
     TIMSK3 = 0x00;
-    TCCR3A &= ~(1<<COM3A0);           /* Toggle OC3A on compare match: OFF. */
-    transmit = false; 
-    clear_port(LED2);                 /* LED / PTT */
+    TCCR3A &= ~(1<<COM3A0);          /* Toggle OC3A on compare match: OFF. */
     DAC_PORT = 0;
     adf7021_disable_tx();
     start_tone = _TXI_MARK;
