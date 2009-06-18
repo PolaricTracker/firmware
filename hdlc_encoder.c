@@ -64,7 +64,7 @@ fbq_t* hdlc_init_encoder(stream_t* os)
    FBQ_INIT( encoder_queue, HDLC_ENCODER_QUEUE_SIZE ); 
    THREAD_START( hdlc_txencoder, STACK_HDLCENCODER );
    
-   cond_init(&hdlc_idle);
+   cond_init(&hdlc_idle_sig);
    sem_init(&test, 0);
    THREAD_START( hdlc_testsignal, STACK_HDLCENCODER_TEST);
    return _enc_queue = &encoder_queue;
