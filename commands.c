@@ -72,7 +72,7 @@ void tracker_controls_trx(bool c);
 static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out, 
                 void* ee_addr, PGM_P default_val, uint16_t lower, uint16_t upper, PGM_P pfmt, PGM_P sfmt)
 {
-    uint16_t x;
+    int x;
     if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
           sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper); 
@@ -94,15 +94,15 @@ static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out,
 static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out, 
                 void* ee_addr, PGM_P default_val, uint8_t lower, uint8_t upper, PGM_P pfmt, PGM_P sfmt)
 {
-    uint8_t x;
+    int x;
     if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
           sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper);  
           putstr(out,buf);
        }
        else {
-          set_byte_param(ee_addr, x);
-          putstr_P(out,PSTR("OK\r\n"));
+          set_byte_param(ee_addr, (uint8_t) x);
+          putstr_P(out, PSTR("OK\r\n"));
        }
     } 
     else {
@@ -190,6 +190,7 @@ void cmdProcessor(Stream *in, Stream *out)
     putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
     
     while (1) {
+         memset(argv, 0, MAXTOKENS);
          putstr(out, "cmd: ");    
          readLine(in, out, buf, BUFSIZE);
          
@@ -431,7 +432,7 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
  
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-   if (strncasecmp("on", argv[1], 2) == 0) {
+   if (strncasecmp_P(argv[1], PSTR("on"), 2) == 0) {
       putstr_P(out, PSTR("***** TRX CHIP ON *****\r\n"));
       tracker_controls_trx(false);
       setup_transceiver();
