@@ -137,6 +137,7 @@ void fbuf_putChar (FBUF* b, const char c)
 
 
 
+
 /*******************************************************
  * Merge a buffer chain into another buffer chain
  *******************************************************/
@@ -277,6 +278,7 @@ void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 {
     q->size = sz;
     q->buf = buf;
+    q->index = 0;
     sem_init(&q->length, 0);
     sem_init(&q->capacity, sz);
 }
@@ -285,8 +287,8 @@ void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 void fbq_clear(FBQ* q)
 {
     register uint8_t i;
-    for (i=q->index; i< q->index+q->length.cnt; i++)
-        fbuf_release(&q->buf[i]);
+    for (i = q->index;  i < q->index + q->length.cnt;  i++)
+        fbuf_release(&q->buf[i % q->size]);
     sem_init(&q->length, 0);
     sem_init(&q->capacity, q->size);    
     q->index = 0;
