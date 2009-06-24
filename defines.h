@@ -28,7 +28,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.11.1+ (18.6.2009)"
+#define VERSION_STRING "v0.11.1+ (24.6.2009)"
 #define CURRENT_VERSION_KEY 7
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
@@ -60,16 +60,16 @@
  *********************************************/
 
 
-#define STACK_MAIN             180
-#define STACK_LED              150
-#define STACK_BATT             150
-#define STACK_USBLISTENER      420
-#define STACK_HDLCENCODER      180
-#define STACK_HDLCDECODER      200
-#define STACK_HDLCENCODER_TEST 150
-#define STACK_GPSLISTENER      350
-#define STACK_TRACKER          410
-#define STACK_MONITOR          200
+#define STACK_MAIN             190
+#define STACK_LED              160
+#define STACK_BATT             170
+#define STACK_USBLISTENER      430
+#define STACK_HDLCENCODER      190
+#define STACK_HDLCDECODER      210
+#define STACK_HDLCENCODER_TEST 160
+#define STACK_GPSLISTENER      360
+#define STACK_TRACKER          420
+#define STACK_MONITOR          260
 
 
 /******************************************* 
