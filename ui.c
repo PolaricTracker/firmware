@@ -372,7 +372,7 @@ static void batt_check_thread()
              set_port(HIGH_CHARGE);
           }
        
-       if (_batt_voltage <= BATT_LOW_WARNING) 
+       if (_batt_voltage <= BATT_LOW_WARNING) {
           if (_batt_voltage <= BATT_LOW_TURNOFF)
              turn_off();
           else {
@@ -386,7 +386,8 @@ static void batt_check_thread()
              sleep(40);
              led_usb_restore();
           }   
-       
+       }
+        
        /* External charger handler. Indicate when plugged in
         * even if device is "turned off" 
         */   
