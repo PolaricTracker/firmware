@@ -289,8 +289,8 @@ void fbq_clear(FBQ* q)
     register uint8_t i;
     for (i = q->index;  i < q->index + q->length.cnt;  i++)
         fbuf_release(&q->buf[i % q->size]);
-    sem_init(&q->length, 0);
-    sem_init(&q->capacity, q->size);    
+    sem_set(&q->length, 0);
+    sem_set(&q->capacity, q->size);    
     q->index = 0;
 }
 
