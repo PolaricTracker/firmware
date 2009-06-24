@@ -26,11 +26,13 @@
 #define FREQUENCY_DEVIATION 24
 
 
-int8_t hard_symbol;  /* Most recent detected symbol. */
-int8_t soft_symbol;  /* Differs from the above by also having UNDECIDED as valid state */
-bool valid_symbol;   /* (DCD) Will always be true when using the simple detector */
-extern bool transmit; 
-extern BCond mon_ok; 
+int8_t hard_symbol;    /* Most recent detected symbol. */
+int8_t soft_symbol;    /* Differs from the above by also having UNDECIDED as valid state */
+bool valid_symbol;     /* (DCD) Will always be true when using the simple detector */
+extern bool transmit;  /* True when transmitter(modulator) is active (see afsk_tx.c). */
+extern BCond mon_ok;   /* since activity on USB/serial port disturbs demodulation,
+                          there must be synchronisation to prevent those two things
+                          from running at the same time */
  
 bool decoder_running = false; 
 bool decoder_enabled = false;
