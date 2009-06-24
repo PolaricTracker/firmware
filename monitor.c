@@ -1,12 +1,12 @@
+
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
 #include "defines.h"
 #include "config.h"
 #include "ax25.h"
 
-
 BCond mon_ok;
-   /* External variable in afsk_decoder. 
+   /* External variable in afsk_rx and afsk_tx. 
     * May pass it as return value from mon_init instead? */
    
 static bool mon_on = false;
