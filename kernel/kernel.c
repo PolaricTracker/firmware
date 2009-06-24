@@ -178,7 +178,7 @@ bool hasWaiters(Cond* c)
  
 void bcond_init(BCond* c, bool v) 
 { 
-    cond_init(&c->waiters); 
+    cond_init(&(c->waiters)); 
     c->val = v;
 }
 
@@ -186,8 +186,10 @@ void bcond_init(BCond* c, bool v)
 void bcond_set(BCond* c)
 {   CONTAINS_CRITICAL;
     enter_critical();
-    c->val = true;
-    notifyAll(&c->waiters);
+    if (!c->val) {
+      c->val = true;
+      notifyAll(&(c->waiters));
+    }
     leave_critical();
 }
 
@@ -198,8 +200,8 @@ void bcond_clear(BCond* c)
    
 void bcond_wait(BCond* c)
 {
-   while (!c->val)
-       wait(&c->waiters);
+   if (!c->val)
+       wait(&(c->waiters));
 }
 
 
@@ -210,7 +212,7 @@ void bcond_wait(BCond* c)
  **********************************************************************************/
 
 void sem_init(Semaphore* s, uint16_t cnt)
-   { s->cnt = cnt; cond_init(&s->waiters); }
+   { s->cnt = cnt; cond_init(&(s->waiters)); }
 
 
 /*********************************************************************************
@@ -251,7 +253,7 @@ void sem_down(Semaphore* s)
    enter_critical();
    while (s->cnt == 0) {
       leave_critical();
-      wait(&s->waiters);
+      wait(&(s->waiters));
       enter_critical();
    }
    s->cnt--; 
@@ -269,6 +271,6 @@ void sem_up(Semaphore* s)
     enter_critical();
     s->cnt++;
     if (s->waiters.qfirst != NULL)
-       notify(&s->waiters);
+       notify(&(s->waiters));
     leave_critical();
 }
