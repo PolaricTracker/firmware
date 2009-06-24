@@ -51,7 +51,7 @@ static fbq_t* _enc_queue;
 
 void hdlc_monitor_tx(fbq_t* q)
 { 
-   if (mqueue != NULL)
+   if (mqueue != NULL) 
         fbq_clear(mqueue);
     mqueue = q;
 }
@@ -203,8 +203,10 @@ static void hdlc_encode_frames()
             hdlc_encode_byte(txbyte, false);
         }
         
-        if (mqueue) 
+        if (mqueue) {
+           fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
            fbq_put( mqueue, buffer);
+        }
         else
            fbuf_release(&buffer);
            
