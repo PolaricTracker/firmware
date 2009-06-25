@@ -88,9 +88,14 @@ Version 0.12/1.0
 
 * Implicit activation of trx by commands that use it 
   Eliminate need for explicit TRX command. 
+     DONE
      
-* Monitoring (USB stream) and GPS interferes with packet decoding. 
+* Monitoring (USB stream) and GPS interferes with packet encoding. 
   Problem when multiple frames in one transmission. Fix?
+     DONE
+     
+* "Graphical" RSSI command that runs until key is pressed.
+     DONE
 
 
 
