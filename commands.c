@@ -15,6 +15,7 @@
 #include "ax25.h"
 #include "config.h"
 #include "transceiver.h"
+#include "radio.h"
 #include "gps.h"
 #include <avr/interrupt.h>
 #include "adc.h"
@@ -222,7 +223,7 @@ void cmdProcessor(Stream *in, Stream *out)
              do_vbatt(argc, argv, out);
          else if (strncasecmp("listen", argv[0], 3) == 0)
              do_listen(argc, argv, out, in);            
-         else if (strncasecmp("converse", argv[0], 4) == 0)
+         else if (strncasecmp("k", argv[0], 1) == 0 || strncasecmp("converse", argv[0], 4) == 0)
              do_converse(argc, argv, out, in);   
          
          /* Commands for setting/viewing parameters */
@@ -326,13 +327,21 @@ void cmdProcessor(Stream *in, Stream *out)
 static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     int i;    
-    for (i=0; i<60; i++)
+    radio_require();
+    stream_get_nb(in);
+    for (;;)
     {
+        sleep(25);
         double x = adf7021_read_rssi();
-        sprintf_P(buf, PSTR("RSSI level: %.2f\r\n\0"), x);
+        sprintf_P(buf, PSTR("RSSI: %4.0f :\0"), x);
         putstr(out, buf);
-        sleep(100);
+        for (i=0; i < (125+x)/2; i++)
+           putch(out,'*');
+        putstr_P(out, PSTR("\r\n"));
+        if (stream_get_nb(in) > 10)
+           break;
     }
+    radio_release();
 }
 
 
@@ -355,16 +364,20 @@ static void do_vbatt(uint8_t argc, char** argv, Stream* out)
 static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** LISTEN ON RECEIVER *****\r\n"));
+   radio_require();
    afsk_enable_decoder();
    mon_activate(true);
    getch(in);
-   afsk_disable_decoder();
    mon_activate(false);
+   afsk_disable_decoder();
+   radio_release();
 }
+
 
 static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** CONVERSE MODE *****\r\n"));
+   radio_require();
    afsk_enable_decoder();
    mon_activate(true);
    while ( readLine(in, out, buf, BUFSIZE)) {
@@ -379,8 +392,9 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
         fbuf_putstr(&packet, buf);                        
         fbq_put(outframes, packet);
    }
-   afsk_disable_decoder();
    mon_activate(false);
+   afsk_disable_decoder();
+   radio_release();
 }
 
 
@@ -432,17 +446,7 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
  
 static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-   if (strncasecmp_P(argv[1], PSTR("on"), 2) == 0) {
-      putstr_P(out, PSTR("***** TRX CHIP ON *****\r\n"));
-      tracker_controls_trx(false);
-      setup_transceiver();
-      adf7021_power_on ();
-   }
-   if (strncasecmp("off", argv[1], 2) == 0) {
-      putstr_P(out, PSTR("***** TRX CHIP OFF *****\r\n"));
-      adf7021_power_off ();
-      tracker_controls_trx(true);
-   }
+    putstr_P(out, PSTR("***** TRX COMMAND IS NO LONGER NEEDED *****\r\n"));
 }
 
 
@@ -479,10 +483,12 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
 static void do_txon(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** TX ON *****\r\n"));
+   radio_require();
    adf7021_enable_tx();
 
    getch(in);
    adf7021_disable_tx();
+   radio_release();
 }
 
 
@@ -498,7 +504,8 @@ static void do_teston(uint8_t argc, char** argv, Stream* out, Stream* in)
         putstr_P(out, PSTR("Usage: TESTON <byte>\r\n"));
         return;
     }
-    sscanf(argv[1], " %i", &ch);  
+    sscanf(argv[1], " %i", &ch);
+    radio_require();  
     hdlc_test_on((uint8_t) ch);
     sprintf_P(buf, PSTR("**** TEST SIGNAL: 0x%X ****\r\n"), ch);
     putstr(out, buf );  
@@ -506,6 +513,7 @@ static void do_teston(uint8_t argc, char** argv, Stream* out, Stream* in)
      /* And wait until some character has been typed */
     getch(in);
     hdlc_test_off();
+    radio_release();
 }
 
 static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
@@ -515,6 +523,7 @@ static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
       return;
   }
  
+  radio_require();
   if (strncasecmp("hi", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** TEST TONE HIGH *****\r\n"));
       afsk_high_tone(true);
@@ -529,6 +538,7 @@ static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
  /* And wait until some character has been typed */
   getch(in);
   hdlc_test_off();
+  radio_release();
 }
 
 
@@ -541,6 +551,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
 { 
     FBUF packet;    
     addr_t from, to; 
+    radio_require();
     GET_PARAM(MYCALL, &from);
     GET_PARAM(DEST, &to);       
     addr_t digis[7];
@@ -550,6 +561,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
     putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));       
     fbq_put(outframes, packet);
+    radio_release();
 }
 
          
@@ -600,6 +612,7 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
 /*********************************************
  * config: digipeater path
  *********************************************/
+ 
 static void do_digipath(uint8_t argc, char** argv, Stream* out)
 {
     __digilist_t digis;
@@ -634,7 +647,6 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
                putstr_P(out, PSTR(", ")); 
        }
        putstr_P(out,PSTR("\n\r"));
-
     }
 }
 
