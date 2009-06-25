@@ -187,7 +187,7 @@ char stream_get(Stream* b)
 
 char stream_get_nb(Stream* b)
 {   
-    if (&b->length.cnt==0 )
+    if (b->length.cnt==0 )
        return 0;
     
     sem_nb_down(&b->length);
@@ -221,7 +221,7 @@ void stream_put(Stream* b, const char c)
    
 void stream_put_nb(Stream* b, const char c)
 {  
-    if (&b->capacity==0)
+    if (b->capacity.cnt==0)
        return;
        
     sem_nb_down(&b->capacity);
