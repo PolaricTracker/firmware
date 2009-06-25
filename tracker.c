@@ -9,7 +9,8 @@
 #include "config.h"
 #include "kernel/timer.h"
 #include "adc.h"
-#include "transceiver.h"
+// #include "transceiver.h"
+#include "radio.h"
 #include "hdlc.h"
 #include "uart.h"
 #include "ui.h"
@@ -157,20 +158,8 @@ static void trackerThread(void)
 static void activate_tx()
 {
       if (!is_off && hdlc_enc_packets_waiting()) {
-         if (trx_control) 
-             adf7021_power_on(); 
-
-         /* 
-          * Before turning off the transceiver chip, wait 
-          * a little to allow packet to be received by the 
-          * encoder. Then wait until channel is ready and then until 
-          * packets are encoded and sent.
-          */
-         sleep(50);
-         hdlc_wait_idle();
-         adf7021_wait_tx_off();
-         if (trx_control)
-             adf7021_power_off();
+         radio_require();
+         radio_release();
       } 
 }
 
