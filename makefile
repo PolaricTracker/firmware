@@ -39,7 +39,7 @@ USB_INCLUDE = -I$(USB_PATH)
 
 # List C source files here.
 SRC = config.c ui.c kernel/kernel.c kernel/timer.c kernel/stream.c	\
-      uart.c gps.c transceiver.c afsk_tx.c afsk_rx.c hdlc_encoder.c	\
+      uart.c gps.c transceiver.c radio.c afsk_tx.c afsk_rx.c hdlc_encoder.c	\
       hdlc_decoder.c fbuf.c ax25.c commands.c adc.c monitor.c		\
       tracker.c main.c $(USB_SRC)
 
