@@ -132,9 +132,6 @@ int main(void)
       sei();
       reset_params();
                             
-      /* Transceiver setup */
-      setup_transceiver(); 
-     
       /* HDLC and AFSK setup */
       mon_init(&cdc_outstr);
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
