@@ -57,6 +57,7 @@ Version 0.10
     DONE
 * Fix command line reading. 
     DONE
+
 * Latest LUFA (USB driver) version
     DONE
 
@@ -70,14 +71,9 @@ Verson 0.11
     DONE
 
     
-Version 0.12/1.0
-----------------
+Version 0.12
+-------------
 * 'converse' mode
-     DONE
-
-* Possibility to disable tracker control over transceiver. 
-  TRX command now does that. Must now remember to do TRX OFF to give control
-  back to tracker module. 
      DONE
 
 * Fix bug: multiple frames in one transmission doesn't work 
