@@ -3,7 +3,8 @@
 # Target file name (without extension).
 TARGET = firmware
 
-# Output format for .hex files, can be [srec|ihex|binary].
+# Output format for .hex files, can be [srec|ihex|binary]. Note that we have
+# a special .img target for binary output.
 FORMAT = ihex
 
 # MCU name and clock speed
@@ -77,10 +78,10 @@ ASFLAGS += -mmcu=$(MCU)
 LDFLAGS += -mmcu=$(MCU)	
 
 .PHONY : build
-build: $(TARGET).elf $(TARGET).hex $(TARGET).lss $(TARGET).bin line1 overallsize line2
+build: $(TARGET).elf $(TARGET).hex $(TARGET).img $(TARGET).lss $(TARGET).bin line1 overallsize line2
 
 .PHONY : BuildAll
-buildall: clean $(TARGET).elf $(TARGET).hex $(TARGET).lss $(TARGET).bin line1 overallsize line2
+buildall: clean build
 
 .PHONY : overallsize
 overallsize:
@@ -90,9 +91,12 @@ overallsize:
 %.bin: %.elf
 	$(OBJCOPY) -j .text -j .data -O binary $< $@
 
-# Create final output files (.hex, .lss) from ELF output file.
+# Create final output files (.hex, .img, .lss) from ELF output file.
 %.hex: %.elf
 	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+
+%.img: %.elf
+	$(OBJCOPY) -O binary -R .eeprom $< $@
 
 # Create extended listing file from ELF output file.
 %.lss: %.elf
