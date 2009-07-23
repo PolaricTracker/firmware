@@ -210,16 +210,20 @@ bool gps_is_fixed()
    { return is_fixed; }
    
    
-bool gps_wait_fix()
+bool gps_wait_fix(uint16_t timeout)
 {   
     if (is_fixed) return false;      
-    while (!is_fixed) 
-       wait(&wait_gps);
+    static Timer ttimer; 
+    if (timeout) {
+       timer_callback(&ttimer, (CBfunc) notifyAll, &wait_gps);
+       timer_set(&ttimer, timeout);
+    }
+    wait(&wait_gps);
     return true;
 }         
  
 bool gps_hasWaiters()
-   {return hasWaiters(&wait_gps); }
+   { return hasWaiters(&wait_gps); }
    
    
 uint16_t course_count = 0;  
@@ -274,7 +278,7 @@ static void do_rmc(uint8_t argc, char** argv, Stream *out)
        
     /* get course [nnn.nn] */
     if (*argv[8] != '\0') {
-       double x;
+       float x;
        sscanf(argv[8], "%f", &x);
        current_pos.course = (uint16_t) x+0.5;
     }
