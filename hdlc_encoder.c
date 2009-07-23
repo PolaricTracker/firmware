@@ -26,7 +26,6 @@ static FBUF buffer;
 static stream_t *outstream;
 static fbq_t *mqueue;
 
-static Semaphore test; 
 static bool test_active;
 static uint8_t testbyte;
 static bool monitor = false;
@@ -65,8 +64,6 @@ fbq_t* hdlc_init_encoder(stream_t* os)
    THREAD_START( hdlc_txencoder, STACK_HDLCENCODER );
    
    cond_init(&hdlc_idle_sig);
-   sem_init(&test, 0);
-   THREAD_START( hdlc_testsignal, STACK_HDLCENCODER_TEST);
    return _enc_queue = &encoder_queue;
 }		
 
@@ -87,7 +84,7 @@ void hdlc_test_on(uint8_t b)
 { 
     testbyte = b;
     test_active = true;
-    sem_up(&test); 
+    THREAD_START( hdlc_testsignal, STACK_HDLCENCODER_TEST);
 }
 
 void hdlc_test_off()
@@ -96,18 +93,14 @@ void hdlc_test_off()
     
 static void hdlc_testsignal()
 {
-    while (true)
-    {
-        sem_down(&test);
-        adf7021_wait_enabled(); 
-        hdlc_idle = false;
-        
-        while(test_active) 
-            putch(outstream, testbyte);
+     adf7021_wait_enabled(); 
+     hdlc_idle = false;
+     
+     while(test_active) 
+         putch(outstream, testbyte);
     
-        hdlc_idle = true; 
-        notifyAll(&hdlc_idle_sig);   
-    }
+     hdlc_idle = true; 
+     notifyAll(&hdlc_idle_sig);   
 }
 
 
