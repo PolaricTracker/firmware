@@ -40,7 +40,7 @@ void  fbuf_merge    (FBUF* b, FBUF* x, uint8_t pos);
 
 #define fbuf_eof(b) ((b)->rslot == NILPTR)
 #define fbuf_length(b) ((b)->length)
-
+#define fbuf_empty(b) ((b)->length == 0)
 
 /*********************************
    Queue of packet buffer chains
@@ -63,7 +63,7 @@ void  _fbq_init (FBQ* q, FBUF* buf, const uint16_t size);
 void  fbq_clear (FBQ* q);
 void  fbq_put   (FBQ* q, FBUF b); 
 FBUF  fbq_get   (FBQ* q);
-
+void  fbq_signal(FBQ* q);
 
 // #define fbq_length(q) ((q)->length.cnt)
 #define fbq_eof(q)    ((q)->capacity.cnt == (q)->size)
@@ -76,5 +76,8 @@ FBUF  fbq_get   (FBQ* q);
                               static FBQ name;                   \
                               _fbq_init(&(name), (name##_fbqbuf), (size));
 
-   
+#define FBQ_TIMEOUT(q, t)  Timer tm; \
+                           timer_callback(tm, fbq_signal, q); \
+                           timer_set(tm, t);  
+
 #endif /* __FBUF_H__ */
