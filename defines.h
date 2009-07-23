@@ -28,7 +28,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.12 (25.6.2009)"
+#define VERSION_STRING "v0.12+ (17.7.2009)"
 #define CURRENT_VERSION_KEY 8
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
@@ -59,17 +59,18 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
+#define STACK_MAIN             180
+#define STACK_LED              150
+#define STACK_BATT             180
+#define STACK_USBLISTENER      440
+#define STACK_HDLCENCODER      200
+#define STACK_HDLCDECODER      220
+#define STACK_HDLCENCODER_TEST 150
+#define STACK_GPSLISTENER      350
+#define STACK_TRACKER          480
+#define STACK_MONITOR          280 
 
-#define STACK_MAIN             190
-#define STACK_LED              160
-#define STACK_BATT             170
-#define STACK_USBLISTENER      430
-#define STACK_HDLCENCODER      190
-#define STACK_HDLCDECODER      210
-#define STACK_HDLCENCODER_TEST 160
-#define STACK_GPSLISTENER      360
-#define STACK_TRACKER          420
-#define STACK_MONITOR          260
+/* Sum: 2620 bytes */
 
 
 /******************************************* 
@@ -80,8 +81,10 @@
 #define FBUF_SLOTS         88
 #define FBUF_SLOTSIZE      24
 
-#define AFSK_ENCODER_BUFFER_SIZE 128
-#define AFSK_DECODER_BUFFER_SIZE 128
+/* Plass til FBUF: 88 x (24+3) = 2376 bytes */
+
+#define AFSK_ENCODER_BUFFER_SIZE 64
+#define AFSK_DECODER_BUFFER_SIZE 64
 #define HDLC_DECODER_QUEUE_SIZE  7
 #define HDLC_ENCODER_QUEUE_SIZE  7
 
@@ -110,7 +113,7 @@ extern uint8_t blink_length, blink_interval;
  
 #define BATT_HIGHCHARGE_MAX 7.15
 #define BATT_LOWCHARGE_MIN  6.8 
-#define BATT_LOW_WARNING    5.5
+#define BATT_LOW_WARNING    5.6
 #define BATT_LOW_TURNOFF    5.2
 
 
