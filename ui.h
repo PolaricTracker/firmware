@@ -3,7 +3,10 @@
 
 void ui_init(void);
 void ui_clock(void);  
+void powerdown_handler(void);
 void beep(uint16_t);
+void lbeep(void);
+void beeps(char*);
 void led_init(void);
 void led_usb_on(void);
 void led_usb_off(void);
