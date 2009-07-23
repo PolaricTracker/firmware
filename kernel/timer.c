@@ -86,8 +86,8 @@ void timer_tick()
               */
              timer_remove(t);
              notifyAll(&t->kick);
-             if (t->callback != NULL)
-                (*t->callback)();
+             if (t->callback != NULL) 
+                 (*t->callback)(t->cbarg);
         }
         t = t->next; 
         leave_critical();
