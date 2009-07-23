@@ -81,10 +81,12 @@ do {                        \
 } while(0)
 
  
-#define BUTTON_TIME 200
-static Timer button_timer;
+#define ONOFF_TIME 200
+#define PUSH_TIME 80
+
+static Timer onoff_timer, push_timer;
 bool is_off = false;
-static void onoff_handler(void);
+static void onoff_handler(void*);
 static void sleepmode(void);
 
 
@@ -92,31 +94,35 @@ void turn_off()
 {
     is_off = true; 
     sleepmode();
-    EIMSK = (1<<INT1); 
-    /*
-     * Use pin-change interrupt to wake up the device if 
-     * external charger is plugged in. We do not need an ISR for this
-     * We just assume that one exists
-     */
-    set_bit (PCMSK0, PCINT6);
-    set_bit (PCICR, PCIE0); 
 }
 
 
+/* 
+ * Called by batt_thread to handle situations where device is waked up
+ * (but not necessarily turned on) by external power suppply. 
+ */
+bool autopower  __attribute__ ((section (".noinit")));
 static void wakeup_handler()
 {
-   if (is_off & (pin_is_high(EXT_CHARGER) || usb_on || usb_con())) 
+   if (is_off && (pin_is_high(EXT_CHARGER) || usb_on || usb_con())) {
        wdt_enable(WDTO_4S);
+       if(GET_BYTE_PARAM(AUTOPOWER)) {   
+          is_off = false;
+          autopower = true; /* Turn off if ext pwr is removed */
+          soft_reset(); 
+       }
+   }    
    /* if (is_off && gps_hasWaiters())
         gps_on(); */
 }
 
 
 
-static void onoff_handler()
+static void onoff_handler(void* x)
 {
     if (is_off) {
        is_off = false;
+       autopower = false;
        soft_reset(); 
     }
     else 
@@ -124,38 +130,112 @@ static void onoff_handler()
 }  
 
 
+
+/* The last thing to be done before putting CPU to sleep:
+ * Power down (almost) everything */
+static bool _powerdown = false;
+void powerdown_handler()
+{
+     if (!_powerdown)
+         return;
+    
+     _powerdown = false;
+    
+     EIMSK = (1<<INT1); 
+    /*
+     * Use pin-change interrupt to wake up the device if 
+     * external charger is plugged in. We do not need an ISR for this
+     * We just assume that one exists
+     */
+     set_bit (PCMSK0, PCINT6);
+     set_bit (PCICR, PCIE0); 
+    
+    /* External devices should be turned off. Todo: USB. 
+     * Note that after this, the device should be reset when it is re-activated */
+     autopower = false;
+     adf7021_power_off();
+     gps_off();
+     clear_port(LED1);
+     clear_port(LED2);
+     rgb_led_off();
+     wdt_disable();
+}
+
+
+
 static void sleepmode()
 {
     if (is_off && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con() && pin_is_high(BUTTON)) {
-       /* External devices should be turned off. Todo: USB */
-        adf7021_power_off();
-        gps_off();
-        clear_port(LED1);
-        clear_port(LED2);
-        rgb_led_off();
-        wdt_disable();
+        _powerdown = true;
         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    }  
+    }
     else
         set_sleep_mode(SLEEP_MODE_IDLE);        
 }
 
 
+
+static uint8_t tmp_push_count = 0, push_count = 0;
+static void push_thandler(void* x)
+{
+   push_count = tmp_push_count;
+   tmp_push_count = 0;
+   sleepmode();
+}
+
+
+bool buttdown = false;
 /* Button pin change interrupt */
 ISR(INT1_vect)
 { 
-    nop();
+    nop(); 
     if (!pin_is_high(BUTTON)) {
+       if (buttdown) return;
+       buttdown = true;
        set_sleep_mode(SLEEP_MODE_IDLE);
-       timer_set(&button_timer, BUTTON_TIME);
-       timer_callback(&button_timer, onoff_handler);
+       timer_set(&onoff_timer, ONOFF_TIME);
+       timer_callback(&onoff_timer, onoff_handler, NULL);
+       
+       if (tmp_push_count > 0)
+           timer_cancel(&push_timer); 
     }   
     else {
-       timer_cancel(&button_timer);
-       sleepmode();
+       if (!buttdown) return;
+       buttdown = false;
+       timer_cancel(&onoff_timer);
+       
+       tmp_push_count++;
+       timer_set(&push_timer, PUSH_TIME);
+       timer_callback(&push_timer, push_thandler, NULL); 
     }
 }
 
+void tracker_addObject();
+void push_handler()
+{
+    if (is_off)
+       return;
+    if (push_count == 2)
+        beeps("..---");
+    else if (push_count == 3) {
+        beeps("..-. ..-." );
+        tracker_addObject();
+    }
+    else if (push_count == 4)
+        beeps("....-");    
+    else if (push_count == 5)
+        beeps(".....");
+    else if (push_count == 6)
+        beeps("-....");      
+    else if (push_count == 7)
+        beeps("--..."); 
+    else if (push_count == 8)
+        beeps("---..");     
+    else if (push_count == 9)
+        beeps("----.");             
+    push_count = 0;
+    
+}
 
 
 /************************************************************************
@@ -397,7 +477,8 @@ static void batt_check_thread()
        make_input(EXT_CHARGER);
        clear_port(EXT_CHARGER);
        sleep(5);
-       if (((pin_is_high(EXT_CHARGER) && _batt_voltage >= 6.75) || usb_con()) && !usb_on) {
+ 
+       if (((pin_is_high(EXT_CHARGER) /* && _batt_voltage >= 6.75 */ )  || usb_con()) && !usb_on) {
           if (_batt_charged) 
              rgb_led_on(false,true,false);
           else
@@ -411,13 +492,20 @@ static void batt_check_thread()
              sleep(50);
              cusb = 3;
           }
-          led_usb_restore();   
-          sleepmode();
+         if (autopower && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con())
+            turn_off();
+         sleep(10);
+         led_usb_restore();   
+         sleepmode();
        }   
        
        sleep(100);
        /* Things to do if waked up by external charger */
        wakeup_handler();
+       
+       TRACE(100);
+       if (push_count > 0)
+          push_handler();
     }   
 }
 
