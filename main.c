@@ -105,10 +105,10 @@ void reset_params()
 }
 
 
-
 /**************************************************************************
  * main thread (startup)
  **************************************************************************/
+ 
 extern bool is_off;
 int main(void) 
 {
@@ -136,24 +136,26 @@ int main(void)
       mon_init(&cdc_outstr);
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
       inframes  = hdlc_init_decoder( afsk_init_decoder() );
-      
-      /* GPS and tracking */
-      gps_init(&cdc_outstr);
-      tracker_init();
 
       /* USB */
       usb_init();    
       THREAD_START(usbSerListener, STACK_USBLISTENER);
-
+  
       ui_init();    
-      TRACE(1);
+            
+      /* GPS and tracking */
+      gps_init(&cdc_outstr);
+      tracker_init();
       
+      TRACE(1);
       while(1) 
       {  
            lbeep();
-           if (t_is_idle()) 
+           if (t_is_idle()) {
               /* Enter idle mode or sleep mode here */
+              powerdown_handler();
               sleep_mode();
+           }
            else 
               t_yield(); 
       }     
