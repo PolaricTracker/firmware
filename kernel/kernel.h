@@ -20,7 +20,8 @@
 typedef struct _TCB {
     jmp_buf env;
     struct _TCB * next;
-    uint16_t stackbase;    // For debugging
+    uint8_t  pid;
+    uint16_t stsize;   
 } TCB;
 
 
@@ -46,10 +47,14 @@ typedef struct _sem {
 
 
 /* Kernel API */
-void init_kernel(uint16_t);
-void _t_start( void(*)(void) , TCB*, uint16_t); 
-void t_yield(void);
-bool t_is_idle(void);
+void    init_kernel(uint16_t);
+void    _t_start( void(*)(void) , TCB*, uint16_t); 
+void     t_yield(void);
+bool     t_is_idle(void);
+uint16_t t_stackUsed(void);  
+uint8_t  t_nTasks(void);     
+uint8_t  t_nTerminated(void);
+uint8_t  t_nRunning(void);
 
 void cond_init(Cond* c);
 void wait(Cond* c);
@@ -67,7 +72,8 @@ void sem_down(Semaphore*);
 void sem_up(Semaphore*);
 bool sem_nb_down(Semaphore*);
 
- 
+
+
 /*
  * Convenience macro for creating and starting threads. 
  * n is the function to be run as a separate thread. 
@@ -75,8 +81,8 @@ bool sem_nb_down(Semaphore*);
  */
  
 #define THREAD_START(n, st)  \
-      static TCB __tcb_##n;    \
-      _t_start(n, &__tcb_##n, (st));
+  {   static TCB __tcb_##n;    \
+      _t_start(n, &__tcb_##n, (st)); }
 
 #endif
 
