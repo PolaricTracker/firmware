@@ -30,7 +30,7 @@ void  gps_mon_pos (void);
 void  gps_mon_raw (void);
 void  gps_mon_off (void);
 bool  gps_is_fixed (void);
-bool  gps_wait_fix (void);
+bool  gps_wait_fix (uint16_t);
 char* time2str (char*, timestamp_t);
 void gps_on(void);
 void gps_off(void);
