@@ -57,7 +57,6 @@ Version 0.10
     DONE
 * Fix command line reading. 
     DONE
-
 * Latest LUFA (USB driver) version
     DONE
 
@@ -75,29 +74,58 @@ Version 0.12
 -------------
 * 'converse' mode
      DONE
-
 * Fix bug: multiple frames in one transmission doesn't work 
      DONE (must reset CRC)
-       
 * Monitoring of transmitted packets. 
      DONE (but see interference problem below)
-
 * Implicit activation of trx by commands that use it 
   Eliminate need for explicit TRX command. 
      DONE
-     
 * Monitoring (USB stream) and GPS interferes with packet encoding. 
   Problem when multiple frames in one transmission. Fix?
      DONE
-     
 * "Graphical" RSSI command that runs until key is pressed.
      DONE
 
 
+Version 0.13
+------------
+* Turn off TX and receiver/converse mode when turning off 
+     DONE
+* Auto turn-on/turn-off when on external power supply.
+     DONE
+* Free stack-space of terminated threads (when on top of stack). 
+     DONE
+* Free stack space by letting some threads terminate. 
+     DONE (HDLCENCODER_TEST, MONITOR, TRACKER)
+* Argument to timer callback function.
+     DONE 
+* Timeout and explicit cancel of wait on message queue (by sending an
+  empty message to it).   
+     DONE 
+* Timeout on GPS fix wait in tracker module. 
+     DONE     
+* 'ps' command to show info about tasks.
+     DONE (simple summary)
+* Charge indicator issues (when low voltage).     
+     DONE (PROBABLY)
+* Push-button command support. 
+     DONE
+* Object reports 
+     PARTLY - UNDER TESTING
+* Status/object reports even if GPS is not fixed. 
+* Separate out source file for APRS report encoding.
+* Beep on report, seems to kill TX, sometimes????     
+* Smart beaconing: What happens when speed = 0 ? 
 
 
 Further development
 -------------------
+* Escape sequence to issue commands in converse mode.
+* Receive commands over radio 
+* Better support for PC-side configuration software (config, command interpreter - Espen)
+* GPS powersave
+* APRS objects 
+* Emergency mode
 * Digipeater mode
 * USB host mode
-* USB NMEA stream or APRS stream (to external GPS/display or PC)
