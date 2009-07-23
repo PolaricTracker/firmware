@@ -31,10 +31,13 @@ void setup_transceiver(void);
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 static void do_teston    (uint8_t, char**, Stream*, Stream*);
+static void do_version   (uint8_t, char**, Stream*);
 static void do_testpacket(uint8_t, char**, Stream*);
 static void do_mycall    (uint8_t, char**, Stream*);
+static void do_obj_id    (uint8_t, char**, Stream*);
 static void do_dest      (uint8_t, char**, Stream*);
 static void do_symbol    (uint8_t, char**, Stream*);
+static void do_obj_symbol(uint8_t, char**, Stream*);
 static void do_nmea      (uint8_t, char**, Stream*, Stream*);
 static void do_trx       (uint8_t, char**, Stream*, Stream*);
 static void do_txon      (uint8_t, char**, Stream*, Stream*);                 
@@ -51,7 +54,7 @@ static void do_vbatt     (uint8_t, char**, Stream*);
 static void do_listen    (uint8_t, char**, Stream*, Stream*);
 static void do_converse  (uint8_t, char**, Stream*, Stream*);
 static void do_btext     (uint8_t, char**, Stream*);
-
+static void do_ps        (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -203,6 +206,8 @@ void cmdProcessor(Stream *in, Stream *out)
           */         
          if (strncasecmp("teston", argv[0], 6) == 0)
              do_teston(argc, argv, out, in);
+         else if (strncasecmp("version", argv[0], 3) == 0)
+             do_version(argc, argv, out);
          else if (strncasecmp("txtone", argv[0], 7) == 0)
              do_txtone(argc, argv, out, in);
          else if (strncasecmp("testpacket",  argv[0], 5) == 0)
@@ -219,6 +224,8 @@ void cmdProcessor(Stream *in, Stream *out)
              do_rssi(argc, argv, out, in);       
          else if (strncasecmp("trace", argv[0], 5) == 0)
              do_trace(argc, argv, out); 
+         else if (strncasecmp("ps", argv[0], 2) == 0)
+             do_ps(argc, argv, out);    
          else if (strncasecmp("vbatt", argv[0], 2) == 0)
              do_vbatt(argc, argv, out);
          else if (strncasecmp("listen", argv[0], 3) == 0)
@@ -229,12 +236,16 @@ void cmdProcessor(Stream *in, Stream *out)
          /* Commands for setting/viewing parameters */
          else if (strncasecmp("mycall", argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
+         else if (strncasecmp("oident", argv[0], 3) == 0)
+             do_obj_id(argc, argv, out);           
          else if (strncasecmp("dest", argv[0], 3) == 0)
              do_dest(argc, argv, out);  
          else if (strncasecmp("digipath", argv[0], 4) == 0)  
              do_digipath(argc, argv, out);
          else if (strncasecmp("symbol", argv[0], 3) == 0)
-             do_symbol(argc, argv, out);               
+             do_symbol(argc, argv, out);  
+         else if (strncasecmp("osymbol", argv[0], 4) == 0)
+             do_obj_symbol(argc, argv, out);                       
          else if (strncasecmp("freq",argv[0], 2) == 0)
              do_freq(argc, argv, out);  
          else if (strncasecmp("fcal",argv[0], 3) == 0)
@@ -261,9 +272,9 @@ void cmdProcessor(Stream *in, Stream *out)
                  ("afc", 3, argc, argv, out, 
                     TRX_AFC, 0, 12000, PSTR("AFC range is %d Hz\r\n\0"), PSTR(" %d") );
                    
-         else IF_COMMAND_PARAM_uint16
+         else IF_COMMAND_PARAM_uint8
                  ( "tracktime", 6, argc, argv, out, 
-                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 3600, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
+                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 240, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
                       
          else IF_COMMAND_PARAM_uint16
                  ( "deviation", 3, argc, argv, out,
@@ -311,6 +322,9 @@ void cmdProcessor(Stream *in, Stream *out)
          else IF_COMMAND_PARAM_bool
                  ( "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TX MONITOR") );   
                           
+         else IF_COMMAND_PARAM_bool
+                 ( "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTO POWER") );   
+                                           
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
@@ -321,7 +335,19 @@ void cmdProcessor(Stream *in, Stream *out)
 
 
 /************************************************
- * Report RSSI level for 1 minute
+ * Report firmware version
+ ************************************************/
+ 
+static void do_version(uint8_t argc, char** argv, Stream* out)
+{
+   putstr_P(out,PSTR(VERSION_STRING));
+   putstr_P(out,PSTR("\r\n"));
+}
+
+
+
+/************************************************
+ * Report RSSI level 
  ************************************************/
 
 static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
@@ -345,9 +371,11 @@ static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
 }
 
 
+
 /************************************************
  * Report battery voltage
  ************************************************/
+ 
 static void do_vbatt(uint8_t argc, char** argv, Stream* out)
 {
    sprintf_P(buf, PSTR("Battery voltage: %.2f V\r\n\0"), 
@@ -374,6 +402,11 @@ static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 }
 
 
+
+/************************************************
+ * Converse mode
+ ************************************************/
+ 
 static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** CONVERSE MODE *****\r\n"));
@@ -450,6 +483,7 @@ static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
 }
 
 
+
 /************************************************
  * For testing of tracker .....
  ************************************************/
@@ -516,6 +550,7 @@ static void do_teston(uint8_t argc, char** argv, Stream* out, Stream* in)
     radio_release();
 }
 
+
 static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
   if (argc < 2) {
@@ -564,6 +599,30 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
     radio_release();
 }
 
+
+
+/************************************************
+ * Set identifier of object
+ ************************************************/
+ 
+static void do_obj_id(uint8_t argc, char** argv, Stream* out)
+{
+    if (argc > 1){
+        if (strlen(argv[1]) <= 9)
+        {
+           SET_PARAM(OBJ_ID, argv[1]);
+           putstr_P(out,PSTR("OK\r\n"));
+        }
+        else
+           putstr_P(out,PSTR("Id cannot be longer than 9 characters\r\n"));
+    }
+    else {
+        char x[9];
+        GET_PARAM(OBJ_ID, x);
+        sprintf_P(buf, PSTR("OBJECT IDENT is: \"%s\"\r\n\0"), x);
+        putstr(out, buf);
+    }
+}
          
          
 /*********************************************
@@ -670,7 +729,11 @@ static void do_btext(uint8_t argc, char** argv, Stream* out)
 }
 
 
-
+/************************************************
+ * Show trace of current and previous run
+ * (for debugging)
+ ************************************************/
+ 
 static void do_trace(uint8_t argc, char** argv, Stream* out)
 {
     show_trace(buf, 0, PSTR("Current run  = "), PSTR("\r\n"));
@@ -679,6 +742,26 @@ static void do_trace(uint8_t argc, char** argv, Stream* out)
     putstr(out, buf);
 }
 
+
+
+/************************************************
+ * Show info about tasks (ps command)
+ ************************************************/
+ 
+static void do_ps(uint8_t argc, char** argv, Stream* out)
+{
+   uint8_t running = t_nRunning();
+   sprintf_P(buf, PSTR("Tasks running        : %d\r\n\0"), running);
+   putstr(out, buf);   
+   sprintf_P(buf, PSTR("Tasks sleeping       : %d\r\n\0"), t_nTasks()- t_nTerminated() - running);
+   putstr(out, buf);
+   if (t_nTerminated()) {
+      sprintf_P(buf, PSTR("Tasks terminated     : %d\r\n\0"), t_nTerminated());
+      putstr(out, buf);
+   }
+   sprintf_P(buf, PSTR("Stack space allocated: %d bytes\r\n\0"), t_stackUsed());
+   putstr(out, buf);
+}
 
 
 
@@ -699,6 +782,27 @@ static void do_symbol(uint8_t argc, char** argv, Stream* out)
       putstr(out, buf);
    }   
 }
+
+
+
+/****************************************************
+ * config: object symbol (APRS symbol/symbol table)
+ ****************************************************/
+
+static void do_obj_symbol(uint8_t argc, char** argv, Stream* out)
+{
+   if (argc > 2) {
+      SET_BYTE_PARAM(OBJ_SYMBOL_TABLE, *argv[1]);
+      SET_BYTE_PARAM(OBJ_SYMBOL, *argv[2]);
+      putstr_P(out,PSTR("OK\r\n"));
+   }
+   else {
+      sprintf_P(buf, PSTR("OBJECT SYMTABLE/SYMBOL is: %c %c\r\n\0"), 
+           GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), GET_BYTE_PARAM(OBJ_SYMBOL));
+      putstr(out, buf);
+   }   
+}
+
 
 
 /*********************************************
