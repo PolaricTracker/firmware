@@ -9,7 +9,6 @@
 #include "config.h"
 #include "kernel/timer.h"
 #include "adc.h"
-// #include "transceiver.h"
 #include "radio.h"
 #include "hdlc.h"
 #include "uart.h"
@@ -18,23 +17,26 @@
 
 // #include "math.h"
 
-Semaphore tracker_run;
 posdata_t prev_pos; 
 extern fbq_t* outframes;  
 extern Stream cdc_outstr;
 static bool maxpause_reached = false;
 static uint8_t pause_count = 0;
 static bool waited = false;
-static bool trx_control = true;
+static BCond tready; 
 
 void tracker_init(void);
 void tracker_on(void); 
 void tracker_off(void);
+
 static void trackerThread(void);
 static void activate_tx(void);
 static bool should_update(posdata_t*, posdata_t*);
-static void report_position(posdata_t*);
 static void report_status(posdata_t*);
+static void report_station_position(posdata_t*);
+static void report_object_position(posdata_t* pos, char* id);
+
+static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool);
 static void send_header(FBUF*);
 static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
@@ -57,31 +59,48 @@ extern bool is_off;   /* FIXME: Use accessor function */
  
 void tracker_init()
 {
-    sem_init(&tracker_run, 0);
-    THREAD_START(trackerThread, STACK_TRACKER);
+    bcond_init(&tready, true);
     if (GET_BYTE_PARAM(TRACKER_ON)) 
-       sem_up(&tracker_run);  
+        THREAD_START(trackerThread, STACK_TRACKER);
 }
 
 
 void tracker_on() 
 {
+    if (GET_BYTE_PARAM(TRACKER_ON))
+       return; 
     SET_BYTE_PARAM(TRACKER_ON, 1);
-    sem_up(&tracker_run); 
+    THREAD_START(trackerThread, STACK_TRACKER);
 }
 
 void tracker_off()
 { 
     SET_BYTE_PARAM(TRACKER_ON, 0);
-    sem_nb_down(&tracker_run);
 }
 
-/***************************************************************
- * Tell tracker module that other modules are activating the
- * transceiver (false) or that tracker should activate it (true)
- ***************************************************************/
-void tracker_controls_trx(bool c)
-   { trx_control = c; }
+
+
+
+
+/***********************************
+ * Object stuff - testing...
+ ***********************************/
+ 
+static bool object_active = false;
+static char* id = "TEST     ";
+static posdata_t object_pos;
+
+void tracker_addObject()
+{
+    GET_PARAM(OBJ_ID, id);
+    uint8_t len = strlen(id);
+    for (uint8_t i=len; i<9; i++)
+       id[i] = ' ';
+    id[9] = '\0';
+    object_pos = current_pos;
+    object_active = true;
+}
+
 
 
 /***************************************************************
@@ -90,62 +109,73 @@ void tracker_controls_trx(bool c)
  
 static void trackerThread(void)
 {
-    uint16_t t;
+    uint8_t t;
     uint8_t st_count = GET_BYTE_PARAM( STATUS_TIME);
+    uint8_t obj_count = 6; /* TODO: config OBJECT_TIME */
     
-    while (true) 
+    bcond_wait(&tready); 
+    bcond_clear(&tready);
+    gps_on();     
+    while (GET_BYTE_PARAM(TRACKER_ON)) 
     {
-       sem_down(&tracker_run);  
-       gps_on();     
-       
-       while (GET_BYTE_PARAM(TRACKER_ON)) 
-       {
-          /*
-           * Wait for a fix on position. 
-           */  
-           waited = gps_wait_fix();   
-           
-           /* Pause GPS serial data to avoid interference with modulation 
-            * and to save CPU cycles. 
-            */
-           uart_rx_pause();         
+       /*
+        * Wait for a fix on position. Timeout after one minute. 
+        * Therefore we must also check if gps is really fixed.
+        */  
+        waited = gps_wait_fix(6000);   
+        if (gps_is_fixed()) 
+        {
+            /* Pause GPS serial data to avoid interference with modulation 
+             * and to save CPU cycles. 
+             */
+            uart_rx_pause();         
+         
+            /*
+             * Send status report
+             */
+            if (++st_count >= GET_BYTE_PARAM( STATUS_TIME)) {
+               st_count = 0;
+               report_status(&current_pos);
+            }
             
-           /*
-            * Send status report
-            */
-           if (++st_count >= GET_BYTE_PARAM( STATUS_TIME)) {
-              st_count = 0;
-              report_status(&current_pos);
-           }
+            /*
+             * Send object report
+             */
+            if (object_active && obj_count >= 6) {  
+                obj_count = 0;
+                report_object_position(&object_pos, id);
+            }
             
-           /* 
-            * Send report, if criteria are satisfied, or if we waited 
-            * for GPS fix
-            */
-           if (should_update(&prev_pos, &current_pos)) {
-              report_position(&current_pos);
-              prev_pos = current_pos;          
-           }         
-           activate_tx();
-           
-           GET_PARAM(TRACKER_SLEEP_TIME, &t);
-           
-           /* Powersave mode */
-           if (maxpause_reached && current_pos.speed < 1 && GET_BYTE_PARAM(GPS_POWERSAVE)) {
-                gps_off();
-                pause_count = GET_BYTE_PARAM(TRACKER_MAXPAUSE) - 1;
-                sleep (pause_count * t * TIMER_RESOLUTION); 
-                gps_on();
-           }
+            /* 
+             * Send report, if criteria are satisfied, or if we waited 
+             * for GPS fix
+             */
+            if (should_update(&prev_pos, &current_pos)) {
+               report_station_position(&current_pos);
+               prev_pos = current_pos;          
+            }         
+            activate_tx();
+        }
+        
+        t = GET_BYTE_PARAM(TRACKER_SLEEP_TIME);
+        
+        /* Powersave mode */
+        if (maxpause_reached && current_pos.speed < 1 && GET_BYTE_PARAM(GPS_POWERSAVE)) {
+             gps_off();
+             pause_count = GET_BYTE_PARAM(TRACKER_MAXPAUSE) - 1;
+             sleep (pause_count * t * TIMER_RESOLUTION); 
+             gps_on();
+        }
 
-           t = (t > GPS_FIX_TIME) ?
-               t - GPS_FIX_TIME : 1;
-           sleep(t * TIMER_RESOLUTION); 
-           
-           uart_rx_resume();
-           sleep(GPS_FIX_TIME * TIMER_RESOLUTION);   
-       }
-    }   
+        t = (t > GPS_FIX_TIME) ?
+            t - GPS_FIX_TIME : 1;
+        sleep(t * TIMER_RESOLUTION); 
+        
+        uart_rx_resume();
+        sleep(GPS_FIX_TIME * TIMER_RESOLUTION);   
+    }
+    gps_off();
+    bcond_set(&tready);
 }
 
 
@@ -248,55 +278,21 @@ static void report_status(posdata_t* pos)
 
 extern uint16_t course_count; 
 
-static void report_position(posdata_t* pos)
+static void report_station_position(posdata_t* pos)
 {
     static uint8_t ccount;
     FBUF packet;    
-    char pbuf[14], comment[COMMENT_LENGTH];
+    char comment[COMMENT_LENGTH];
           
     /* Create packet header */
     send_header(&packet);    
     
-    /* APRS Packet content 
-     * Timestamp */
-    uint8_t tstamp = GET_BYTE_PARAM(TIMESTAMP_ON);
-    fbuf_putChar(&packet, (tstamp ? '/' : '!'));
-    if (tstamp) 
-        send_timestamp(&packet, pos);
-    
-    if (GET_BYTE_PARAM(COMPRESS_ON))
-    {  
-       fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));
-       send_latlong_compressed(&packet, pos->latitude, false);
-       send_latlong_compressed(&packet, pos->longitude, true);
-       fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL)); 
-       send_csT_compressed(&packet, pos);
-    }
-    else
-    {
-       /* Format latitude and longitude values, etc. */
-       char lat_sn = (pos->latitude < 0 ? 'S' : 'N');
-       char long_we = (pos->longitude < 0 ? 'W' : 'E');
-       double latf = fabs(pos->latitude);
-       double longf = fabs(pos->longitude);
-      
-       sprintf_P(pbuf,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
-       fbuf_putstr (&packet, pbuf);
-       fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL_TABLE));
-       sprintf_P(pbuf, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
-       fbuf_putstr (&packet, pbuf);
-       fbuf_putChar(&packet, GET_BYTE_PARAM(SYMBOL));   
-       sprintf_P(pbuf, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
-       fbuf_putstr (&packet, pbuf); 
-
-       /* Altitude */
-       if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
-           uint16_t altd = (uint16_t) round(pos->altitude * FEET2M);
-           sprintf_P(pbuf,PSTR("/A=%06u\0"), altd);
-           fbuf_putstr(&packet, pbuf);
-       }
-    }  
-    
+    /* APRS Position report body
+     * with Timestamp if the parameter is set */
+    uint8_t tstamp = GET_BYTE_PARAM(TIMESTAMP_ON); 
+    fbuf_putChar(&packet, (tstamp ? '/' : '!')); 
+    send_pos_report(&packet, pos, GET_BYTE_PARAM(SYMBOL), GET_BYTE_PARAM(SYMBOL_TABLE), 
+       tstamp, (GET_BYTE_PARAM(COMPRESS_ON) != 0) );
     
     /* Comment */
     if (ccount-- == 0) 
@@ -311,13 +307,77 @@ static void report_position(posdata_t* pos)
     
     if (GET_BYTE_PARAM(REPORT_BEEP))
       beep(4);
-  
+    
     /* Send packet */
     fbq_put(outframes, packet);
 }
 
 
 
+static void report_object_position(posdata_t* pos, char* id)
+{
+    FBUF packet; 
+    
+    /* Create packet header */
+    send_header(&packet);   
+    
+    /* And report body */
+    fbuf_putChar(&packet, ';');
+    fbuf_putstr(&packet, id);     /* NOTE: LENGTH OF ID MUST BE EXCACTLY 9 CHARACTERS */ 
+    fbuf_putChar(&packet, '*'); 
+    send_pos_report(&packet, pos, 
+         GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true, false);
+    
+    /* Comment field may be added later */
+    
+    /* Send packet */
+    fbq_put(outframes, packet);
+}
+
+
+
+
+static void send_pos_report(FBUF* packet, posdata_t* pos, 
+                            char sym, char symtab, bool tstamp, bool compress)
+{   
+    char pbuf[14];
+    
+    if (tstamp) 
+        send_timestamp(packet, pos);
+    
+    if (compress)
+    {  
+       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL_TABLE));
+       send_latlong_compressed(packet, pos->latitude, false);
+       send_latlong_compressed(packet, pos->longitude, true);
+       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL)); 
+       send_csT_compressed(packet, pos);
+    }
+    else
+    {
+       /* Format latitude and longitude values, etc. */
+       char lat_sn = (pos->latitude < 0 ? 'S' : 'N');
+       char long_we = (pos->longitude < 0 ? 'W' : 'E');
+       double latf = fabs(pos->latitude);
+       double longf = fabs(pos->longitude);
+      
+       sprintf_P(pbuf,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
+       fbuf_putstr (packet, pbuf);
+       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL_TABLE));
+       sprintf_P(pbuf, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
+       fbuf_putstr (packet, pbuf);
+       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL));   
+       sprintf_P(pbuf, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
+       fbuf_putstr (packet, pbuf); 
+
+       /* Altitude */
+       if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
+           uint16_t altd = (uint16_t) round(pos->altitude * FEET2M);
+           sprintf_P(pbuf,PSTR("/A=%06u\0"), altd);
+           fbuf_putstr(packet, pbuf);
+       }
+    }  
+}
 
 
 
