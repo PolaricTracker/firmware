@@ -24,19 +24,23 @@
 typedef struct _timer
 {
     Cond kick; 
-    void (*callback)(void);
+    void (*callback)(void*);
+    void *cbarg; 
     uint16_t count; 
     struct _timer * next, * prev; 
 } Timer;
  
+typedef void (*CBfunc) (void*);
+
 
 /* Timer API */
 void timer_set(Timer*, uint16_t);
 void sleep(uint16_t);
 void timer_cancel(Timer*);
 
-#define timer_callback(t, cb) { (t)->callback = cb; }
-#define timer_wait(t)         { wait( &(t)->kick ); }
+#define timer_callback(t, cb, arg) { (t)->cbarg = arg; (t)->callback = cb; }
+#define timer_wait(t)              { wait( &(t)->kick ); }
+#define timer_count(t)             ((t)->count)
 
 /* Must be called periodically from a timer interrupt handler */
 void timer_tick(void);
