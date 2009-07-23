@@ -32,9 +32,11 @@
 
 #define COMMENT_LENGTH 40
 #define TRACE_LENGTH 12
+#define OBJID_LENGTH 10
 
 typedef addr_t __digilist_t[7];  
 typedef char comment[COMMENT_LENGTH];
+typedef char obj_id_t[OBJID_LENGTH];
 typedef uint8_t __trace_t[TRACE_LENGTH][2];
 
 /***************************************************************
@@ -58,7 +60,7 @@ DEFINE_PARAM( TRX_AFSK_DEV,       uint16_t     );
 DEFINE_PARAM( TRX_SQUELCH,        double       );
 DEFINE_PARAM( TRX_AFC,            uint16_t     );
 DEFINE_PARAM( TRACKER_ON,         uint8_t      );
-DEFINE_PARAM( TRACKER_SLEEP_TIME, uint16_t     ); 
+DEFINE_PARAM( TRACKER_SLEEP_TIME, uint8_t      ); 
 DEFINE_PARAM( SYMBOL,             uint8_t      );
 DEFINE_PARAM( SYMBOL_TABLE,       uint8_t      );
 DEFINE_PARAM( TIMESTAMP_ON,       uint8_t      );
@@ -74,7 +76,10 @@ DEFINE_PARAM( STATUS_TIME,        uint8_t      );
 DEFINE_PARAM( REPORT_BEEP,        uint8_t      );
 DEFINE_PARAM( GPS_POWERSAVE,      uint8_t      );
 DEFINE_PARAM( TXMON_ON,           uint8_t      ); 
-
+DEFINE_PARAM( AUTOPOWER,          uint8_t      );
+DEFINE_PARAM( OBJ_SYMBOL,         uint8_t      );
+DEFINE_PARAM( OBJ_SYMBOL_TABLE,   uint8_t      );
+DEFINE_PARAM( OBJ_ID,             obj_id_t     );
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
 extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
@@ -104,7 +109,7 @@ DEFAULT_PARAM( TRX_SQUELCH )         = -90;
 DEFAULT_PARAM( TRX_AFC )             = 2000;
 DEFAULT_PARAM( TRACKER_ON )          = 0;
 DEFAULT_PARAM( TRACKER_SLEEP_TIME )  = 10; 
-DEFAULT_PARAM( SYMBOL)               = '.';
+DEFAULT_PARAM( SYMBOL)               = '[';
 DEFAULT_PARAM( SYMBOL_TABLE)         = '/';
 DEFAULT_PARAM( TIMESTAMP_ON)         = 1;
 DEFAULT_PARAM( COMPRESS_ON)          = 0;
@@ -119,6 +124,10 @@ DEFAULT_PARAM( STATUS_TIME )         = 30;
 DEFAULT_PARAM( REPORT_BEEP )         = 0;
 DEFAULT_PARAM( GPS_POWERSAVE )       = 0;
 DEFAULT_PARAM( TXMON_ON )            = 0;
+DEFAULT_PARAM( AUTOPOWER )           = 0;
+DEFAULT_PARAM( OBJ_SYMBOL)           = '[';
+DEFAULT_PARAM( OBJ_SYMBOL_TABLE)     = '/';
+DEFAULT_PARAM( OBJ_ID)               = "MARK";
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
