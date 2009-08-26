@@ -3,7 +3,7 @@
 # Target file name (without extension).
 TARGET = firmware
 
-# Output format for .hex files, can be [srec|ihex|binary]. Note that we have
+# Output format for .hex files, can be [srec|ihex]. Note that we have
 # a special .img target for binary output.
 FORMAT = ihex
 
@@ -23,7 +23,7 @@ OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 HEXSIZE = @avr-size --target=$(FORMAT) $(TARGET).hex
 ELFSIZE = @avr-size $(TARGET).elf
-
+LISP = clisp
 
 # LUFA definitions
 USB_PATH = LUFA/Drivers/USB
@@ -38,11 +38,15 @@ USB_SRC = usb_descriptors.c usb.c \
           $(USB_PATH)/HighLevel/StdDescriptors.c 
 USB_INCLUDE = -I$(USB_PATH)
 
+# List of C source files which should be preprocessed
+PSRC = commands.c
+
 # List C source files here.
-SRC = config.c ui.c kernel/kernel.c kernel/timer.c kernel/stream.c	\
-      uart.c gps.c transceiver.c radio.c afsk_tx.c afsk_rx.c hdlc_encoder.c	\
-      hdlc_decoder.c fbuf.c ax25.c commands.c adc.c monitor.c		\
-      tracker.c main.c $(USB_SRC)
+SRC = main.c config.c ui.c kernel/kernel.c kernel/timer.c		\
+      kernel/stream.c uart.c gps.c transceiver.c afsk_tx.c afsk_rx.c	\
+      hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c adc.c monitor.c	\
+      tracker.c autogen.c radio.c $(PSRC) $(USB_SRC)
+
 
 # List Assembler source files here.
 #     Make them always end in a capital .S.  Files ending in a lowercase .s
@@ -61,7 +65,8 @@ CFLAGS = -O2 $(USB_CFLAGS) -I. -DF_CPU=$(F_CPU)UL -funsigned-char --std=gnu99 -W
 ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
 
 # Linker flags (passed via GCC).
-LDFLAGS = -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm
+#LDFLAGS = -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf,--section-start=.sign=0xd000 -lprintf_flt -lscanf_flt -lm -lc -lm
+LDFLAGS = -Wl,--script=$(TARGET).x,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm -lc -lm
 
 # Define all project specific object files.
 OBJ = $(SRC:.c=.o) $(ASRC:.s=.o) 	
@@ -70,7 +75,7 @@ OBJ = $(SRC:.c=.o) $(ASRC:.s=.o)
 LST = $(ASRC:.s=.lst) $(SRC:.c=.lst)
 
 # Compiler flags to generate dependency files.
-GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
+		GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
 
 # Add target processor to flags.
 CFLAGS += -mmcu=$(MCU) $(GENDEPFLAGS)
@@ -87,6 +92,19 @@ buildall: clean build
 overallsize:
 	@echo Elf size:
 	$(ELFSIZE)
+
+autogen.c: $(PSRC:.c=.o)
+# It may be necessary to process the source files with CPP first, 
+# if compile time conditinals are use.
+ifeq ($(LISP),clisp)
+# Executes extremely slow in CLisp, but this implementation is
+# the easiest to install. 
+	$(LISP) preprocessor.lisp autogen.c $(PSRC)
+endif
+ifeq ($(LISP),sbcl)
+	$(LISP) --script preprocessor.lisp autogen.c $(PSRC)
+endif
+
 
 %.bin: %.elf
 	$(OBJCOPY) -j .text -j .data -O binary $< $@
