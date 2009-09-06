@@ -21,7 +21,7 @@
  */
 
 #define TIMER_RESOLUTION 100 
-#define GPS_FIX_TIME     4  
+#define GPS_FIX_TIME     3  
 #define PACKET_TX_TIME   2
 
 
@@ -61,7 +61,7 @@
 
 #define STACK_MAIN             180
 #define STACK_LED              150
-#define STACK_BATT             180
+#define STACK_BATT             200
 #define STACK_USBLISTENER      440
 #define STACK_HDLCENCODER      200
 #define STACK_HDLCDECODER      220
@@ -317,6 +317,15 @@ extern uint8_t blink_length, blink_interval;
 #define USBKEY_JS_PUSH_PORT  PORTB
 #define USBKEY_JS_PUSH_BIT   5
 
+/************************************************
+ * Macro to reset the mcu
+ ************************************************/
+
+#define soft_reset()        \
+do {                        \
+    wdt_enable(WDTO_15MS);  \
+    for(;;)  { }            \
+} while(0)
 
 /************************************************
  * Bit fiddling macros
