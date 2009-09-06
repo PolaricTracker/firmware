@@ -4,7 +4,7 @@
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
  */
- 
+  
  
 #include "defines.h"
 #include <avr/io.h>
@@ -73,13 +73,6 @@ void ui_init()
 /*************************************************************************
  * Handler for on/off button
  *************************************************************************/
-
-#define soft_reset()        \
-do {                        \
-    wdt_enable(WDTO_15MS);  \
-    for(;;)  { }            \
-} while(0)
-
  
 #define ONOFF_TIME 200
 #define PUSH_TIME 80
@@ -503,7 +496,6 @@ static void batt_check_thread()
        /* Things to do if waked up by external charger */
        wakeup_handler();
        
-       TRACE(100);
        if (push_count > 0)
           push_handler();
     }   
