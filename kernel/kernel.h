@@ -71,7 +71,7 @@ void sem_init(Semaphore*, uint16_t);
 void sem_down(Semaphore*);
 void sem_up(Semaphore*);
 bool sem_nb_down(Semaphore*);
-
+void sem_set(Semaphore*, uint16_t);
 
 
 /*
