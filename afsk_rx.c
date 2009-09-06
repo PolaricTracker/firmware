@@ -14,6 +14,7 @@
 #include "config.h"
 #include "kernel/stream.h"
 #include "transceiver.h"
+#include "ui.h"
 
 
 #define SYMBOL_SAMPLE_INTERVAL ((SCALED_F_CPU/8/AFSK_BAUD))       
