@@ -1,14 +1,16 @@
 /*
  * $Id: ax25.c,v 1.14 2009-04-03 11:44:37 la7eca Exp $
  */
- 
+
+
 #include "ax25.h"
 #include <string.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 
-
+ 
 /* Static functions */
 static void encode_addr(FBUF *, char*, uint8_t, uint8_t);
 static uint8_t decode_addr(FBUF *, addr_t* );
