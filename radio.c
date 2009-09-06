@@ -3,8 +3,10 @@
 #include "defines.h"
 #include "config.h"
 #include "transceiver.h"
+#include "kernel/timer.h"
+#include "hdlc.h"
 
-
+ 
 static int count = 0; 
 static void _radio_setup(void);
 
