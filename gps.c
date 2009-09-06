@@ -16,7 +16,7 @@
 #include "fbuf.h"
 #include "ax25.h"
 #include "config.h"
-#include "gps.h"
+#include "gps.h" 
 
 
 #define NMEA_BUFSIZE   80
@@ -40,12 +40,11 @@ static void nmeaListener  (void);
 void notify_fix   (bool);
 
 static char buf[NMEA_BUFSIZE];
-static Cond wait_gps; 
 static bool monitor_pos, monitor_raw; 
 static Stream *in, *out; 
 static bool is_fixed = true;
 extern uint8_t blink_length, blink_interval;
-
+static Cond wait_gps; 
 
 void gps_init(Stream *outstr)
 {
@@ -209,16 +208,20 @@ void notify_fix(bool lock)
 bool gps_is_fixed()
    { return is_fixed; }
    
-   
+  
+/* Return true if we waited */   
 bool gps_wait_fix(uint16_t timeout)
-{   
-    if (is_fixed) return false;      
-    static Timer ttimer; 
-    if (timeout) {
-       timer_callback(&ttimer, (CBfunc) notifyAll, &wait_gps);
-       timer_set(&ttimer, timeout);
-    }
+{ 
+     Timer ttimer; 
+     if (is_fixed) 
+        return false;      
+     if (timeout > 0) {
+        timer_set(&ttimer, timeout);
+        timer_callback(&ttimer, (CBfunc) notifyAll, &wait_gps);
+     }
+
     wait(&wait_gps);
+    timer_cancel(&ttimer);
     return true;
 }         
  
