@@ -4,6 +4,7 @@
 #include "defines.h"
 #include "config.h"
 #include "ax25.h"
+#include "hdlc.h"
 
 BCond mon_ok;
    /* External variable in afsk_rx and afsk_tx. 
