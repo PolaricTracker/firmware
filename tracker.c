@@ -3,6 +3,7 @@
  * This is the APRS tracking code
  */
  
+#include <string.h>
 #include "defines.h"
 #include "kernel/kernel.h"
 #include "gps.h"
@@ -34,7 +35,7 @@ static void activate_tx(void);
 static bool should_update(posdata_t*, posdata_t*);
 static void report_status(posdata_t*);
 static void report_station_position(posdata_t*);
-static void report_object_position(posdata_t* pos, char* id);
+static void report_object_position(posdata_t*, char*, bool);
 
 static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool);
 static void send_header(FBUF*);
@@ -85,33 +86,75 @@ void tracker_off()
 /***********************************
  * Object stuff - testing...
  ***********************************/
- 
-static bool object_active = false;
-static char* id = "TEST     ";
-static posdata_t object_pos;
+
+#define MAX_OBJECTS 4
+
+static posdata_t object_pos[MAX_OBJECTS];
+static int8_t nObjects = 0, nextObj = 0;
+static void report_object(int8_t, bool);
 
 void tracker_addObject()
 {
-    GET_PARAM(OBJ_ID, id);
-    uint8_t len = strlen(id);
-    for (uint8_t i=len; i<9; i++)
-       id[i] = ' ';
-    id[9] = '\0';
-    object_pos = current_pos;
-    object_active = true;
+    if (!gps_is_fixed())
+        return;
+       
+    radio_require();      
+    if (nObjects >= MAX_OBJECTS) 
+       report_object(nextObj, false); /* Delete existing object */
+    else
+       nObjects++;
+      
+    object_pos[nextObj] = current_pos;
+    report_object(nextObj, true);
+    nextObj = (nextObj + 1) % (MAX_OBJECTS-1);
+    radio_release();
+    /* 
+     * Problem: Crash -  if turning on radio *after* packet is enqueued! 
+     * Problem: if we skip activate_tx() here and instead wait for 
+     * tracker thread to do it. adf7021_wait_enabled() in hdlc_encoder will
+     * then never return???
+     */
 }
 
+
+static void report_object(int8_t pos, bool add)
+{
+    uint8_t i = 0;
+    char id[10];
+    GET_PARAM(OBJ_ID, id);
+    uint8_t len = strlen( id );
+    if (len>=8) 
+       id[len=8] = ' '; 
+    else for (i=len; i<9; i++)
+       id[i] = ' ';
+    id[9] = '\0';  
+    
+    id[len+1] = 48+pos;
+    report_object_position(&(object_pos[pos]), id, add);
+}
+
+
+static void report_objects()
+{
+    for (int8_t i=0; i<nObjects; i++) { 
+       int8_t pos = nextObj-i-1; 
+       if (pos<0) 
+          pos = MAX_OBJECTS + pos;
+       report_object(pos, true);
+    }
+}
 
 
 /***************************************************************
  * main thread for tracking
  ***************************************************************/
+
+#define GPS_TIMEOUT 6 /* MOVE TO defines.h */
  
 static void trackerThread(void)
 {
     uint8_t t;
     uint8_t st_count = GET_BYTE_PARAM( STATUS_TIME);
-    uint8_t obj_count = 6; /* TODO: config OBJECT_TIME */
     
     bcond_wait(&tready); 
     bcond_clear(&tready);
@@ -119,44 +162,36 @@ static void trackerThread(void)
     while (GET_BYTE_PARAM(TRACKER_ON)) 
     {
        /*
-        * Wait for a fix on position. Timeout after one minute. 
-        * Therefore we must also check if gps is really fixed.
+        * Wait for a fix on position. But with timeout to allow status and 
+        * object reports to be sent. 
         */  
-        waited = gps_wait_fix(6000);   
-        if (gps_is_fixed()) 
-        {
-            /* Pause GPS serial data to avoid interference with modulation 
-             * and to save CPU cycles. 
-             */
-            uart_rx_pause();         
-         
-            /*
-             * Send status report
-             */
-            if (++st_count >= GET_BYTE_PARAM( STATUS_TIME)) {
-               st_count = 0;
-               report_status(&current_pos);
-            }
-            
-            /*
-             * Send object report
-             */
-            if (object_active && obj_count >= 6) {  
-                obj_count = 0;
-                report_object_position(&object_pos, id);
-            }
-            
-            /* 
-             * Send report, if criteria are satisfied, or if we waited 
-             * for GPS fix
-             */
-            if (should_update(&prev_pos, &current_pos)) {
-               report_station_position(&current_pos);
-               prev_pos = current_pos;          
-            }         
-            activate_tx();
-        }
+        uint8_t statustime = GET_BYTE_PARAM( STATUS_TIME);
+        waited = gps_wait_fix( GPS_TIMEOUT * GET_BYTE_PARAM(TRACKER_SLEEP_TIME) * TIMER_RESOLUTION);   
+        if (!gps_is_fixed())
+           st_count += GPS_TIMEOUT-1; 
+
+       /* Pause GPS serial data to avoid interference with modulation 
+        * and to save CPU cycles. 
+        */
+        uart_rx_pause();   
         
+        /*
+         * Send status report and object reports.
+         */
+        if (++st_count >= statustime) {
+           st_count = 0;
+           report_status(&current_pos);
+           report_objects();
+        }       
+        
+        /*
+         * Send position report
+         */  
+        if (gps_is_fixed() && should_update(&prev_pos, &current_pos)) { 
+            report_station_position(&current_pos);
+            prev_pos = current_pos;                      
+        }
+        activate_tx();
         t = GET_BYTE_PARAM(TRACKER_SLEEP_TIME);
         
         /* Powersave mode */
@@ -314,7 +349,7 @@ static void report_station_position(posdata_t* pos)
 
 
 
-static void report_object_position(posdata_t* pos, char* id)
+static void report_object_position(posdata_t* pos, char* id, bool add)
 {
     FBUF packet; 
     
@@ -324,7 +359,7 @@ static void report_object_position(posdata_t* pos, char* id)
     /* And report body */
     fbuf_putChar(&packet, ';');
     fbuf_putstr(&packet, id);     /* NOTE: LENGTH OF ID MUST BE EXCACTLY 9 CHARACTERS */ 
-    fbuf_putChar(&packet, '*'); 
+    fbuf_putChar(&packet, (add ? '*' : '_')); 
     send_pos_report(&packet, pos, 
          GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true, false);
     
