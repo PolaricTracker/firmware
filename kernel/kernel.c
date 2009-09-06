@@ -189,7 +189,12 @@ bool t_is_idle()
  **********************************************************************************/
 
 void cond_init(Cond* c)
-   { c->qfirst = c->qlast = NULL; }
+{ 
+   CONTAINS_CRITICAL;
+   enter_critical();
+   c->qfirst = c->qlast = NULL; 
+   leave_critical();
+}
    
 
 /******************************************************************************
@@ -210,7 +215,6 @@ void wait(Cond* c)
        q_end->next = q_head = q_head->next;     
        c->qlast->next = NULL;
        leave_critical();
-       
        longjmp(q_head->env, 1);
     }
 }
