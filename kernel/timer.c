@@ -7,9 +7,11 @@
 #include "timer.h"
 #include "kernel.h"
 #include <avr/interrupt.h>
+#include "config.h"
+
 
 /* List of running timers */
-static Timer * _timers;
+static Timer * _timers = NULL;
 static void timer_remove(Timer*);
 
 
@@ -20,10 +22,11 @@ static void timer_remove(Timer*);
  
 void timer_set(Timer* t, uint16_t ticks) 
 {   CONTAINS_CRITICAL;
-    cond_init(&t->kick);
+    cond_init(&(t->kick));
 
     enter_critical();  
     t->callback = NULL;
+    t->cbarg = NULL;
     t->count = ticks;
     t->prev = NULL;
     t->next = _timers;
@@ -47,7 +50,7 @@ void timer_cancel(Timer* t)
        t->callback = NULL;
        t->count = 0;
        timer_remove(t);
-       notifyAll(&t->kick);
+       notifyAll(&(t->kick));
     }
     leave_critical();
 }
@@ -85,7 +88,7 @@ void timer_tick()
               * kick the waiting thread
               */
              timer_remove(t);
-             notifyAll(&t->kick);
+             notifyAll(&(t->kick));
              if (t->callback != NULL) 
                  (*t->callback)(t->cbarg);
         }
