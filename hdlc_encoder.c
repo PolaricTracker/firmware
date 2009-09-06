@@ -17,6 +17,7 @@
 #include "config.h"
 #include <util/crc16.h>
 #include "transceiver.h"
+#include "ui.h"
 		          
 
 
@@ -28,7 +29,6 @@ static fbq_t *mqueue;
 
 static bool test_active;
 static uint8_t testbyte;
-static bool monitor = false;
 
 #define BUFFER_EMPTY (fbuf_eof(&buffer))            
 
@@ -45,7 +45,7 @@ static void wait_channel_ready(void);
 static bool hdlc_idle = true;
 static Cond hdlc_idle_sig;
 static fbq_t* _enc_queue;
-
+ 
 
 
 void hdlc_monitor_tx(fbq_t* q)
@@ -184,7 +184,6 @@ static void hdlc_encode_frames()
      /* Preamble of TXDELAY flags */
      for (i=0; i<txdelay; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
-     
      for (i=0;i<maxfr;i++) 
      {        
         fbuf_reset(&buffer);
@@ -195,14 +194,12 @@ static void hdlc_encode_frames()
             crc = _crc_ccitt_update (crc, txbyte);
             hdlc_encode_byte(txbyte, false);
         }
-        
         if (mqueue) {
            fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
            fbq_put( mqueue, buffer);
         }
         else
-           fbuf_release(&buffer);
-           
+           fbuf_release(&buffer);   
         hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
         
@@ -213,7 +210,6 @@ static void hdlc_encode_frames()
         else
            break;
      }
-       
      /* Postamble of TXTAIL flags */  
      for (i=0; i<txtail; i++)
          hdlc_encode_byte(HDLC_FLAG, true);
