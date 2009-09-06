@@ -1,14 +1,14 @@
 /*
  * Buffers for frames of data.
  */ 
- 
+
 #include "defines.h"
 #include "fbuf.h"
 #include <avr/signal.h>
 #include <avr/pgmspace.h>
 #include <string.h>
 #include "config.h"
-
+#include "kernel/kernel.h" 
 
 /***************************************************************
  * Storage for packet buffer chains
