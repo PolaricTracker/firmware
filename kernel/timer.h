@@ -18,8 +18,7 @@
 
 /* Timer control block. An instance of this represents
  * an independent timer. Waiting is implemented by using a
- * binary semaphore. This means that a timer should not be shared
- * between multiple threads 
+ * Cond variable. 
  */
 typedef struct _timer
 {
