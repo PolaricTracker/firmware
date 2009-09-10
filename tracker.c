@@ -80,6 +80,13 @@ void tracker_off()
 }
 
 
+void tracker_posReport()
+{
+    if (!gps_is_fixed())
+        return;
+    report_station_position(&current_pos);
+    activate_tx();
+}
 
 
 
@@ -94,27 +101,21 @@ static int8_t nObjects = 0, nextObj = 0;
 static void report_object(int8_t, bool);
 
 void tracker_addObject()
-{
+{  
     if (!gps_is_fixed())
         return;
-       
-    radio_require();      
-    if (nObjects >= MAX_OBJECTS) 
-       report_object(nextObj, false); /* Delete existing object */
+          
+    if (nObjects >= MAX_OBJECTS)  
+         report_object(nextObj, false); /* Delete existing object */
     else
        nObjects++;
-      
+    
     object_pos[nextObj] = current_pos;
     report_object(nextObj, true);
-    nextObj = (nextObj + 1) % (MAX_OBJECTS-1);
-    radio_release();
-    /* 
-     * Problem: Crash -  if turning on radio *after* packet is enqueued! 
-     * Problem: if we skip activate_tx() here and instead wait for 
-     * tracker thread to do it. adf7021_wait_enabled() in hdlc_encoder will
-     * then never return???
-     */
+    nextObj = (nextObj + 1) % MAX_OBJECTS;
+    activate_tx();
 }
+
 
 
 static void report_object(int8_t pos, bool add)
@@ -124,14 +125,14 @@ static void report_object(int8_t pos, bool add)
     GET_PARAM(OBJ_ID, id);
     uint8_t len = strlen( id );
     if (len>=8) 
-       id[len=8] = ' '; 
+       len=8; 
     else for (i=len; i<9; i++)
        id[i] = ' ';
+    id[len] = 48+pos;   
     id[9] = '\0';  
-    
-    id[len+1] = 48+pos;
     report_object_position(&(object_pos[pos]), id, add);
 }
+
 
 
 static void report_objects()
@@ -188,6 +189,9 @@ static void trackerThread(void)
          * Send position report
          */  
         if (gps_is_fixed() && should_update(&prev_pos, &current_pos)) { 
+            if (GET_BYTE_PARAM(REPORT_BEEP)) {
+               beep(4); sleep(20);
+            }
             report_station_position(&current_pos);
             prev_pos = current_pos;                      
         }
@@ -318,6 +322,7 @@ static void report_station_position(posdata_t* pos)
     static uint8_t ccount;
     FBUF packet;    
     char comment[COMMENT_LENGTH];
+    fbuf_new(&packet); 
           
     /* Create packet header */
     send_header(&packet);    
@@ -339,9 +344,7 @@ static void report_station_position(posdata_t* pos)
        }
        ccount = COMMENT_PERIOD; 
     }
-    
-    if (GET_BYTE_PARAM(REPORT_BEEP))
-      beep(4);
+
     
     /* Send packet */
     fbq_put(outframes, packet);
@@ -352,6 +355,7 @@ static void report_station_position(posdata_t* pos)
 static void report_object_position(posdata_t* pos, char* id, bool add)
 {
     FBUF packet; 
+    fbuf_new(&packet);
     
     /* Create packet header */
     send_header(&packet);   
@@ -364,7 +368,7 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
          GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true, false);
     
     /* Comment field may be added later */
-    
+
     /* Send packet */
     fbq_put(outframes, packet);
 }
@@ -393,14 +397,17 @@ static void send_pos_report(FBUF* packet, posdata_t* pos,
        /* Format latitude and longitude values, etc. */
        char lat_sn = (pos->latitude < 0 ? 'S' : 'N');
        char long_we = (pos->longitude < 0 ? 'W' : 'E');
-       double latf = fabs(pos->latitude);
-       double longf = fabs(pos->longitude);
+       float latf = fabs(pos->latitude);
+       float longf = fabs(pos->longitude);
       
        sprintf_P(pbuf,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
        fbuf_putstr (packet, pbuf);
+
        fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL_TABLE));
+       
        sprintf_P(pbuf, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
        fbuf_putstr (packet, pbuf);
+       
        fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL));   
        sprintf_P(pbuf, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
        fbuf_putstr (packet, pbuf); 
