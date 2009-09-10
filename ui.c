@@ -211,11 +211,13 @@ void push_handler()
     if (push_count == 2)
         beeps("..---");
     else if (push_count == 3) {
-        beeps("..-. ..-." );
+        beeps(".-.");    
+        tracker_posReport();    
+    }
+    else if (push_count == 4) {
+        beeps("..-.");  
         tracker_addObject();
     }
-    else if (push_count == 4)
-        beeps("....-");    
     else if (push_count == 5)
         beeps(".....");
     else if (push_count == 6)
@@ -239,7 +241,7 @@ void push_handler()
 void ui_clock()
 {
    if (buzzer)
-      toggle_port(BUZZER);      
+     toggle_port(BUZZER);      
 }
 
 
@@ -283,6 +285,7 @@ void beeps(char* s)
        sleep(5);  
        s++;
    }
+   sleep(20);
 }
 
 
