@@ -28,7 +28,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.12+ (17.7.2009)"
+#define VERSION_STRING "v0.12+ (7.9.2009)"
 #define CURRENT_VERSION_KEY 8
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
@@ -317,6 +317,7 @@ extern uint8_t blink_length, blink_interval;
 #define USBKEY_JS_PUSH_PORT  PORTB
 #define USBKEY_JS_PUSH_BIT   5
 
+
 /************************************************
  * Macro to reset the mcu
  ************************************************/
@@ -326,6 +327,7 @@ do {                        \
     wdt_enable(WDTO_15MS);  \
     for(;;)  { }            \
 } while(0)
+
 
 /************************************************
  * Bit fiddling macros
