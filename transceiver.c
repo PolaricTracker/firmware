@@ -14,11 +14,11 @@
 
 
 #include <util/delay.h>
-    
-bool adf7021_enabled = false;
-bool adf7021_tx_enabled = false;
-Cond adf7021_on_signal, adf7021_tx_idle;
 
+    
+static BCond adf7021_enabled;
+bool adf7021_tx_enabled = false;
+static Cond adf7021_tx_idle;
 static adf7021_setup_t* setup;
 
 
@@ -234,11 +234,11 @@ void adf7021_set_power (adf7021_setup_t *setup, double dBm, adf7021_pa_ramp_t ra
 
 
 
-void adf7021_init (adf7021_setup_t* s)
+void adf7021_init ()
 {
-  adf7021_enabled = adf7021_tx_enabled = false;
-  cond_init(&adf7021_on_signal);
+  adf7021_tx_enabled = false;
   cond_init(&adf7021_tx_idle);
+  bcond_init(&adf7021_enabled, false);
   make_output (INV_PA_ON);
 
 //  make_output (PD0OUT);
@@ -254,8 +254,6 @@ void adf7021_init (adf7021_setup_t* s)
   clear_port (ADF7021_ON);
   set_port (INV_PA_ON);
 //  set_port (PD0OUT);
-  
-  setup = s;
 }
 
 
@@ -297,7 +295,7 @@ static void _adf7021_startup()
   if (setup->if_filter.calibrate)
     ADF7021_MUXOUT_WAIT ();
 
-  // TODO: readback and store fine calibration adjustment
+  // adf7021_setup_t* sTODO: readback and store fine calibration adjustment
   
   /* Setup frame synchronization */
   if (ADF7021_REGISTER_IS_INITIALIZED (setup->swd_word))
@@ -327,13 +325,13 @@ static void _adf7021_startup()
 
 
 
-void adf7021_power_on ()
-{  
+void adf7021_power_on (adf7021_setup_t* s)
+{
+  setup = s;
   set_port (ADF7021_ON);  
   _adf7021_startup();
-
-  adf7021_enabled = true; 
-  notifyAll(&adf7021_on_signal);
+  sleep(50);
+  bcond_set(&adf7021_enabled);
 }
 
 
@@ -342,11 +340,12 @@ void adf7021_power_off ()
 {
   notifyAll(&adf7021_tx_idle);
   /* Turn it off */
-  adf7021_enabled = adf7021_tx_enabled =  false;
-  
+  adf7021_tx_enabled =  false;
+  bcond_clear(&adf7021_enabled);
   set_port (INV_PA_ON);  
   clear_port (ADF7021_ON);
 }
+
 
 
 /*
@@ -354,8 +353,7 @@ void adf7021_power_off ()
  */
 void adf7021_wait_enabled()
 {
-   while(!adf7021_enabled)
-      wait(&adf7021_on_signal);
+   bcond_wait(&adf7021_enabled);
 }
 
 
@@ -363,7 +361,7 @@ void adf7021_wait_enabled()
 void adf7021_wait_tx_off()
 {
   /* Be sure that transmitter is off */
-   while (adf7021_tx_enabled) 
+   if (adf7021_tx_enabled)  
       wait(&adf7021_tx_idle);
 //   sleep (setup->ramp_time);     
 }
@@ -470,6 +468,19 @@ uint16_t adf7021_read_register (uint32_t readback)
 }
 
 
+double adf7021_read_temp ()
+{  
+  /* Sjekk hva som skjer her!! */   
+  setup->power_down.pa_enable_rx_mode = false;
+  setup->power_down.demod_enable = false;
+  setup->power_down.lna_mixer_enable = false;
+  setup->power_down.adc_enable = true;
+  adf7021_write_register (ADF7021_REGISTER_DEREF (setup->power_down));
+
+  return -40.0 + (68.4 - (adf7021_read_register (ADF7021_READBACK_TEMP) & 0x7f)) * 9.32;
+}
+
+
 
 double adf7021_read_rssi ()
 {
@@ -487,3 +498,4 @@ double adf7021_read_rssi ()
     
   return -130.0 + (rssi + gain) * 0.5;
 }
+
