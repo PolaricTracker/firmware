@@ -268,9 +268,11 @@ void bcond_set(BCond* c)
     enter_critical();
     if (!c->val) {
       c->val = true;
+      leave_critical();
       notifyAll(&(c->waiters));
     }
-    leave_critical();
+    else
+       leave_critical();
 }
 
 
