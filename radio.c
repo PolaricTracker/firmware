@@ -8,7 +8,7 @@
 
  
 static int count = 0; 
-static void _radio_setup(void);
+static adf7021_setup_t* _radio_setup(void);
 
 
 /******************************************************
@@ -18,8 +18,9 @@ static void _radio_setup(void);
 void radio_require(void)
 {
     if (++count == 1) {
-        _radio_setup();
-        adf7021_power_on();
+        beep_lock();
+        adf7021_power_on( _radio_setup() );
+        beep_unlock();
     }
 }
 
@@ -36,11 +37,14 @@ void radio_release(void)
         * Before turning off transceiver, wait until
         * Packet is sent and transmitter is turned off. 
         */
-       sleep(50);
+       sleep(60);
        hdlc_wait_idle();
        adf7021_wait_tx_off();
+       beep_lock();
        adf7021_power_off();
+       beep_unlock();
     }
+    if (count < 0) count = 0;
 }
 
 
@@ -52,12 +56,9 @@ void radio_setup(void)
 {
    if (count > 0) {
       adf7021_power_off();
-      _radio_setup();
-      adf7021_power_on();
+      adf7021_power_on( _radio_setup() );
    } 
 }
-
-adf7021_setup_t trx_setup;
 
 
 /**************************************************************************
@@ -65,7 +66,8 @@ adf7021_setup_t trx_setup;
  *   - We may move this to a separate source file or to config.c ?
  *   - Parts of the setup may be stored in EEPROM?
  **************************************************************************/
-static void _radio_setup(void)
+static adf7021_setup_t trx_setup;
+static adf7021_setup_t*  _radio_setup(void)
 {
     uint32_t freq; 
     int16_t  fcal;
@@ -93,6 +95,5 @@ static void _radio_setup(void)
     adf7021_set_post_demod_filter (&trx_setup, 3500); 
     ADF7021_INIT_REGISTER(trx_setup.test_mode, ADF7021_TEST_MODE_REGISTER);
     trx_setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
-    adf7021_init (&trx_setup);
-
+    return &trx_setup;
 }
