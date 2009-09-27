@@ -112,12 +112,21 @@ Version 0.13
 * Push-button command support. 
      DONE
 * Object reports 
-     PARTLY - UNDER TESTING
+     DONE
 * Status/object reports even if GPS is not fixed.? 
      DONE
-* Separate out source file for APRS report encoding.
-* Beep on report, seems to kill TX, sometimes????     
+* Beep on report, seems to kill TX, sometimes????   
+     DONE  
+* Crash after sending multiple object packets from other thread than trackerThread?
+     DONE
 * Smart beaconing: What happens when speed = 0 ? 
+
+
+Version 0.14
+------------
+* Fix power drain problem (if this can be done in software at all)
+* Smart beaconing: What happens when speed = 0 ?
+* Separate out source file for APRS report encoding.
 * Temperature compensated freq.. ?
 
 
