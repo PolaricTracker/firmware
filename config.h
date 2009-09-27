@@ -125,9 +125,9 @@ DEFAULT_PARAM( REPORT_BEEP )         = 0;
 DEFAULT_PARAM( GPS_POWERSAVE )       = 0;
 DEFAULT_PARAM( TXMON_ON )            = 0;
 DEFAULT_PARAM( AUTOPOWER )           = 0;
-DEFAULT_PARAM( OBJ_SYMBOL)           = '[';
+DEFAULT_PARAM( OBJ_SYMBOL)           = 'c';
 DEFAULT_PARAM( OBJ_SYMBOL_TABLE)     = '/';
-DEFAULT_PARAM( OBJ_ID)               = "MARK";
+DEFAULT_PARAM( OBJ_ID)               = "MARK-";
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
