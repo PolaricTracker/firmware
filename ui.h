@@ -19,5 +19,6 @@ void turn_off(void);
 void led_usb_restore(void);
 void pri_rgb_led_on(bool, bool, bool);
 void pri_rgb_led_off(void);
-
+void beep_lock(void);
+void beep_unlock(void);
 #endif
