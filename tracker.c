@@ -29,6 +29,7 @@ static BCond tready;
 void tracker_init(void);
 void tracker_on(void); 
 void tracker_off(void);
+void tracker_clearObjects();
 
 static void trackerThread(void);
 static void activate_tx(void);
@@ -36,6 +37,7 @@ static bool should_update(posdata_t*, posdata_t*);
 static void report_status(posdata_t*);
 static void report_station_position(posdata_t*);
 static void report_object_position(posdata_t*, char*, bool);
+static void report_objects(bool);
 
 static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool);
 static void send_header(FBUF*);
@@ -43,6 +45,7 @@ static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
 static void send_latlong_compressed(FBUF*, double, bool);
 static void send_csT_compressed(FBUF*, posdata_t*);
+
 
 
 double fabs(double); /* INLINE FUNC IN MATH.H - CANNOT BE INCLUDED MORE THAN ONCE */
@@ -117,6 +120,13 @@ void tracker_addObject()
 }
 
 
+void tracker_clearObjects()
+{
+    report_objects(false);
+    nObjects = 0; nextObj = 0;
+}
+
+
 
 static void report_object(int8_t pos, bool add)
 {
@@ -135,13 +145,13 @@ static void report_object(int8_t pos, bool add)
 
 
 
-static void report_objects()
+static void report_objects(bool keep)
 {
     for (int8_t i=0; i<nObjects; i++) { 
        int8_t pos = nextObj-i-1; 
        if (pos<0) 
           pos = MAX_OBJECTS + pos;
-       report_object(pos, true);
+       report_object(pos, keep);
     }
 }
 
@@ -175,23 +185,22 @@ static void trackerThread(void)
         * and to save CPU cycles. 
         */
         uart_rx_pause();   
-        
         /*
          * Send status report and object reports.
          */
         if (++st_count >= statustime) {
            st_count = 0;
            report_status(&current_pos);
-           report_objects();
+           report_objects(true);
         }       
         
         /*
          * Send position report
          */  
         if (gps_is_fixed() && should_update(&prev_pos, &current_pos)) { 
-            if (GET_BYTE_PARAM(REPORT_BEEP)) {
-               beep(4); sleep(20);
-            }
+            if (GET_BYTE_PARAM(REPORT_BEEP)) 
+               { beep(3); }
+            
             report_station_position(&current_pos);
             prev_pos = current_pos;                      
         }
@@ -216,6 +225,7 @@ static void trackerThread(void)
     gps_off();
     bcond_set(&tready);
 }
+
 
 
 /*********************************************************************
@@ -321,7 +331,7 @@ static void report_station_position(posdata_t* pos)
 {
     static uint8_t ccount;
     FBUF packet;    
-    char comment[COMMENT_LENGTH];
+    char comment[COMMENT_LENGTH+1];
     fbuf_new(&packet); 
           
     /* Create packet header */
@@ -365,7 +375,8 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
     fbuf_putstr(&packet, id);     /* NOTE: LENGTH OF ID MUST BE EXCACTLY 9 CHARACTERS */ 
     fbuf_putChar(&packet, (add ? '*' : '_')); 
     send_pos_report(&packet, pos, 
-         GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true, false);
+         GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true,
+        (GET_BYTE_PARAM(COMPRESS_ON) != 0));
     
     /* Comment field may be added later */
 
@@ -386,10 +397,10 @@ static void send_pos_report(FBUF* packet, posdata_t* pos,
     
     if (compress)
     {  
-       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL_TABLE));
+       fbuf_putChar(packet, symtab);
        send_latlong_compressed(packet, pos->latitude, false);
        send_latlong_compressed(packet, pos->longitude, true);
-       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL)); 
+       fbuf_putChar(packet, sym);
        send_csT_compressed(packet, pos);
     }
     else
@@ -403,12 +414,12 @@ static void send_pos_report(FBUF* packet, posdata_t* pos,
        sprintf_P(pbuf,  PSTR("%02d%05.2f%c\0"), (int)latf, (latf - (int)latf) * 60, lat_sn);
        fbuf_putstr (packet, pbuf);
 
-       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL_TABLE));
+       fbuf_putChar(packet, symtab);
        
        sprintf_P(pbuf, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
        fbuf_putstr (packet, pbuf);
        
-       fbuf_putChar(packet, GET_BYTE_PARAM(SYMBOL));   
+       fbuf_putChar(packet, sym);   
        sprintf_P(pbuf, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
        fbuf_putstr (packet, pbuf); 
 
