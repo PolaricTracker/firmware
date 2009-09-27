@@ -2,8 +2,8 @@
  * $Id: main.c,v 1.29 2009-05-15 22:55:09 la7eca Exp $
  *
  * Polaric tracker main program.
- * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
- * Copyright (C) 2008 Øyvind Hanssen la7eca@hans.priv.no 
+ * Copyright (C) 2008 LA3T Tromsï¿½gruppen av NRRL
+ * Copyright (C) 2008 ï¿½yvind Hanssen la7eca@hans.priv.no 
  * Copyright (C) 2008 Espen S Johnsen esj@cs.uit.no
  *
  * This program is free software: you can redistribute it and/or modify
@@ -134,8 +134,10 @@ int main(void)
                             
       /* HDLC and AFSK setup */
       mon_init(&cdc_outstr);
-      outframes = hdlc_init_encoder( afsk_init_encoder() );            
+      adf7021_init();
       inframes  = hdlc_init_decoder( afsk_init_decoder() );
+      outframes = hdlc_init_encoder( afsk_init_encoder() );            
+
 
       /* USB */
       usb_init();    
