@@ -32,7 +32,7 @@ static void wakeup_handler(void);
 
 static float _batt_voltage;
 static bool _batt_charged = false;
-
+static Mutex beep_mutex;
 
 
 void ui_init()
@@ -51,7 +51,8 @@ void ui_init()
       make_output(BUZZER);     
       rgb_led_off();
       clear_port(BUZZER);
-      usb_on = false;     
+      usb_on = false;
+      mutex_init(&beep_mutex);
             
       /* Button */
       make_input(BUTTON);
@@ -124,8 +125,10 @@ static void onoff_handler(void* x)
 
 
 
-/* The last thing to be done before putting CPU to sleep:
- * Power down (almost) everything */
+/*
+ * The last thing to be done before putting CPU to sleep:
+ * Power down (almost) everything
+ */
 static bool _powerdown = false;
 void powerdown_handler()
 {
@@ -181,7 +184,7 @@ bool buttdown = false;
 /* Button pin change interrupt */
 ISR(INT1_vect)
 { 
-    nop(); 
+    nop();
     if (!pin_is_high(BUTTON)) {
        if (buttdown) return;
        buttdown = true;
@@ -204,12 +207,13 @@ ISR(INT1_vect)
 }
 
 void tracker_addObject();
+void tracker_clearObjects();
+
 void push_handler()
 {
     if (is_off)
        return;
-    if (push_count == 2)
-        beeps("..---");
+       
     else if (push_count == 3) {
         beeps(".-.");    
         tracker_posReport();    
@@ -218,16 +222,11 @@ void push_handler()
         beeps("..-.");  
         tracker_addObject();
     }
-    else if (push_count == 5)
-        beeps(".....");
-    else if (push_count == 6)
-        beeps("-....");      
-    else if (push_count == 7)
-        beeps("--..."); 
-    else if (push_count == 8)
-        beeps("---..");     
-    else if (push_count == 9)
-        beeps("----.");             
+    else if (push_count == 5) {
+        beeps("..-. -.-.");
+        tracker_clearObjects();
+    }
+
     push_count = 0;
     
 }
@@ -241,7 +240,7 @@ void push_handler()
 void ui_clock()
 {
    if (buzzer)
-     toggle_port(BUZZER);      
+      toggle_port(BUZZER);       
 }
 
 
@@ -253,7 +252,7 @@ void ui_clock()
  *     Space means pause
  ************************************************************************/
  
-void beep(uint16_t t)
+static void _beep(uint16_t t)
 {
     buzzer = true;
     sleep(t);
@@ -261,6 +260,7 @@ void beep(uint16_t t)
     clear_port(BUZZER);
 }
   
+
 void lbeep()
 {
     static bool beeped;
@@ -272,22 +272,33 @@ void lbeep()
     clear_port(BUZZER);
     beeped = true;
 }
- 
+
+void beep(uint16_t t)
+{
+    mutex_lock(&beep_mutex);
+    _beep(t);
+    mutex_unlock(&beep_mutex);
+}
+
 void beeps(char* s)
 {
+    mutex_lock(&beep_mutex);
     while (*s != 0) {
        if (*s == '.')
-          beep(5);
+          _beep(5);
        else if (*s == '-')
-          beep(15);
+          _beep(15);
        else
           sleep(10);
        sleep(5);  
        s++;
    }
-   sleep(20);
+   mutex_unlock(&beep_mutex);
 }
 
+
+void beep_lock()    {mutex_lock(&beep_mutex);}
+void beep_unlock()  {mutex_unlock(&beep_mutex);}
 
 
 /*************************************************************************
@@ -403,6 +414,8 @@ static void ui_thread(void)
    
     BLINK_NORMAL;
     while (1) {
+        /* Reset WDT */
+        wdt_reset(); 
         set_port( LED1 );
         sleep(blink_length);
         clear_port( LED1 );
@@ -426,10 +439,7 @@ static void batt_check_thread()
     uint8_t cbeep = 1, cusb = 1;
     
     while (true) 
-    {
-       /* Reset WDT */
-       wdt_reset(); 
-       
+    {  
        /* Read battery voltage */
        adc_enable();
        _batt_voltage = adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
@@ -452,7 +462,7 @@ static void batt_check_thread()
           if (_batt_voltage <= BATT_LOW_TURNOFF)
              turn_off();
           else {
-             /* Bættery low warning */
+             /* Battery low warning */
              if (cbeep-- == 0) {
                  beeps("-...");
                  cbeep = 15;
