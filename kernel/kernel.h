@@ -74,6 +74,12 @@ bool sem_nb_down(Semaphore*);
 void sem_set(Semaphore*, uint16_t);
 
 
+#define Mutex BCond
+#define mutex_init(c)   bcond_init(c,true)
+#define mutex_lock(c)   { bcond_wait(c); bcond_clear(c);}
+#define mutex_unlock(c) bcond_set(c)
+
+
 /*
  * Convenience macro for creating and starting threads. 
  * n is the function to be run as a separate thread. 
