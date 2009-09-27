@@ -285,9 +285,9 @@ void _fbq_init(FBQ* q, FBUF* buf, const uint16_t sz)
 
 void fbq_clear(FBQ* q)
 {
-    register uint8_t i;
+    register uint16_t i;
     for (i = q->index;  i < q->index + q->length.cnt;  i++)
-        fbuf_release(&q->buf[i % q->size]);
+        fbuf_release(&q->buf[(uint8_t) (i % q->size)]);
     sem_set(&q->length, 0);
     sem_set(&q->capacity, q->size);    
     q->index = 0;
@@ -302,10 +302,10 @@ void fbq_clear(FBQ* q)
 void fbq_put(FBQ* q, FBUF b)
 {
     sem_down(&q->capacity); 
-    register uint8_t i = q->index + q->length.cnt; 
+    register uint16_t i = q->index + q->length.cnt;
     if (i >= q->size)
         i -= q->size; 
-    q->buf[i] = b; 
+    q->buf[(uint8_t) i] = b; 
     sem_up(&q->length);
 }
 
