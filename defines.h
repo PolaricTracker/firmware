@@ -28,7 +28,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.12+ (7.9.2009)"
+#define VERSION_STRING "v0.12+ (27.9.2009)"
 #define CURRENT_VERSION_KEY 8
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
@@ -61,7 +61,7 @@
 
 #define STACK_MAIN             180
 #define STACK_LED              150
-#define STACK_BATT             200
+#define STACK_BATT             210
 #define STACK_USBLISTENER      440
 #define STACK_HDLCENCODER      200
 #define STACK_HDLCDECODER      220
@@ -108,13 +108,13 @@ extern uint8_t blink_length, blink_interval;
 
 
 /*******************************************
- * Bættery stuff
+ * Bï¿½ttery stuff
  *******************************************/
  
 #define BATT_HIGHCHARGE_MAX 7.15
 #define BATT_LOWCHARGE_MIN  6.8 
-#define BATT_LOW_WARNING    5.6
-#define BATT_LOW_TURNOFF    5.2
+#define BATT_LOW_WARNING    5.7
+#define BATT_LOW_TURNOFF    5.3
 
 
 /*******************************************
@@ -190,6 +190,7 @@ extern uint8_t blink_length, blink_interval;
 #define BUZZER_PORT     PORTA
 #define BUZZER_BIT      6
 #define BUZZER_DDR      DDRA        
+#define BUZZER_PIN      PINA
 #define TXDATA_PORT     PORTB
 #define TXDATA_BIT      2 
 #define TXDATA_DDR      DDRB
@@ -219,6 +220,7 @@ extern uint8_t blink_length, blink_interval;
 #define BUZZER_PORT           PORTE
 #define BUZZER_BIT            4
 #define BUZZER_DDR            DDRE
+#define BUZZER_PIN            PINE
 
 
 #define VBATT_ADC_PORT        PORTF
@@ -340,6 +342,8 @@ do {                        \
 #define port_is_set(x) (x##_PORT & _BV(x##_BIT))
 #define toggle_port(x) (x##_PORT) ^= _BV(x##_BIT) // Alternative: Setting PIN will toggle PORT
 #define pin_is_high(x) (x##_PIN & _BV(x##_BIT))
+
+#define set_pin(x) (x##_PIN) |= _BV(x##_BIT)
 
 /* Use float (or tri-state as Atmel calls it) if pin has external
    pull-up. Be carefull when switching between input and output or
