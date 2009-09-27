@@ -527,7 +527,6 @@ typedef struct _adf7021_setup {
 } adf7021_setup_t;
 
 
-extern bool adf7021_enabled;
 extern bool adf7021_tx_enabled;
 
 
@@ -546,9 +545,9 @@ static inline uint32_t adf7021_pfd_freq (adf7021_setup_t *setup) {
 }
 
 
-void adf7021_init (adf7021_setup_t *s);
+void adf7021_init (void);
 
-void adf7021_power_on (void);
+void adf7021_power_on (adf7021_setup_t *s);
 void adf7021_power_off (void);
 
 void adf7021_enable_tx (void);
