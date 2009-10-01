@@ -124,6 +124,7 @@ void tracker_clearObjects()
 {
     report_objects(false);
     nObjects = 0; nextObj = 0;
+    activate_tx();
 }
 
 
