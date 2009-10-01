@@ -28,8 +28,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.12+ (27.9.2009)"
-#define CURRENT_VERSION_KEY 8
+#define VERSION_STRING "v0.13 (1.10.2009)"
+#define CURRENT_VERSION_KEY 9
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
 
@@ -183,6 +183,10 @@ extern uint8_t blink_length, blink_interval;
 #define TP17_PORT PORTA
 #define TP17_BIT  5
 #define TP17_DDR  DDRA
+
+#define USBID_PORT PORTE
+#define USBID_BIT  3
+#define USBID_DDR  DDRE
 
 
 #if defined USBKEY_TEST  
