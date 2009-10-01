@@ -35,6 +35,7 @@ bool autopower  __attribute__ ((section (".noinit")));
                                  /* True if we want device to be "turned on" by external charger */
                                  
 static void ui_thread(void);
+static void report_batt(void);
 static void batt_check_thread(void);
 static void wakeup_handler(void);
 static void enable_ports_offmode();
@@ -168,6 +169,9 @@ void push_handler()
     if (is_off)
        return;
        
+    else if (push_count == 2) 
+       report_batt();
+    
     else if (push_count == 3) {
         beeps(".-.");    
         tracker_posReport();    
@@ -181,6 +185,20 @@ void push_handler()
         tracker_clearObjects();
     }
     push_count = 0;
+}
+
+
+void report_batt()
+{
+   if (batt_voltage() > 6.55)
+        rgb_led_on(false, true, false);
+   else if (batt_voltage() > 6.10)
+        rgb_led_on(true, true, false);
+   else
+        rgb_led_on(true, false, false);
+   sleep(150);
+   rgb_led_off();
+   sleep(30);
 }
 
 
@@ -466,7 +484,8 @@ static void ui_thread(void)
     rgb_led_off();
 
     /* 'QRV' in morse code */
-    beeps("--.- .-. ...-");   
+    beeps("--.- .-. ...-");
+    report_batt(); 
     if (usb_on)
         rgb_led_on(false,false,true);
    
