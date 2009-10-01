@@ -43,9 +43,9 @@ PSRC = commands.c
 
 # List C source files here.
 SRC = main.c config.c ui.c kernel/kernel.c kernel/timer.c		\
-      kernel/stream.c uart.c gps.c transceiver.c afsk_tx.c afsk_rx.c	\
+      kernel/stream.c uart.c gps.c  afsk_tx.c afsk_rx.c	\
       hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c adc.c monitor.c	\
-      tracker.c autogen.c radio.c $(PSRC) $(USB_SRC)
+      tracker.c radio.c transceiver.c $(PSRC) $(USB_SRC)
 
 
 # List Assembler source files here.
@@ -65,8 +65,8 @@ CFLAGS = -O2 $(USB_CFLAGS) -I. -DF_CPU=$(F_CPU)UL -funsigned-char --std=gnu99 -W
 ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
 
 # Linker flags (passed via GCC).
-#LDFLAGS = -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf,--section-start=.sign=0xd000 -lprintf_flt -lscanf_flt -lm -lc -lm
-LDFLAGS = -Wl,--script=$(TARGET).x,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm -lc -lm
+LDFLAGS = -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf,--section-start=.sign=0xd000 -lprintf_flt -lscanf_flt -lm -lc -lm
+# LDFLAGS = -Wl,--script=$(TARGET).x,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm -lc -lm
 
 # Define all project specific object files.
 OBJ = $(SRC:.c=.o) $(ASRC:.s=.o) 	
@@ -92,18 +92,6 @@ buildall: clean build
 overallsize:
 	@echo Elf size:
 	$(ELFSIZE)
-
-autogen.c: $(PSRC:.c=.o)
-# It may be necessary to process the source files with CPP first, 
-# if compile time conditinals are use.
-ifeq ($(LISP),clisp)
-# Executes extremely slow in CLisp, but this implementation is
-# the easiest to install. 
-	$(LISP) preprocessor.lisp autogen.c $(PSRC)
-endif
-ifeq ($(LISP),sbcl)
-	$(LISP) --script preprocessor.lisp autogen.c $(PSRC)
-endif
 
 
 %.bin: %.elf
