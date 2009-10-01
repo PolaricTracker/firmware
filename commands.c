@@ -18,52 +18,43 @@
 #include "radio.h"
 #include "gps.h"
 #include <avr/interrupt.h>
-#include <avr/boot.h>
-
-#include "ui.h"
 #include "adc.h"
 #include "afsk.h"
 #include "ui.h"
-#include "usb.h"
 
-#include "commands.h"
-
-
-extern command_t PROGMEM *commands[];
-extern int num_commands;
-
-PGM_P command_name (command_t *command)
-{
-  return (PGM_P)pgm_read_word (&command->name);
-}
-
-PGM_P command_description (command_t *command)
-{
-  return (PGM_P)pgm_read_word (&command->description);
-}
-
-command_t *find_command (char *name)
-{
-  for (uint8_t i = 0; i < num_commands; i++) {
-    command_t *command = (command_t*)pgm_read_word (&commands[i]);
-    if (!strcasecmp_P (name, command_name (command)))
-      return command;
-  }
-
-  return NULL;
-}
-
-void do_command (command_t *command, int argc, char *argv[], Stream* out, Stream* in)
-{
-  ((handler_func)pgm_read_word (&command->handler)) (argc, argv, out, in);
-}
-
-
-
-uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
 #define MAXTOKENS 10
 #define BUFSIZE   90
+
+
+void setup_transceiver(void);
+uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
+
+static void do_teston    (uint8_t, char**, Stream*, Stream*);
+static void do_version   (uint8_t, char**, Stream*);
+static void do_testpacket(uint8_t, char**, Stream*);
+static void do_mycall    (uint8_t, char**, Stream*);
+static void do_obj_id    (uint8_t, char**, Stream*);
+static void do_dest      (uint8_t, char**, Stream*);
+static void do_symbol    (uint8_t, char**, Stream*);
+static void do_obj_symbol(uint8_t, char**, Stream*);
+static void do_nmea      (uint8_t, char**, Stream*, Stream*);
+static void do_trx       (uint8_t, char**, Stream*, Stream*);
+static void do_txon      (uint8_t, char**, Stream*, Stream*);                 
+static void do_tracker   (uint8_t, char**, Stream*, Stream*);
+static void do_freq      (uint8_t, char**, Stream*);
+static void do_fcal      (uint8_t, char**, Stream*);
+static void do_power     (uint8_t, char**, Stream*);
+static void do_squelch   (uint8_t, char**, Stream*);
+static void do_rssi      (uint8_t, char**, Stream*, Stream*);
+static void do_digipath  (uint8_t, char**, Stream*);
+static void do_trace     (uint8_t, char**, Stream*);
+static void do_txtone    (uint8_t, char**, Stream*, Stream*);
+static void do_vbatt     (uint8_t, char**, Stream*);
+static void do_listen    (uint8_t, char**, Stream*, Stream*);
+static void do_converse  (uint8_t, char**, Stream*, Stream*);
+static void do_btext     (uint8_t, char**, Stream*);
+static void do_ps        (uint8_t, char**, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -85,7 +76,7 @@ void tracker_controls_trx(bool c);
 static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out, 
                 void* ee_addr, PGM_P default_val, uint16_t lower, uint16_t upper, PGM_P pfmt, PGM_P sfmt)
 {
-    uint16_t x;
+    int x;
     if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
           sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper); 
@@ -107,15 +98,15 @@ static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out,
 static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out, 
                 void* ee_addr, PGM_P default_val, uint8_t lower, uint8_t upper, PGM_P pfmt, PGM_P sfmt)
 {
-    uint8_t x;
+    int x;
     if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
           sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper);  
           putstr(out,buf);
        }
        else {
-				 set_byte_param(ee_addr, (uint8_t)x);
-          putstr_P(out,PSTR("OK\r\n"));
+          set_byte_param(ee_addr, (uint8_t) x);
+          putstr_P(out, PSTR("OK\r\n"));
        }
     } 
     else {
@@ -193,29 +184,78 @@ bool readLine(Stream*, Stream*, char*, const uint16_t);
        
 void cmdProcessor(Stream *in, Stream *out)
 {
-	char* argv[MAXTOKENS];
-	uint8_t argc;
-	sleep (10);
-	putstr_P(out, PSTR("\r\n*************************************************************"));
-	putstr_P(out, PSTR("\r\n Velkommen til 'Polaric Tracker' firmware "));
-	putstr_P(out, PSTR(VERSION_STRING));
-	putstr_P(out, PSTR("\r\n Utviklet av LA3T, Tromsøgruppen av NRRL"));
-	putstr_P(out, PSTR("\r\n*************************************************************"));
-	putstr_P(out, PSTR("\r\n"));
-	putstr_P(out, PSTR("\r\n"));
+    char* argv[MAXTOKENS];
+    uint8_t argc;
+    sleep (10);
+    putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
+    putstr_P(out, PSTR("\n\r Velkommen til 'Polaric Tracker' firmware "));
+    putstr_P(out, PSTR(VERSION_STRING));
+    putstr_P(out, PSTR("\r\n Utviklet av LA3T, Tromsï¿½gruppen av NRRL"));
+    putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
     
     while (1) {
-			   memset(argv, 0, MAXTOKENS);
-			   putstr(out, "cmd: ");    
+         memset(argv, 0, MAXTOKENS);
+         putstr(out, "cmd: ");    
          readLine(in, out, buf, BUFSIZE);
          
          /* Split input line into argument tokens */
          argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n,", true);
-				 
-	 command_t *command = find_command (argv[0]);
-	 if (command)
-	   do_command (command, argc, argv, out, in);
-	 /* Commands for setting/viewing parameters */
+
+         /* Select command handler: 
+          * misc commands 
+          */         
+         if (strncasecmp("teston", argv[0], 6) == 0)
+             do_teston(argc, argv, out, in);
+         else if (strncasecmp("version", argv[0], 3) == 0)
+             do_version(argc, argv, out);
+         else if (strncasecmp("txtone", argv[0], 7) == 0)
+             do_txtone(argc, argv, out, in);
+         else if (strncasecmp("testpacket",  argv[0], 5) == 0)
+             do_testpacket(argc, argv, out);                               
+         else if (strncasecmp("gps",     argv[0], 4) == 0)
+             do_nmea(argc, argv, out, in);     
+         else if (strncasecmp("trx",     argv[0], 3) == 0)
+             do_trx(argc, argv, out, in);        
+         else if (strncasecmp("tracker", argv[0], 6) == 0)
+             do_tracker(argc, argv, out, in);
+         else if (strncasecmp("txon",     argv[0], 4) == 0)
+             do_txon(argc, argv, out, in);             
+         else if (strncasecmp("rssi", argv[0], 2) == 0)
+             do_rssi(argc, argv, out, in);       
+         else if (strncasecmp("trace", argv[0], 5) == 0)
+             do_trace(argc, argv, out); 
+         else if (strncasecmp("ps", argv[0], 2) == 0)
+             do_ps(argc, argv, out);    
+         else if (strncasecmp("vbatt", argv[0], 2) == 0)
+             do_vbatt(argc, argv, out);
+         else if (strncasecmp("listen", argv[0], 3) == 0)
+             do_listen(argc, argv, out, in);            
+         else if (strncasecmp("k", argv[0], 1) == 0 || strncasecmp("converse", argv[0], 4) == 0)
+             do_converse(argc, argv, out, in);   
+         
+         /* Commands for setting/viewing parameters */
+         else if (strncasecmp("mycall", argv[0], 2) == 0)
+             do_mycall(argc, argv, out);    
+         else if (strncasecmp("oident", argv[0], 3) == 0)
+             do_obj_id(argc, argv, out);           
+         else if (strncasecmp("dest", argv[0], 3) == 0)
+             do_dest(argc, argv, out);  
+         else if (strncasecmp("digipath", argv[0], 4) == 0)  
+             do_digipath(argc, argv, out);
+         else if (strncasecmp("symbol", argv[0], 3) == 0)
+             do_symbol(argc, argv, out);  
+         else if (strncasecmp("osymbol", argv[0], 4) == 0)
+             do_obj_symbol(argc, argv, out);                       
+         else if (strncasecmp("freq",argv[0], 2) == 0)
+             do_freq(argc, argv, out);  
+         else if (strncasecmp("fcal",argv[0], 3) == 0)
+             do_fcal(argc, argv, out);
+         else if (strncasecmp("txpower", argv[0], 4) == 0)
+             do_power(argc, argv, out);    
+         else if (strncasecmp("squelch", argv[0], 2) == 0)
+             do_squelch(argc, argv, out); 
+         else if (strncasecmp("btext", argv[0], 2) == 0)
+             do_btext(argc, argv, out); 
          else IF_COMMAND_PARAM_uint8
                   ( "txdelay", 3, argc, argv, out,
                     TXDELAY, 0, 200, PSTR("TXDELAY (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );      
@@ -286,91 +326,12 @@ void cmdProcessor(Stream *in, Stream *out)
                  ( "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTO POWER") );   
                                            
          else if (strlen(argv[0]) > 0)
-             putstr_P(out, PSTR("*** Unknown command. Type 'help' to get list of commands\r\n"));
+             putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
              continue; 
          putstr(out,"\r\n");         
    }
 }   
-
-
-
-DEFCMD (sign, "Dump signature memory space", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
-{
-	for (int i = 0; i < 0x1f; i++) {
-		uint8_t byte =  boot_signature_byte_get (i);
-		uint8_t low = byte & 0x0f;
-		uint8_t hi = byte >> 4;
-		putch (out, hi + (hi < 10 ? '0' : 'A' - 10));
-		putch (out, low + (low < 10 ? '0' : 'A' - 10));
-	}
-	putstr_P (out, PSTR ("\r\n"));
-}
-
-
-DEFCMD (help, "Show list of commands with descriptions or help about a specific command", "name: id=")
-  (int argc, char *argv[], Stream* out, Stream* in)
-{
-  if (argc < 2) {
-    for (uint8_t i = 0; i < num_commands; i++) {
-      command_t *command = (command_t*)pgm_read_word (&commands[i]);
-      putstr_P (out, command_name (command));
-      putstr_P (out, PSTR (" - "));
-      putstr_P (out, command_description (command));
-      putstr_P (out, PSTR ("\r\n"));
-    }
-  } else {
-    command_t *command = find_command (argv[1]);
-    if (command) {
-      putstr_P (out, command_description (command));
-    } else
-      putstr_P (out, PSTR("*** Unknown command. Type 'help' to get list of commands\r\n"));
-    
-  }
-}
-  
-#define BOOTLOAD_START_ADDRESS (void*)0x1E000
-
-DEFCMD (boot, "Invoke the bootloader for firmware upgrade", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
-{
-/* Disable all timer interrupts */
-  TIMSK0 = TIMSK1 = TIMSK2 = TIMSK3 = 0;
-	PCICR = 0;
-	UCSR1B = 0;
-	EICRA = EICRB = 0;
-	
-  USB_ShutDown();
-
-	/* Disable USART receive interrupt */
-	uart_rx_pause ();
-
-	/* make_output (BUTTON); */
-	
-  cli ();
-  void (*bootloader) (void) = BOOTLOAD_START_ADDRESS;
-  bootloader ();
-}
-
-
-DEFCMD (reset, "Reset runtime parameters and restart tracker", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
-{
-  soft_reset ();
-}
-
-DEFCMD (clear, "Restore default parameter settings (factory clear)", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
-{
-  putstr_P (out, PSTR ("Please type 'yes' to confirm factory clear. "));
-  readLine(in, out, buf, BUFSIZE);
-  if (!strncasecmp_P (buf, PSTR ("yes"), 3)) {
-    /* eeprom_clear (); */
-    soft_reset ();
-  }
-  putstr_P (out, PSTR ("Factory clear aborted.\r\n"));
-}
 
 
 /************************************************
@@ -384,12 +345,12 @@ static void do_version(uint8_t argc, char** argv, Stream* out)
 }
 
 
+
 /************************************************
  * Report RSSI level 
  ************************************************/
 
-DEFCMD (rssi, "Report RSSI level for 1 minute", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     int i;    
     radio_require();
@@ -414,9 +375,8 @@ DEFCMD (rssi, "Report RSSI level for 1 minute", "")
 /************************************************
  * Report battery voltage
  ************************************************/
-
-DEFCMD (vbatt, "Report battery voltage", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+ 
+static void do_vbatt(uint8_t argc, char** argv, Stream* out)
 {
    sprintf_P(buf, PSTR("Battery voltage: %.2f V\r\n\0"), 
              batt_voltage());
@@ -429,8 +389,7 @@ DEFCMD (vbatt, "Report battery voltage", "")
  * Decode and show incoming packets
  ************************************************/
  
-DEFCMD (listen, "Decode and show incoming packets", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** LISTEN ON RECEIVER *****\r\n"));
    radio_require();
@@ -441,6 +400,8 @@ DEFCMD (listen, "Decode and show incoming packets", "")
    afsk_disable_decoder();
    radio_release();
 }
+
+
 
 /************************************************
  * Converse mode
@@ -469,12 +430,6 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
    radio_release();
 }
 
-DEFCMD (converse, "Enable converse mode", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
-{
-	do_converse (argc, argv, out, in);
-}
-
 
 
 
@@ -484,13 +439,12 @@ DEFCMD (converse, "Enable converse mode", "")
  
 Semaphore nmea_run; 
 
-DEFCMD (gps, "GPS testing", "action:enum(on,off,nmea,pos)")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {                                                                                                            
   if (argc < 2)
       putstr_P(out, PSTR("Usage: GPS on|off|nmea|pos\r\n"));
       
-  if (strncasecmp_P(argv[1], PSTR("on"), 2) == 0) {
+  if (strncasecmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS ON *****\r\n"));
       gps_on();
       return;
@@ -518,12 +472,23 @@ DEFCMD (gps, "GPS testing", "action:enum(on,off,nmea,pos)")
 
 
 
+
+/************************************************
+ * Turn on/off transceiver chip.....
+ ************************************************/
+ 
+static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+    putstr_P(out, PSTR("***** TRX COMMAND IS NO LONGER NEEDED *****\r\n"));
+}
+
+
+
 /************************************************
  * For testing of tracker .....
  ************************************************/
 
-DEFCMD (tracker, "For testing of tracker", "state:toggle=")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
   if (argc < 2)
   {
@@ -549,8 +514,7 @@ DEFCMD (tracker, "For testing of tracker", "state:toggle=")
  * For testing of transmitter .....
  ************************************************/
 
-DEFCMD (txon, "Enable transceiver transmitter for testing", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_txon(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** TX ON *****\r\n"));
    radio_require();
@@ -566,9 +530,8 @@ DEFCMD (txon, "Enable transceiver transmitter for testing", "")
 /*********************************************
  * teston <byte> : Generate test signal
  *********************************************/
-
-DEFCMD (teston, "Enable test signal", "byte: pattern")
-  (int argc, char** argv, Stream* out, Stream* in)
+ 
+static void do_teston(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     int ch = 0;
     if (argc < 2) {
@@ -587,8 +550,8 @@ DEFCMD (teston, "Enable test signal", "byte: pattern")
     radio_release();
 }
 
-DEFCMD (txtone, "Modulates transmitter with tone", "")
-  (int argc, char** argv, Stream* out, Stream* in)
+
+static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
   if (argc < 2) {
       putstr_P(out, PSTR("Usage: TXTONE high|low\r\n"));
@@ -618,8 +581,8 @@ DEFCMD (txtone, "Modulates transmitter with tone", "")
 /*********************************************
  * tx : Send AX25 test packet
  *********************************************/
-DEFCMD (testpacket, "Send an AX25 test packet", "")
-  (int argc, char** argv, Stream* out, Stream* in)
+
+static void do_testpacket(uint8_t argc, char** argv, Stream* out)
 { 
     FBUF packet;    
     addr_t from, to; 
@@ -665,9 +628,8 @@ static void do_obj_id(uint8_t argc, char** argv, Stream* out)
 /*********************************************
  * config: mycall (sender address)
  *********************************************/
-
-DEFCMD (mycall, "Set or show source callsign", "callsign: callsign=")
-  (int argc, char *argv[], Stream* out, Stream* in)
+ 
+static void do_mycall(uint8_t argc, char** argv, Stream* out)
 {
    addr_t x;
    char cbuf[11]; 
@@ -688,8 +650,7 @@ DEFCMD (mycall, "Set or show source callsign", "callsign: callsign=")
  * config: dest (destination address)
  *********************************************/
  
-DEFCMD (dest, "Set or get destination callsign", "callsign: callsign=")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_dest(uint8_t argc, char** argv, Stream* out)
 {
    addr_t x;
    char cbuf[11]; 
@@ -710,8 +671,8 @@ DEFCMD (dest, "Set or get destination callsign", "callsign: callsign=")
 /*********************************************
  * config: digipeater path
  *********************************************/
-DEFCMD (digipath, "Set or get digi path", "path:text=")
-  (int argc, char *argv[], Stream* out, Stream* in)
+ 
+static void do_digipath(uint8_t argc, char** argv, Stream* out)
 {
     __digilist_t digis;
     uint8_t ndigis;
@@ -753,8 +714,7 @@ DEFCMD (digipath, "Set or get digi path", "path:text=")
  * config: Beacon text (comment in pos reports)
  ***********************************************/
  
-DEFCMD (btext, "Set or get beacon text (comment in pos reports)", "btext:text=")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_btext(uint8_t argc, char** argv, Stream* out)
 {
     if (argc > 1){
         SET_PARAM(REPORT_COMMENT, argv[1]);
@@ -774,8 +734,7 @@ DEFCMD (btext, "Set or get beacon text (comment in pos reports)", "btext:text=")
  * (for debugging)
  ************************************************/
  
-DEFCMD (trace, "Show trace", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_trace(uint8_t argc, char** argv, Stream* out)
 {
     show_trace(buf, 0, PSTR("Current run  = "), PSTR("\r\n"));
     putstr(out,buf);
@@ -789,8 +748,7 @@ DEFCMD (trace, "Show trace", "")
  * Show info about tasks (ps command)
  ************************************************/
  
-DEFCMD (ps, "Show info about tasks", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_ps(uint8_t argc, char** argv, Stream* out)
 {
    uint8_t running = t_nRunning();
    sprintf_P(buf, PSTR("Tasks running        : %d\r\n\0"), running);
@@ -811,8 +769,7 @@ DEFCMD (ps, "Show info about tasks", "")
  * config: symbol (APRS symbol/symbol table)
  *********************************************/
  
-DEFCMD (symbol, "Set or get symbol and symbol table", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_symbol(uint8_t argc, char** argv, Stream* out)
 {
    if (argc > 2) {
       SET_BYTE_PARAM(SYMBOL_TABLE, *argv[1]);
@@ -852,8 +809,7 @@ static void do_obj_symbol(uint8_t argc, char** argv, Stream* out)
  * config: transceiver frequency
  *********************************************/
  
-DEFCMD (freq, "Set or get frequency", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_freq(uint8_t argc, char** argv, Stream* out)
 {
     uint32_t x = 0;
     if (argc > 1) {
@@ -875,8 +831,7 @@ DEFCMD (freq, "Set or get frequency", "")
  * config: transceiver frequency calibration
  *********************************************/
  
-DEFCMD (fcal, "Set or get frequency calibration offset", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+static void do_fcal(uint8_t argc, char** argv, Stream* out)
 {
     int16_t x = 0;
     if (argc > 1) {
@@ -895,8 +850,7 @@ DEFCMD (fcal, "Set or get frequency calibration offset", "")
 /*********************************************
  * config: transmitter power (dBm)
  *********************************************/
-
-#if false
+ 
 static void do_power(uint8_t argc, char** argv, Stream* out)
 {
     float x = 0;
@@ -911,14 +865,13 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
        putstr(out, buf);
     }
 }
-#endif
+
 
 /*********************************************
  * config: squelch level (dBm)
  *********************************************/
-
-DEFCMD (squelch, "Set or get digital squelch level (dBm)", "")
-  (int argc, char *argv[], Stream* out, Stream* in)
+ 
+static void do_squelch(uint8_t argc, char** argv, Stream* out)
 {
     float x = 0;
     if (argc > 1) {
@@ -952,8 +905,7 @@ uint8_t tokenize(char* buf, char* tokens[], uint8_t maxtokens, char *delim, bool
      register uint8_t ntokens = 0;
      while (ntokens<maxtokens)
      {
-       //        if (*buf == '\"') {
-        if (*buf == '"') {
+        if (*buf == '\"') {
             /* Special case: token is enclosed in " */
             tokens[ntokens++] = ++buf;
             char *endt = strchrnul(buf, '\"'); 
