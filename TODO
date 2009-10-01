@@ -119,7 +119,7 @@ Version 0.13
      DONE  
 * Crash after sending multiple object packets from other thread than trackerThread?
      DONE
-* Smart beaconing: What happens when speed = 0 ? 
+
 
 
 Version 0.14
