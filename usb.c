@@ -36,8 +36,7 @@ EVENT_HANDLER(USB_Connect)
   usb_connect = true;
 }
 
-
-EVENT_HANDLER(USB_Disconnect)
+void usb_disable()
 {
    Endpoint_SelectEndpoint(CDC_RX_EPNUM);
    Endpoint_DisableEndpoint();
@@ -45,6 +44,11 @@ EVENT_HANDLER(USB_Disconnect)
    Endpoint_SelectEndpoint(CDC_TX_EPNUM);
    Endpoint_DisableEndpoint();   	 
    USB_INT_Disable( ENDPOINT_INT_IN ); 
+}
+
+EVENT_HANDLER(USB_Disconnect)
+{
+   usb_disable();
    usb_connect = false;
    led_usb_off();
 }
@@ -212,8 +216,7 @@ void usb_init()
 { 
    /* Initialize USB Subsystem */
    /* See makefile for mode constraints */
-	USB_Init();
-
+   USB_Init();
    sem_init(&cdc_run, 0);
   
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);
