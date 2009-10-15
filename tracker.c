@@ -64,6 +64,7 @@ extern bool is_off;   /* FIXME: Use accessor function */
 void tracker_init()
 {
     bcond_init(&tready, true);
+    prev_pos.timestamp=0;
     if (GET_BYTE_PARAM(TRACKER_ON)) 
         THREAD_START(trackerThread, STACK_TRACKER);
 }
@@ -166,7 +167,7 @@ static void report_objects(bool keep)
 static void trackerThread(void)
 {
     uint8_t t;
-    uint8_t st_count = GET_BYTE_PARAM( STATUS_TIME);
+    uint8_t st_count = GET_BYTE_PARAM(STATUS_TIME);
     
     bcond_wait(&tready); 
     bcond_clear(&tready);
@@ -178,7 +179,7 @@ static void trackerThread(void)
         * object reports to be sent. 
         */  
         uint8_t statustime = GET_BYTE_PARAM( STATUS_TIME);
-        waited = gps_wait_fix( GPS_TIMEOUT * GET_BYTE_PARAM(TRACKER_SLEEP_TIME) * TIMER_RESOLUTION);   
+        waited = gps_wait_fix( GPS_TIMEOUT * GET_BYTE_PARAM(TRACKER_SLEEP_TIME) * TIMER_RESOLUTION);
         if (!gps_is_fixed())
            st_count += GPS_TIMEOUT-1; 
 
@@ -209,10 +210,12 @@ static void trackerThread(void)
         t = GET_BYTE_PARAM(TRACKER_SLEEP_TIME);
         
         /* Powersave mode */
-        if (maxpause_reached && current_pos.speed < 1 && GET_BYTE_PARAM(GPS_POWERSAVE)) {
+        if ( maxpause_reached &&
+             ( !gps_is_fixed() || (current_pos.speed < 1 && GET_BYTE_PARAM(GPS_POWERSAVE))))
+        {
              gps_off();
              pause_count = GET_BYTE_PARAM(TRACKER_MAXPAUSE) - 1;
-             sleep (pause_count * t * TIMER_RESOLUTION); 
+             sleep (pause_count * t * TIMER_RESOLUTION);
              gps_on();
         }
 
@@ -240,7 +243,7 @@ static void activate_tx()
       if (!is_off && hdlc_enc_packets_waiting()) {
          radio_require();
          radio_release();
-      } 
+      }
 }
 
 
@@ -251,35 +254,52 @@ static void activate_tx()
  * certain amount or at least a certain time has elapsed since
  * the previous update. 
  *********************************************************************/
+static char _d_msg [50]; /* DEBUG */
 
 static bool should_update(posdata_t* prev, posdata_t* current)
 {
-    uint16_t turn_limit; 
+    uint16_t turn_limit; int x;
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
-    float est_speed = max(current_pos.speed, (current_pos.speed + prev_pos.speed) / 2);
-    
+    uint8_t minpause = GET_BYTE_PARAM(TRACKER_MINPAUSE);
+    uint8_t mindist  = GET_BYTE_PARAM(TRACKER_MINDIST);
+    uint32_t dist    = (prev->timestamp==0) ? 0 : gps_distance(prev, current);
+    uint16_t tdist   = (current->timestamp < prev->timestamp)
+                             ? current->timestamp
+                             : (current->timestamp - prev->timestamp);
+       
+    float est_speed  = (tdist==0) ? 0 : ((float) dist / (float) tdist);
+     /* Note that est_speed is in m/s while
+      * the speed field in  posdata_t is in knots
+      */
+        
     maxpause_reached = ( ++pause_count >= GET_BYTE_PARAM(TRACKER_MAXPAUSE));     
     if ( maxpause_reached || waited
        
         /* Change in course */   
-         ||  (  current_pos.speed > 1 && prev_pos.speed > 0 &&          
-              abs(current_pos.course - prev_pos.course) > turn_limit )
+         || ( current->speed > 1 && prev->speed > 0 &&
+                abs(current->course - prev->course) > turn_limit )
                 
         /* Send report when starting or stopping */             
-         ||  (( current_pos.speed < 3/KNOTS2KMH && prev_pos.speed > 10/KNOTS2KMH ) ||   
-              ( prev_pos.speed < 3/KNOTS2KMH && current_pos.speed > 10/KNOTS2KMH ))
-              
-        /* Time period depending on speed */
-         ||  pause_count >= (uint8_t) (GET_BYTE_PARAM(TRACKER_MINDIST) / ((est_speed+1) * KNOTS2MPS))    
-                            / GET_BYTE_PARAM(TRACKER_SLEEP_TIME)
-                            + GET_BYTE_PARAM(TRACKER_MINPAUSE)    
+         || ( pause_count >= minpause &&
+             (( current->speed < 3/KNOTS2KMH && prev->speed > 15/KNOTS2KMH ) ||
+              ( prev->speed < 3/KNOTS2KMH && current->speed > 15/KNOTS2KMH )))
+
+        /* Distance threshold on low speeds */
+         || ( pause_count >= minpause && est_speed <= 1 && dist >= mindist )
+         
+        /* Time period based on average speed */
+         || ( est_speed>0 && pause_count >= (uint8_t)
+                            ( (mindist / (est_speed))
+                              / GET_BYTE_PARAM(TRACKER_SLEEP_TIME)
+                              + minpause*1.5 ))    
        )
-    {     
+    {
        pause_count = 0;
        return true;
     }
     return false;
 }
+
 
 
 
@@ -351,7 +371,7 @@ static void report_station_position(posdata_t* pos)
        GET_PARAM(REPORT_COMMENT, comment);
        if (*comment != '\0') {
           fbuf_putChar (&packet, ' ');     /* Or should it be a slash ??*/
-          fbuf_putstr (&packet, comment);     
+          fbuf_putstr (&packet, comment);
        }
        ccount = COMMENT_PERIOD; 
     }
