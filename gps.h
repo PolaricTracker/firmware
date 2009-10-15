@@ -26,6 +26,7 @@ typedef struct _PosData {
 
 extern posdata_t current_pos;
 void  gps_init (Stream*);
+uint32_t gps_distance(posdata_t*, posdata_t*);
 void  gps_mon_pos (void);
 void  gps_mon_raw (void);
 void  gps_mon_off (void);
