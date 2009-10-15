@@ -270,9 +270,7 @@ void powerdown_handler()
      DDRD = 0;
      PORTD = 0;
      DDRF = 0;
-     PORTF = 0;
-     make_input(EXT_CHARGER);
-     clear_port(EXT_CHARGER); /* No internal pull-up */
+     PORTF = 0; 
      make_input(BUTTON);
      asleep = true;
      wdt_disable();
