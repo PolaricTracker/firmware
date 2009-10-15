@@ -16,7 +16,8 @@
 #include "fbuf.h"
 #include "ax25.h"
 #include "config.h"
-#include "gps.h" 
+#include "gps.h"
+#include <math.h>
 
 
 #define NMEA_BUFSIZE   80
@@ -71,8 +72,48 @@ void gps_off()
    set_port(GPSON);
    BLINK_NORMAL   
 }
+
+
+
+/*************************************************************************
+ * Compute distance (in meters) between two gps positions
+ *************************************************************************/
  
+/* The usual PI/180 constant */
+static const double DEG_TO_RAD = 0.017453292519943295769236907684886;
+
+/* Earth's quatratic mean radius for WGS-84 */
+static const double EARTH_RADIUS_IN_METERS = 6372797.560856;
+
+
+/*
+ * Computes the arc, in radians, between two WGS-84 positions.
+ *   Use the Haversine formula. 
+ *   http://en.wikipedia.org/wiki/Law_of_haversines
+ */
  
+static double arcInRadians(posdata_t *from, posdata_t *to)
+{
+      double latitudeArc  = (from->latitude - to->latitude) * DEG_TO_RAD;
+      double longitudeArc = (from->longitude - to->longitude) * DEG_TO_RAD;
+      double latitudeH = sin(latitudeArc * 0.5);
+      latitudeH *= latitudeH;
+      double lontitudeH = sin(longitudeArc * 0.5);
+      lontitudeH *= lontitudeH;
+      double tmp = cos(from->latitude * DEG_TO_RAD) * cos(to->latitude * DEG_TO_RAD);
+      return 2.0 * asin(sqrt(latitudeH + tmp * lontitudeH));
+}
+
+
+
+uint32_t gps_distance(posdata_t *from, posdata_t *to)
+{
+    return (uint32_t) round(EARTH_RADIUS_IN_METERS * arcInRadians(from, to));
+}
+
+
+
+
 
 /**************************************************************************
  * Read and process NMEA sentences.
