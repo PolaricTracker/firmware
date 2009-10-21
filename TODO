@@ -125,8 +125,14 @@ Version 0.13
 Version 0.14
 ------------
 * Fix power drain problem (if this can be done in software at all)
-* Smart beaconing: What happens when speed = 0 ?
+* Smart beaconing: What happens when speed = 0 ? Use real distance calculation. 
+     DONE
 * Separate out source file for APRS report encoding.
+
+
+Version 1.0
+-----------
+* Better support for PC-side configuration software (config, command interpreter - Espen)
 * Temperature compensated freq.. ?
 
 
@@ -134,7 +140,6 @@ Further development
 -------------------
 * Escape sequence to issue commands in converse mode.
 * Receive commands over radio 
-* Better support for PC-side configuration software (config, command interpreter - Espen)
 * GPS powersave
 * Emergency mode
 * Digipeater mode
