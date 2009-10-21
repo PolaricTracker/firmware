@@ -1,5 +1,4 @@
 /*
- * $Id: tracker.c,v 1.23 2009-05-16 16:03:34 la7eca Exp $
  * This is the APRS tracking code
  */
  
@@ -288,9 +287,9 @@ static bool should_update(posdata_t* prev, posdata_t* current)
          
         /* Time period based on average speed */
          || ( est_speed>0 && pause_count >= (uint8_t)
-                            ( (mindist / (est_speed))
+                            ( (mindist / est_speed)
                               / GET_BYTE_PARAM(TRACKER_SLEEP_TIME)
-                              + minpause*1.5 ))    
+                              + minpause*1.4 ))
        )
     {
        pause_count = 0;
@@ -469,7 +468,7 @@ static void send_latlong_compressed(FBUF* packet, double pos, bool is_longitude)
 
 
 static void send_csT_compressed(FBUF* packet, posdata_t* pos)
-/* FIXME: Special case where there is no course/speed */
+/* FIXME: Special case where there is no course/speed ? */
 {
     if (pos->altitude >= 0 && GET_BYTE_PARAM(ALTITUDE_ON)) {
        /* Send altitude */
