@@ -222,6 +222,8 @@ void usb_init()
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);
    STREAM_INIT( cdc_outstr, CDC_BUF_SIZE);
    cdc_outstr.kick = usb_kickout;
+   /* Turn off pad regulator */
+   clear_bit(UHWCON, UVREGE); 
 }
 
       
