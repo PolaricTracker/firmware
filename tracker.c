@@ -254,11 +254,10 @@ static void activate_tx()
  * certain amount or at least a certain time has elapsed since
  * the previous update. 
  *********************************************************************/
-static char _d_msg [50]; /* DEBUG */
 
 static bool should_update(posdata_t* prev, posdata_t* current)
 {
-    uint16_t turn_limit; int x;
+    uint16_t turn_limit;
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
     uint8_t minpause = GET_BYTE_PARAM(TRACKER_MINPAUSE);
     uint8_t mindist  = GET_BYTE_PARAM(TRACKER_MINDIST);
