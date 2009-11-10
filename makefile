@@ -65,8 +65,7 @@ CFLAGS = -O2 $(USB_CFLAGS) -I. -DF_CPU=$(F_CPU)UL -funsigned-char --std=gnu99 -W
 ASFLAGS = -Wa,-ahlms=$(<:.s=.lst),--gstabs 
 
 # Linker flags (passed via GCC).
-LDFLAGS = -Wl,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf,--section-start=.sign=0xd000 -lprintf_flt -lscanf_flt -lm -lc -lm
-# LDFLAGS = -Wl,--script=$(TARGET).x,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm -lc -lm
+LDFLAGS = -Wl,--script=$(TARGET).x,-Map=$(TARGET).map,--cref,-u,vfprintf,-u,vfscanf -lprintf_flt -lscanf_flt -lm -lc -lm
 
 # Define all project specific object files.
 OBJ = $(SRC:.c=.o) $(ASRC:.s=.o) 	

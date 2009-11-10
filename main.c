@@ -33,6 +33,12 @@
 #include "commands.h"
 #include <avr/sleep.h>
 
+/* Firmware signature placed within the first flash page (after the
+	 vector table) and used by the bootloader to verify that a new
+	 firmware image is valid */
+const char __attribute__ ((section (".sign"))) firmware_signature[] = "Polaric Tracker";
+
+
 /* usb.c */
 extern Semaphore cdc_run;   
 extern Stream cdc_instr; 
