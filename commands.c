@@ -233,13 +233,14 @@ void cmdProcessor(Stream *in, Stream *out)
              do_listen(argc, argv, out, in);            
          else if (strncasecmp("k", argv[0], 1) == 0 || strncasecmp("converse", argv[0], 4) == 0)
              do_converse(argc, argv, out, in);   
-				 else if (strcasecmp("boot", argv[0]) == 0) {
-					 /* Tell the bootloader invoke firmware upgrade */
-					 /* This command does only work with the customized bootloader */
-					 eeprom_write_byte ((void*)E2END, 0xff); 
-					 soft_reset ();
-				 }
-				 
+	 else if (strcasecmp("boot", argv[0]) == 0) {
+	   /* Tell the bootloader invoke firmware upgrade */
+	   /* This command does only work with the customized bootloader */
+	   eeprom_write_byte ((void*)E2END, 0xff); 
+	   soft_reset ();
+	 } else if (strcasecmp("protocol", argv[0]) == 0) {
+	   putstr_P(out,PSTR("protocol 1\r\n"));
+	 }
          /* Commands for setting/viewing parameters */
          else if (strncasecmp("mycall", argv[0], 2) == 0)
              do_mycall(argc, argv, out);    
