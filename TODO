@@ -125,9 +125,21 @@ Version 0.13
 Version 0.14
 ------------
 * Fix power drain problem (if this can be done in software at all)
+     DONE
 * Smart beaconing: What happens when speed = 0 ? Use real distance calculation. 
      DONE
+     
+     
+Version 0.15
+------------
 * Separate out source file for APRS report encoding.
+* Fix led light on USB disconnection
+     DONE
+* Clean up (remove explanations) parameter setting commands. 
+     DONE
+* Add help command to get explanations
+* Clean up rest of command interface. 
+* Red light on battery low warning.
 
 
 Version 1.0
