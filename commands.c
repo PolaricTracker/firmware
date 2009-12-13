@@ -80,7 +80,7 @@ static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out,
     int x;
     if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
-          sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper); 
+          sprintf_P(buf, PSTR("ERROR: parameter must be a number in range %d-%d\r\n"),lower,upper);
           putstr(out,buf); 
        }
        else {
@@ -102,7 +102,7 @@ static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out,
     int x;
     if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
-          sprintf_P(buf, PSTR("Sorry, parameter must be a number in range %d-%d\r\n"),lower,upper);  
+          sprintf_P(buf, PSTR("ERROR: parameter must be a number in range %d-%d\r\n"),lower,upper);
           putstr(out,buf);
        }
        else {
@@ -124,21 +124,24 @@ static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out,
     if (argc < 2) {
        putstr_P(out, name);
        if (get_byte_param(ee_addr, default_val)) 
-          putstr_P(out, PSTR(" is ON\r\n")); 
+          putstr_P(out, PSTR("ON\r\n"));
        else
-          putstr_P(out, PSTR(" is OFF\r\n"));
+          putstr_P(out, PSTR("OFF\r\n"));
        return; 
     }
-    putstr_P(out, PSTR("***** "));
     putstr_P(out, name);
-    if (strncasecmp("on", argv[1], 2) == 0) {   
-       putstr_P(out, PSTR(" ON *****\r\n"));
+    if (strncasecmp("on", argv[1], 2) == 0 || strncasecmp("true", argv[1], 1) == 0) {
+       putstr_P(out, PSTR("Ok\r\n"));
        set_byte_param(ee_addr, 1);
     }  
-    if (strncasecmp("off", argv[1], 2) == 0) {     
-       putstr_P(out, PSTR(" OFF *****\r\n"));
+    if (strncasecmp("off", argv[1], 2) == 0 || strncasecmp("false", argv[1], 1) == 0) {
+       putstr_P(out, PSTR("Ok\r\n"));
        set_byte_param(ee_addr, 0);
     }
+    else 
+       putstr_P(buf, PSTR("ERROR: parameter must be 'ON' or 'OFF'"));
+    
+    
 }
 
 
@@ -189,9 +192,9 @@ void cmdProcessor(Stream *in, Stream *out)
     uint8_t argc;
     sleep (10);
     putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
-    putstr_P(out, PSTR("\n\r Velkommen til 'Polaric Tracker' firmware "));
+    putstr_P(out, PSTR("\n\r Welcome to 'Polaric Tracker' firmware "));
     putstr_P(out, PSTR(VERSION_STRING));
-    putstr_P(out, PSTR("\r\n Utviklet av LA3T, Troms�gruppen av NRRL"));
+    putstr_P(out, PSTR("\r\n (C) 2009 LA3T, Tromsogruppen av NRRL"));
     putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
     
     while (1) {
@@ -266,51 +269,51 @@ void cmdProcessor(Stream *in, Stream *out)
              do_btext(argc, argv, out); 
          else IF_COMMAND_PARAM_uint8
                   ( "txdelay", 3, argc, argv, out,
-                    TXDELAY, 0, 200, PSTR("TXDELAY (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );      
+                    TXDELAY, 0, 200, PSTR("TXDELAY %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint8
                   ( "txtail", 3, argc, argv, out,
-                    TXTAIL, 0, 200, PSTR("TXTAIL (in 1 byte units) is %d\r\n\0"), PSTR(" %d") );
+                    TXTAIL, 0, 200, PSTR("TXTAIL %d\r\n\0"), PSTR(" %d") );
                     
          else IF_COMMAND_PARAM_uint8
                   ( "maxframe", 5, argc, argv, out,
-                    MAXFRAME, 1, 7, PSTR("MAXFRAME is %d\r\n\0"), PSTR(" %d") );
+                    MAXFRAME, 1, 7, PSTR("MAXFRAME %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint16
                  ("afc", 3, argc, argv, out, 
-                    TRX_AFC, 0, 12000, PSTR("AFC range is %d Hz\r\n\0"), PSTR(" %d") );
+                    TRX_AFC, 0, 12000, PSTR("AFC %d\r\n\0"), PSTR(" %d") );
                    
          else IF_COMMAND_PARAM_uint8
                  ( "tracktime", 6, argc, argv, out, 
-                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 240, PSTR("Tracker sleep time is %d seconds\r\n\0"), PSTR(" %d") );  
+                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 240, PSTR("TRACKTIME %d\r\n\0"), PSTR(" %d") );
                       
          else IF_COMMAND_PARAM_uint16
                  ( "deviation", 3, argc, argv, out,
-                   TRX_AFSK_DEV, 0, 5000, PSTR("AFSK Deviation is %d Hz\r\n\0"), PSTR(" %d") );
+                   TRX_AFSK_DEV, 0, 5000, PSTR("DEVIATION %d\r\n\0"), PSTR(" %d") );
                    
          else IF_COMMAND_PARAM_uint16 
                  ( "gpsbaud", 4, argc, argv, out, 
-                    GPS_BAUD, 1200, 19200, PSTR("GPS baud rate is %d\r\n\0"), PSTR(" %d") );        
+                    GPS_BAUD, 1200, 19200, PSTR("GPSBAUD %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint16 
                  ( "maxturn", 6, argc, argv, out, 
-                    TRACKER_TURN_LIMIT, 0, 360, PSTR("Tracker turn limit is %d degrees\r\n\0"), PSTR(" %d") );    
+                    TRACKER_TURN_LIMIT, 0, 360, PSTR("MAXTURN %d\r\n\0"), PSTR(" %d") );
                         
          else IF_COMMAND_PARAM_uint8 
                  ( "maxpause", 6, argc, argv, out, 
-                    TRACKER_MAXPAUSE, 1, 200, PSTR("Tracker pause limit is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
+                    TRACKER_MAXPAUSE, 1, 200, PSTR("MAXPAUSE %d\r\n\0"), PSTR(" %d") );
        
          else IF_COMMAND_PARAM_uint8 
                  ( "minpause", 6, argc, argv, out, 
-                    TRACKER_MINPAUSE, 1, 200, PSTR("Tracker minimum pause (straight forward movement) is %d units (see tracktime)\r\n\0"), PSTR(" %d") );                                 
+                    TRACKER_MINPAUSE, 1, 200, PSTR("MINPAUSE %d\r\n\0"), PSTR(" %d") );
     
          else IF_COMMAND_PARAM_uint8 
                  ( "mindist", 6, argc, argv, out, 
-                    TRACKER_MINDIST, 1, 200, PSTR("Tracker distance (at low speed) is %d meters\r\n\0"), PSTR(" %d") );                                 
+                    TRACKER_MINDIST, 1, 200, PSTR("MINDIST %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_uint8 
                  ( "statustime", 7, argc, argv, out, 
-                    STATUS_TIME, 1, 200, PSTR("Status time is %d units (see tracktime)\r\n\0"), PSTR(" %d") );
+                    STATUS_TIME, 1, 200, PSTR("STATUSTIME %d\r\n\0"), PSTR(" %d") );
          
          else IF_COMMAND_PARAM_bool 
                  ( "altitude", 3, argc, argv, out, ALTITUDE_ON, PSTR("ALTITUDE") );
@@ -328,10 +331,10 @@ void cmdProcessor(Stream *in, Stream *out)
                  ( "beep", 2, argc, argv, out, REPORT_BEEP, PSTR("BEEP") );        
                           
          else IF_COMMAND_PARAM_bool
-                 ( "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TX MONITOR") );   
+                 ( "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TXMON") );
                           
          else IF_COMMAND_PARAM_bool
-                 ( "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTO POWER") );   
+                 ( "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTOPOWER") );
                                            
          else if (strlen(argv[0]) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
@@ -501,18 +504,21 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
   if (argc < 2)
   {
       if (GET_BYTE_PARAM(TRACKER_ON))
-          putstr_P(out, PSTR("Tracker is ON\r\n"));
+          putstr_P(out, PSTR("TRACKER ON\r\n"));
       else
-          putstr_P(out, PSTR("Tracker is OFF\r\n"));
+          putstr_P(out, PSTR("TRACKER OFF\r\n"));
       return;
   }
   if (strncasecmp("on", argv[1], 2) == 0) {   
-      putstr_P(out, PSTR("***** TRACKER ON *****\r\n"));
+      putstr_P(out, PSTR("Ok\r\n"));
       tracker_on();
   }  
   if (strncasecmp("off", argv[1], 2) == 0) {     
-      putstr_P(out, PSTR("***** TRACKER OFF *****\r\n"));
+      putstr_P(out, PSTR("Ok\r\n"));
       tracker_off();
+  }
+  else {
+        putstr_P(out, PSTR("ERROR: parameter must be 'ON' or 'OFF'\r\n"));
   }
 }
 
@@ -619,15 +625,15 @@ static void do_obj_id(uint8_t argc, char** argv, Stream* out)
         if (strlen(argv[1]) <= 9)
         {
            SET_PARAM(OBJ_ID, argv[1]);
-           putstr_P(out,PSTR("OK\r\n"));
+           putstr_P(out,PSTR("Ok\r\n"));
         }
         else
-           putstr_P(out,PSTR("Id cannot be longer than 9 characters\r\n"));
+           putstr_P(out,PSTR("ERROR: Id cannot be longer than 9 characters\r\n"));
     }
     else {
         char x[9];
         GET_PARAM(OBJ_ID, x);
-        sprintf_P(buf, PSTR("OBJECT IDENT is: \"%s\"\r\n\0"), x);
+        sprintf_P(buf, PSTR("OIDENT \"%s\"\r\n\0"), x);
         putstr(out, buf);
     }
 }
@@ -644,11 +650,11 @@ static void do_mycall(uint8_t argc, char** argv, Stream* out)
    if (argc > 1) {
       str2addr(&x, argv[1]);
       SET_PARAM(MYCALL, &x);
-      putstr_P(out,PSTR("OK\r\n"));
+      putstr_P(out,PSTR("Ok\r\n"));
    }
    else {
       GET_PARAM(MYCALL, &x);
-      sprintf_P(buf, PSTR("MYCALL is: %s\r\n\0"), addr2str(cbuf, &x));
+      sprintf_P(buf, PSTR("MYCALL %s\r\n\0"), addr2str(cbuf, &x));
       putstr(out, buf);
    }   
 }
@@ -665,11 +671,11 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
    if (argc > 1) {
       str2addr(&x, argv[1]);
       SET_PARAM(DEST, &x);
-      putstr_P(out,PSTR("OK\r\n"));
+      putstr_P(out,PSTR("Ok\r\n"));
    }
    else {
       GET_PARAM(DEST, &x);
-      sprintf_P(buf, PSTR("DEST is: %s\r\n\0"), addr2str(cbuf, &x));
+      sprintf_P(buf, PSTR("DEST %s\r\n\0"), addr2str(cbuf, &x));
       putstr(out, buf);
    }   
 }
@@ -699,14 +705,14 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
          SET_PARAM(DIGIS, digis);     
        }
        SET_BYTE_PARAM(NDIGIS, ndigis);
-       putstr_P(out,PSTR("OK\r\n")); 
+       putstr_P(out,PSTR("Ok\r\n"));
     }
     else  {
        ndigis = GET_BYTE_PARAM(NDIGIS);
        GET_PARAM(DIGIS, &digis);
-       putstr_P(out, PSTR("Digipeater path is ")); 
+       putstr_P(out, PSTR("DIGIPATH ")); 
        if (ndigis==0)
-           putstr_P(out, PSTR(" <EMPTY>\r\n"));
+           putstr_P(out, PSTR("<EMPTY>\r\n"));
        for (i=0; i<ndigis; i++)
        {   
            putstr(out, addr2str(cbuf, &digis[i]));           
@@ -726,12 +732,12 @@ static void do_btext(uint8_t argc, char** argv, Stream* out)
 {
     if (argc > 1){
         SET_PARAM(REPORT_COMMENT, argv[1]);
-        putstr_P(out,PSTR("OK\r\n"));
+        putstr_P(out,PSTR("Ok\r\n"));
     }
     else {
         char x[COMMENT_LENGTH];
         GET_PARAM(REPORT_COMMENT, x);
-        sprintf_P(buf, PSTR("BTEXT is: \"%s\"\r\n\0"), x);
+        sprintf_P(buf, PSTR("BTEXT \"%s\"\r\n\0"), x);
         putstr(out, buf);
     }
 }
@@ -782,10 +788,10 @@ static void do_symbol(uint8_t argc, char** argv, Stream* out)
    if (argc > 2) {
       SET_BYTE_PARAM(SYMBOL_TABLE, *argv[1]);
       SET_BYTE_PARAM(SYMBOL, *argv[2]);
-      putstr_P(out,PSTR("OK\r\n"));
+      putstr_P(out,PSTR("Ok\r\n"));
    }
    else {
-      sprintf_P(buf, PSTR("SYMTABLE/SYMBOL is: %c %c\r\n\0"), 
+      sprintf_P(buf, PSTR("SYMBOL %c %c\r\n\0"),
            GET_BYTE_PARAM(SYMBOL_TABLE), GET_BYTE_PARAM(SYMBOL));
       putstr(out, buf);
    }   
@@ -802,10 +808,10 @@ static void do_obj_symbol(uint8_t argc, char** argv, Stream* out)
    if (argc > 2) {
       SET_BYTE_PARAM(OBJ_SYMBOL_TABLE, *argv[1]);
       SET_BYTE_PARAM(OBJ_SYMBOL, *argv[2]);
-      putstr_P(out,PSTR("OK\r\n"));
+      putstr_P(out,PSTR("Ok\r\n"));
    }
    else {
-      sprintf_P(buf, PSTR("OBJECT SYMTABLE/SYMBOL is: %c %c\r\n\0"), 
+      sprintf_P(buf, PSTR("SYMBOL %c %c\r\n\0"),
            GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), GET_BYTE_PARAM(OBJ_SYMBOL));
       putstr(out, buf);
    }   
@@ -824,11 +830,11 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
        sscanf(argv[1], " %ld", &x);
        x *= 1000;   
        SET_PARAM(TRX_FREQ, &x);
-       putstr_P(out,PSTR("OK\r\n"));
+       putstr_P(out,PSTR("Ok\r\n"));
     } 
     else {
        GET_PARAM(TRX_FREQ, &x);
-       sprintf_P(buf, PSTR("FREQ is: %ld kHz\r\n\0"), x/1000);
+       sprintf_P(buf, PSTR("FREQ %ld\r\n\0"), x/1000);
        putstr(out, buf);
     }
 }
@@ -845,11 +851,11 @@ static void do_fcal(uint8_t argc, char** argv, Stream* out)
     if (argc > 1) {
        sscanf(argv[1], " %d", &x);
        SET_PARAM(TRX_CALIBRATE, &x);
-       putstr_P(out,PSTR("OK\r\n"));
+       putstr_P(out,PSTR("Ok\r\n"));
     } 
     else {
        GET_PARAM(TRX_CALIBRATE, &x);
-       sprintf_P(buf, PSTR("FREQ CALIBRATION is: %d Hz\r\n\0"), x);
+       sprintf_P(buf, PSTR("FCAL %d\r\n\0"), x);
        putstr(out, buf);
     }
 }
@@ -865,11 +871,11 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
     if (argc > 1) {
        sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_TXPOWER, &x);
-       putstr_P(out,PSTR("OK\r\n"));
+       putstr_P(out,PSTR("Ok\r\n"));
     } 
     else {
        GET_PARAM(TRX_TXPOWER, &x);
-       sprintf_P(buf, PSTR("POWER is: %f dBm\r\n\0"), x);
+       sprintf_P(buf, PSTR("POWER %f\r\n\0"), x);
        putstr(out, buf);
     }
 }
@@ -885,11 +891,11 @@ static void do_squelch(uint8_t argc, char** argv, Stream* out)
     if (argc > 1) {
        sscanf(argv[1], " %f", &x);  
        SET_PARAM(TRX_SQUELCH, &x);
-       putstr_P(out,PSTR("OK\r\n"));
+       putstr_P(out,PSTR("Ok\r\n"));
     } 
     else {
        GET_PARAM(TRX_SQUELCH, &x);
-       sprintf_P(buf, PSTR("SQUELCH level is: %f dBm\r\n\0"), x);
+       sprintf_P(buf, PSTR("SQUELCH %f\r\n\0"), x);
        putstr(out, buf);
     }
 }
