@@ -28,8 +28,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.13+ (17.10.2009)"
-#define CURRENT_VERSION_KEY 9
+#define VERSION_STRING "v0.14+ (9.12.2009)"
+#define CURRENT_VERSION_KEY 10
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
 
