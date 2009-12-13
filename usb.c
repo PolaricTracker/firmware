@@ -23,17 +23,17 @@ CDC_Line_Coding_t LineCoding = { BaudRateBPS: 9600,
 Semaphore cdc_run;    
 Stream cdc_instr; 
 Stream cdc_outstr;
-static bool usb_connect;
+
 
 bool usb_con()
-   { return usb_connect; }
+   { return USB_VBUS_GetStatus(); }
 
 
 
 EVENT_HANDLER(USB_Connect)
 {
   set_sleep_mode(SLEEP_MODE_IDLE); 
-  usb_connect = true;
+  clear_port(LED2);
 }
 
 void usb_disable()
@@ -46,12 +46,15 @@ void usb_disable()
    USB_INT_Disable( ENDPOINT_INT_IN ); 
 }
 
+
+/* OBS: Det kan se ut som at vi mister dette av og til. */
 EVENT_HANDLER(USB_Disconnect)
 {
    usb_disable();
-   usb_connect = false;
    led_usb_off();
 }
+
+
 
 
 
@@ -223,7 +226,7 @@ void usb_init()
    STREAM_INIT( cdc_outstr, CDC_BUF_SIZE);
    cdc_outstr.kick = usb_kickout;
    /* Turn off pad regulator */
-   clear_bit(UHWCON, UVREGE); 
+//   clear_bit(UHWCON, UVREGE);
 }
 
       
