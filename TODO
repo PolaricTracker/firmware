@@ -132,19 +132,27 @@ Version 0.14
      
 Version 0.15
 ------------
-* Separate out source file for APRS report encoding.
 * Fix led light on USB disconnection
      DONE
 * Clean up (remove explanations) parameter setting commands. 
      DONE
 * Add help command to get explanations
-* Clean up rest of command interface. 
+     DONE
 * Red light on battery low warning.
+     DONE
+* BOOTSOUND command, FAKEREPORTS command
+     DONE
+
+
+Version 0.16
+------------
+* Parameter list command
+* Separate out source file for APRS report encoding.
+* Indication of charging when battery is very low?
 
 
 Version 1.0
 -----------
-* Better support for PC-side configuration software (config, command interpreter - Espen)
 * Temperature compensated freq.. ?
 
 
