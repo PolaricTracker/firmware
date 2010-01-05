@@ -482,14 +482,15 @@ static void ui_thread(void)
     rgb_led_off();
 
     /* 'QRV' in morse code */
-    beeps("--.- .-. ...-");
+    if ( GET_BYTE_PARAM(BOOT_SOUND) )
+        beeps("--.- .-. ...-");
     report_batt(); 
     if (usb_on)
         rgb_led_on(false,false,true);
    
     BLINK_NORMAL;
     while (1) {
-        set_port( LED1 );
+        set_port( LED1 );        
         sleep(blink_length);
         clear_port( LED1 );
         sleep( is_off ? 500 : blink_interval );
@@ -546,7 +547,7 @@ static void batt_check_thread()
                  cbeep = 15;
              }
              rgb_led_off();
-             rgb_led_on(true,false,true);
+             rgb_led_on(true,false,false);
              sleep(40);
              led_usb_restore();
           }   
