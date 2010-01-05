@@ -80,6 +80,8 @@ DEFINE_PARAM( AUTOPOWER,          uint8_t      );
 DEFINE_PARAM( OBJ_SYMBOL,         uint8_t      );
 DEFINE_PARAM( OBJ_SYMBOL_TABLE,   uint8_t      );
 DEFINE_PARAM( OBJ_ID,             obj_id_t     );
+DEFINE_PARAM( BOOT_SOUND,         uint8_t      );
+DEFINE_PARAM( FAKE_REPORTS,       uint8_t      );
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
 extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
@@ -128,6 +130,8 @@ DEFAULT_PARAM( AUTOPOWER )           = 0;
 DEFAULT_PARAM( OBJ_SYMBOL)           = 'c';
 DEFAULT_PARAM( OBJ_SYMBOL_TABLE)     = '/';
 DEFAULT_PARAM( OBJ_ID)               = "MARK-";
+DEFAULT_PARAM( BOOT_SOUND )          = 1;
+DEFAULT_PARAM( FAKE_REPORTS )        = 0;
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
