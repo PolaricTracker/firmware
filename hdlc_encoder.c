@@ -22,10 +22,10 @@
 
 
 // Buffers
-FBQ encoder_queue; 
+FBQ encoder_queue;
+fbq_t *mqueue;
 static FBUF buffer;                                 
 static stream_t *outstream;
-static fbq_t *mqueue;
 
 static bool test_active;
 static uint8_t testbyte;
