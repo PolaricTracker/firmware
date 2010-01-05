@@ -34,12 +34,12 @@ static void trackerThread(void);
 static void activate_tx(void);
 static bool should_update(posdata_t*, posdata_t*);
 static void report_status(posdata_t*);
-static void report_station_position(posdata_t*);
+static void report_station_position(posdata_t*, bool);
 static void report_object_position(posdata_t*, char*, bool);
 static void report_objects(bool);
 
 static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool);
-static void send_header(FBUF*);
+static void send_header(FBUF*, bool);
 static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
 static void send_latlong_compressed(FBUF*, double, bool);
@@ -87,7 +87,7 @@ void tracker_posReport()
 {
     if (!gps_is_fixed())
         return;
-    report_station_position(&current_pos);
+    report_station_position(&current_pos, false);
     activate_tx();
 }
 
@@ -198,12 +198,18 @@ static void trackerThread(void)
         /*
          * Send position report
          */  
-        if (gps_is_fixed() && should_update(&prev_pos, &current_pos)) { 
-            if (GET_BYTE_PARAM(REPORT_BEEP)) 
-               { beep(3); }
+        if (gps_is_fixed()) {
+           if (should_update(&prev_pos, &current_pos)) {
+              if (GET_BYTE_PARAM(REPORT_BEEP)) 
+                 { beep(3); }
             
-            report_station_position(&current_pos);
-            prev_pos = current_pos;                      
+              report_station_position(&current_pos, false);
+              prev_pos = current_pos;                      
+           }
+           else {
+              if (GET_BYTE_PARAM(FAKE_REPORTS))
+                 report_station_position(&current_pos, true);
+           }
         }
         activate_tx();
         t = GET_BYTE_PARAM(TRACKER_SLEEP_TIME);
@@ -312,7 +318,7 @@ static void report_status(posdata_t* pos)
     FBUF packet;   
     
     /* Create packet header */
-    send_header(&packet);  
+    send_header(&packet, false);  
     fbuf_putChar(&packet, '>');
     send_timestamp_z(&packet, pos); 
     
@@ -345,8 +351,9 @@ static void report_status(posdata_t* pos)
 #define log1002(x) (log((x))/0.001998)
 
 extern uint16_t course_count; 
+extern fbq_t *mqueue;
 
-static void report_station_position(posdata_t* pos)
+static void report_station_position(posdata_t* pos, bool no_tx)
 {
     static uint8_t ccount;
     FBUF packet;    
@@ -354,7 +361,7 @@ static void report_station_position(posdata_t* pos)
     fbuf_new(&packet); 
           
     /* Create packet header */
-    send_header(&packet);    
+    send_header(&packet, no_tx);    
     
     /* APRS Position report body
      * with Timestamp if the parameter is set */
@@ -375,8 +382,17 @@ static void report_station_position(posdata_t* pos)
     }
 
     
-    /* Send packet */
-    fbq_put(outframes, packet);
+    /* Send packet.
+     * if no_tx flag was set, put it on monitor-queue instead (if active)
+     */
+    if (no_tx){
+      if (mqueue) {
+            fbuf_putChar(&packet, 0xff);fbuf_putChar(&packet, 0xff);
+            fbq_put(mqueue, packet); 
+         }
+    }
+    else
+        fbq_put(outframes, packet);
 }
 
 
@@ -387,7 +403,7 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
     fbuf_new(&packet);
     
     /* Create packet header */
-    send_header(&packet);   
+    send_header(&packet, false);   
     
     /* And report body */
     fbuf_putChar(&packet, ';');
@@ -489,14 +505,21 @@ static void send_csT_compressed(FBUF* packet, posdata_t* pos)
 
 
 
-static void send_header(FBUF* packet)
+static void send_header(FBUF* packet, bool no_tx)
 {
     addr_t from, to; 
     GET_PARAM(MYCALL, &from);   
     GET_PARAM(DEST, &to);
     addr_t digis[7];
-    uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
-    GET_PARAM(DIGIS, &digis);      
+    uint8_t ndigis = 0;
+    if (no_tx) {
+       ndigis = 1;
+       str2addr(&digis[0], "NO_TX");
+    }
+    else {
+       ndigis = GET_BYTE_PARAM(NDIGIS);
+       GET_PARAM(DIGIS, &digis);      
+    }
     ax25_encode_header(packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
 }
 
