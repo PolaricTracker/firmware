@@ -42,6 +42,12 @@ void mon_activate(bool m)
 }
 
 
+void mon_showtext(char* txt)
+{
+   if (mon_on)
+      putstr(out, txt);
+}
+
 
 static void mon_thread()
 {
