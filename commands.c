@@ -31,31 +31,32 @@
 void setup_transceiver(void);
 uint8_t tokenize(char*, char*[], uint8_t, char*, bool);
 
+static void do_boot      (uint8_t, char**, Stream*, Stream*);
 static void do_teston    (uint8_t, char**, Stream*, Stream*);
-static void do_version   (uint8_t, char**, Stream*);
-static void do_testpacket(uint8_t, char**, Stream*);
-static void do_mycall    (uint8_t, char**, Stream*);
-static void do_obj_id    (uint8_t, char**, Stream*);
-static void do_dest      (uint8_t, char**, Stream*);
-static void do_symbol    (uint8_t, char**, Stream*);
-static void do_obj_symbol(uint8_t, char**, Stream*);
+static void do_version   (uint8_t, char**, Stream*, Stream*);
+static void do_testpacket(uint8_t, char**, Stream*, Stream*);
+static void do_mycall    (uint8_t, char**, Stream*, Stream*);
+static void do_obj_id    (uint8_t, char**, Stream*, Stream*);
+static void do_dest      (uint8_t, char**, Stream*, Stream*);
+static void do_symbol    (uint8_t, char**, Stream*, Stream*);
+static void do_obj_symbol(uint8_t, char**, Stream*, Stream*);
 static void do_nmea      (uint8_t, char**, Stream*, Stream*);
 static void do_trx       (uint8_t, char**, Stream*, Stream*);
 static void do_txon      (uint8_t, char**, Stream*, Stream*);                 
 static void do_tracker   (uint8_t, char**, Stream*, Stream*);
-static void do_freq      (uint8_t, char**, Stream*);
-static void do_fcal      (uint8_t, char**, Stream*);
-static void do_power     (uint8_t, char**, Stream*);
-static void do_squelch   (uint8_t, char**, Stream*);
+static void do_freq      (uint8_t, char**, Stream*, Stream*);
+static void do_fcal      (uint8_t, char**, Stream*, Stream*);
+static void do_power     (uint8_t, char**, Stream*, Stream*);
+static void do_squelch   (uint8_t, char**, Stream*, Stream*);
 static void do_rssi      (uint8_t, char**, Stream*, Stream*);
-static void do_digipath  (uint8_t, char**, Stream*);
-static void do_trace     (uint8_t, char**, Stream*);
+static void do_digipath  (uint8_t, char**, Stream*, Stream*);
+static void do_trace     (uint8_t, char**, Stream*, Stream*);
 static void do_txtone    (uint8_t, char**, Stream*, Stream*);
-static void do_vbatt     (uint8_t, char**, Stream*);
+static void do_vbatt     (uint8_t, char**, Stream*, Stream*);
 static void do_listen    (uint8_t, char**, Stream*, Stream*);
 static void do_converse  (uint8_t, char**, Stream*, Stream*);
-static void do_btext     (uint8_t, char**, Stream*);
-static void do_ps        (uint8_t, char**, Stream*);
+static void do_btext     (uint8_t, char**, Stream*, Stream*);
+static void do_ps        (uint8_t, char**, Stream*, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -75,17 +76,20 @@ void tracker_controls_trx(bool c);
  ***************************************************************************************/
  
 static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out, 
-                void* ee_addr, PGM_P default_val, uint16_t lower, uint16_t upper, PGM_P pfmt, PGM_P sfmt)
+                void* ee_addr, PGM_P default_val, uint16_t lower, uint16_t upper, PGM_P pfmt, PGM_P sfmt,
+                bool help, PGM_P helptext)
 {
     int x;
-    if (argc > 1) {
+    if (help)
+       putstr_P(out, helptext);
+    else if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
           sprintf_P(buf, PSTR("ERROR: parameter must be a number in range %d-%d\r\n"),lower,upper);
           putstr(out,buf); 
        }
        else {
           set_param(ee_addr, &x, sizeof(uint16_t));
-          putstr_P(out,PSTR("OK\r\n"));
+          putstr_P(out,PSTR("Ok\r\n"));
        }
     } 
     else {
@@ -97,17 +101,20 @@ static void _parameter_setting_uint16(uint8_t argc, char** argv, Stream* out,
 
 
 static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out, 
-                void* ee_addr, PGM_P default_val, uint8_t lower, uint8_t upper, PGM_P pfmt, PGM_P sfmt)
+                void* ee_addr, PGM_P default_val, uint8_t lower, uint8_t upper, PGM_P pfmt, PGM_P sfmt, 
+                bool help, PGM_P helptext)
 {
     int x;
-    if (argc > 1) {
+    if (help)
+       putstr_P(out, helptext);
+    else if (argc > 1) {
        if (sscanf_P(argv[1], sfmt, &x) != 1 || x<lower || x>upper) {
           sprintf_P(buf, PSTR("ERROR: parameter must be a number in range %d-%d\r\n"),lower,upper);
           putstr(out,buf);
        }
        else {
           set_byte_param(ee_addr, (uint8_t) x);
-          putstr_P(out, PSTR("OK\r\n"));
+          putstr_P(out, PSTR("Ok\r\n"));
        }
     } 
     else {
@@ -119,32 +126,42 @@ static void _parameter_setting_uint8(uint8_t argc, char** argv, Stream* out,
 
 
 static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out, 
-                void* ee_addr, PGM_P default_val, PGM_P name)
+                void* ee_addr, PGM_P default_val, PGM_P name,
+                bool help, PGM_P helptext)
 {
+    if (help)
+      { putstr_P(out, helptext); return; }
     if (argc < 2) {
        putstr_P(out, name);
        if (get_byte_param(ee_addr, default_val)) 
-          putstr_P(out, PSTR("ON\r\n"));
+          putstr_P(out, PSTR(" ON\r\n"));
        else
-          putstr_P(out, PSTR("OFF\r\n"));
+          putstr_P(out, PSTR(" OFF\r\n"));
        return; 
     }
-    putstr_P(out, name);
     if (strncasecmp("on", argv[1], 2) == 0 || strncasecmp("true", argv[1], 1) == 0) {
        putstr_P(out, PSTR("Ok\r\n"));
-       set_byte_param(ee_addr, 1);
+       set_byte_param(ee_addr, (uint8_t) 1);
     }  
-    if (strncasecmp("off", argv[1], 2) == 0 || strncasecmp("false", argv[1], 1) == 0) {
+    else if (strncasecmp("off", argv[1], 2) == 0 || strncasecmp("false", argv[1], 1) == 0) {
        putstr_P(out, PSTR("Ok\r\n"));
-       set_byte_param(ee_addr, 0);
+       set_byte_param(ee_addr, (uint8_t) 0);
     }
     else 
-       putstr_P(buf, PSTR("ERROR: parameter must be 'ON' or 'OFF'"));
+       putstr_P(out, PSTR("ERROR: parameter must be 'ON' or 'OFF'\r\n"));
     
     
 }
 
+typedef void (*cmd_func)(uint8_t, char**, Stream*, Stream*);
 
+static void _do_command(cmd_func f, bool help, PGM_P helptext, uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+    if (help)
+       putstr_P(out, helptext);
+    else
+       (*f)(argc, argv, out, in);
+}
 
 
 /***************************************************************************************
@@ -162,17 +179,21 @@ static void _parameter_setting_bool(uint8_t argc, char** argv, Stream* out,
  *                 It must contain one "%d" or equivalent. 
  ***************************************************************************************/
 
-#define IF_COMMAND_PARAM_uint16(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
-    if (strncasecmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
+#define IF_COMMAND_PARAM_uint16(c, command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt, help, helptext)  \
+    if (strncasecmp(command, c, cmpchars) == 0) \
+        _parameter_setting_uint16(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt, help, helptext) 
 
-#define IF_COMMAND_PARAM_uint8(command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt)  \
-    if (strncasecmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt) 
+#define IF_COMMAND_PARAM_uint8(c, command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt, help, helptext)  \
+    if (strncasecmp(command, c, cmpchars) == 0) \
+        _parameter_setting_uint8(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt, help, helptext) 
 
-#define IF_COMMAND_PARAM_bool(command, cmpchars, argc, argv, out, x, name)  \
-    if (strncasecmp(command, argv[0], cmpchars) == 0) \
-        _parameter_setting_bool(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, name) 
+#define IF_COMMAND_PARAM_bool(c, command, cmpchars, argc, argv, out, x, name, help, helptext)  \
+    if (strncasecmp(command, c, cmpchars) == 0) \
+        _parameter_setting_bool(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, name, help, helptext) 
+
+#define IF_COMMAND(c, command, cmpchars, f, argc, argv, out, in, help, helptext) \
+    if (strncasecmp(command, c, cmpchars) == 0) \
+        _do_command(f, help, helptext, argc, argv, out, in)
 
 
 
@@ -201,142 +222,164 @@ void cmdProcessor(Stream *in, Stream *out)
          memset(argv, 0, MAXTOKENS);
          putstr(out, "cmd: ");    
          readLine(in, out, buf, BUFSIZE);
+         bool help = false;
          
          /* Split input line into argument tokens */
          argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n,", true);
-
+         char* arg = argv[0]; 
+         if (strncasecmp("help", arg, 4)==0 || strcmp("?", arg) == 0)
+         {
+             if (argc < 2) {
+                putstr_P(out, PSTR("Available commands: \r\n"));
+                putstr_P(out, PSTR("  afc, altitude, autopower, beep, boot, bootsound, btext, compress, converse,\r\n")); 
+                putstr_P(out, PSTR("  dest, digipath, fcal, fakereports, freq, gps, listen,  maxframe, maxpause, \r\n"));
+                putstr_P(out, PSTR("  maxturn, mindist, minpause, mycall, oident, osymbol, powersave, rssi, squelch, \r\n"));
+                putstr_P(out, PSTR("  statustime, symbol, testpacket, timestamp, teston, tracker, tracktime, txdelay, \r\n"));
+                putstr_P(out, PSTR("  txon, txmon, txtail, txtone, version\r\n"));
+                putstr_P(out, PSTR("\r\nMore info: \r\nhelp <command> or ? <command>\r\n\r\n"));
+                continue;
+             }
+             arg = argv[1];
+             help = true;
+         }
+         
          /* Select command handler: 
           * misc commands 
           */         
-         if (strncasecmp("teston", argv[0], 6) == 0)
-             do_teston(argc, argv, out, in);
-         else if (strncasecmp("version", argv[0], 3) == 0)
-             do_version(argc, argv, out);
-         else if (strncasecmp("txtone", argv[0], 7) == 0)
-             do_txtone(argc, argv, out, in);
-         else if (strncasecmp("testpacket",  argv[0], 5) == 0)
-             do_testpacket(argc, argv, out);                               
-         else if (strncasecmp("gps",     argv[0], 4) == 0)
-             do_nmea(argc, argv, out, in);     
-         else if (strncasecmp("trx",     argv[0], 3) == 0)
-             do_trx(argc, argv, out, in);        
-         else if (strncasecmp("tracker", argv[0], 6) == 0)
-             do_tracker(argc, argv, out, in);
-         else if (strncasecmp("txon",     argv[0], 4) == 0)
-             do_txon(argc, argv, out, in);             
-         else if (strncasecmp("rssi", argv[0], 2) == 0)
-             do_rssi(argc, argv, out, in);       
-         else if (strncasecmp("trace", argv[0], 5) == 0)
-             do_trace(argc, argv, out); 
-         else if (strncasecmp("ps", argv[0], 2) == 0)
-             do_ps(argc, argv, out);    
-         else if (strncasecmp("vbatt", argv[0], 2) == 0)
-             do_vbatt(argc, argv, out);
-         else if (strncasecmp("listen", argv[0], 3) == 0)
-             do_listen(argc, argv, out, in);            
-         else if (strncasecmp("k", argv[0], 1) == 0 || strncasecmp("converse", argv[0], 4) == 0)
-             do_converse(argc, argv, out, in);   
-	 else if (strcasecmp("boot", argv[0]) == 0) {
-	   /* Tell the bootloader invoke firmware upgrade */
-	   /* This command does only work with the customized bootloader */
-	   eeprom_write_byte ((void*)E2END, 0xff); 
-	   soft_reset ();
-	 } else if (strcasecmp("protocol", argv[0]) == 0) {
-	   putstr_P(out,PSTR("protocol 1\r\n"));
-	 }
+         IF_COMMAND(arg, "teston", 6, do_teston, argc, argv, out, in,
+              help, PSTR("Send test signal with given pattern (type a key to turn off)\r\n"));
+         else IF_COMMAND(arg, "version", 3, do_version, argc, argv, out, in, 
+              help, PSTR("Show firmware version\r\n"));
+         else IF_COMMAND(arg, "txtone", 7, do_txtone, argc, argv, out, in, 
+              help, PSTR("TXTONE HIGH|LOW\r\nSend test signal with high or low tone (type a key to turn off)\r\n"));
+         else IF_COMMAND(arg, "testpacket", 5, do_testpacket, argc, argv, out, in, 
+              help, PSTR("Send test packet\r\n"));                               
+         else IF_COMMAND(arg, "gps", 4, do_nmea, argc, argv, out, in, 
+              help, PSTR("GPS ON|OFF|NMEA|POS:\r\n  GPS ON/OFF - turn on or off GPS\r\n  GPS NMEA - show nmea stream\r\n  GPS POS - show valid positions\r\n"));     
+         else IF_COMMAND(arg, "tracker", 6, do_tracker, argc, argv, out, in,
+              help, PSTR("Turn on or off automatic tracking\r\n"));
+         else IF_COMMAND(arg, "txon", 4, do_txon, argc, argv, out, in,
+              help, PSTR("Turn on transmitter (type a key to turn off)\r\n"));
+         else IF_COMMAND(arg, "rssi", 2, do_rssi, argc, argv, out, in,
+              help, PSTR("Show signal strength on receiver (type a key to turn off)\r\n"));       
+         else IF_COMMAND(arg, "trace", 5, do_trace, argc, argv, out, in, 
+              help, PSTR("Debugging info (for developers)\r\n")); 
+         else IF_COMMAND(arg, "ps", 2, do_ps, argc, argv, out, in, 
+              help, PSTR("Process status. Show info about tasks (for developers)\r\n"));    
+         else IF_COMMAND(arg, "vbatt", 2, do_vbatt, argc, argv, out, in,
+              help, PSTR("Show battery voltage\r\n"));
+         else IF_COMMAND(arg, "listen", 3, do_listen, argc, argv, out, in, 
+              help, PSTR("Enter listen mode. Show incoming packets on console (CTRL-C to leave)\r\n"));            
+         else if (strncasecmp("k", arg, 1) == 0 || strncasecmp("converse", argv, 4) == 0)
+             _do_command( do_converse, help, 
+                PSTR("Enter converse mode. Show incoming packets. Send typed text as packets (CTRL-C to leave\r\n"), 
+                argc, argv, out, in );   
+	      else IF_COMMAND(arg, "boot", 4, do_boot, argc, argv, out, in,
+               help, PSTR("Invoke bootloader for firmware upgrade\r\n"));
+	      else if (strcasecmp("protocol", arg) == 0) 
+	           putstr_P(out,PSTR("protocol 1\r\n"));
+	             
          /* Commands for setting/viewing parameters */
-         else if (strncasecmp("mycall", argv[0], 2) == 0)
-             do_mycall(argc, argv, out);    
-         else if (strncasecmp("oident", argv[0], 3) == 0)
-             do_obj_id(argc, argv, out);           
-         else if (strncasecmp("dest", argv[0], 3) == 0)
-             do_dest(argc, argv, out);  
-         else if (strncasecmp("digipath", argv[0], 4) == 0)  
-             do_digipath(argc, argv, out);
-         else if (strncasecmp("symbol", argv[0], 3) == 0)
-             do_symbol(argc, argv, out);  
-         else if (strncasecmp("osymbol", argv[0], 4) == 0)
-             do_obj_symbol(argc, argv, out);                       
-         else if (strncasecmp("freq",argv[0], 2) == 0)
-             do_freq(argc, argv, out);  
-         else if (strncasecmp("fcal",argv[0], 3) == 0)
-             do_fcal(argc, argv, out);
-         else if (strncasecmp("txpower", argv[0], 4) == 0)
-             do_power(argc, argv, out);    
-         else if (strncasecmp("squelch", argv[0], 2) == 0)
-             do_squelch(argc, argv, out); 
-         else if (strncasecmp("btext", argv[0], 2) == 0)
-             do_btext(argc, argv, out); 
+         else IF_COMMAND(arg, "mycall", 2, do_mycall, argc, argv, out, in, 
+              help, PSTR("Callsign\r\n"));    
+         else IF_COMMAND(arg, "oident", 3, do_obj_id, argc, argv, out, in,
+              help, PSTR("Ident prefix for object reports\r\n"));           
+         else IF_COMMAND(arg, "dest", 3, do_dest, argc, argv, out, in,
+              help, PSTR("Destination address\r\n"));  
+         else IF_COMMAND(arg, "digipath", 4, do_digipath, argc, argv, out, in,
+              help, PSTR("Digipeater path\r\n"));
+         else IF_COMMAND(arg, "symbol", 3, do_symbol, argc, argv, out, in,
+              help, PSTR("Symbol for position reports. <symtable> <symbol>\r\n"));  
+         else IF_COMMAND(arg, "osymbol", 4, do_obj_symbol, argc, argv, out, in,
+              help, PSTR("Symbol for object reports. <symtable> <symbol>\r\n"));                       
+         else IF_COMMAND(arg, "freq", 2, do_freq, argc, argv, out, in,
+              help, PSTR("Frequency of transceiver (in kHz)\r\n"));  
+         else IF_COMMAND(arg, "fcal", 3, do_fcal, argc, argv, out, in,
+              help, PSTR("Frequency calibration (in Hz)\r\n"));
+         else IF_COMMAND(arg, "txpower", 4, do_power, argc, argv, out, in, 
+              help, PSTR("TX output from ADF7021 chip (in dBm)\r\n"));    
+         else IF_COMMAND(arg, "squelch", 2, do_squelch, argc, argv, out, in, 
+              help, PSTR("Receiver signal threshold\r\n"));
+         else IF_COMMAND(arg, "btext", 2, do_btext, argc, argv, out, in,
+              help, PSTR("Beacon text (comment to be sent with position reports\r\n")); 
+
          else IF_COMMAND_PARAM_uint8
-                  ( "txdelay", 3, argc, argv, out,
-                    TXDELAY, 0, 200, PSTR("TXDELAY %d\r\n\0"), PSTR(" %d") );
-         
+                  ( arg, "txdelay", 3, argc, argv, out,
+                    TXDELAY, 0, 200, PSTR("TXDELAY %d\r\n\0"), PSTR(" %d"), 
+                    help, PSTR("Number of FLAGs to open a transmission (range 0-200)\r\n"));
          else IF_COMMAND_PARAM_uint8
-                  ( "txtail", 3, argc, argv, out,
-                    TXTAIL, 0, 200, PSTR("TXTAIL %d\r\n\0"), PSTR(" %d") );
-                    
+                  ( arg, "txtail", 3, argc, argv, out,
+                    TXTAIL, 0, 200, PSTR("TXTAIL %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Number of FLAGs to close a transmission (range 0-200)\r\n") );
          else IF_COMMAND_PARAM_uint8
-                  ( "maxframe", 5, argc, argv, out,
-                    MAXFRAME, 1, 7, PSTR("MAXFRAME %d\r\n\0"), PSTR(" %d") );
-         
+                  ( arg, "maxframe", 5, argc, argv, out,
+                    MAXFRAME, 1, 7, PSTR("MAXFRAME %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Max number of frames to send in the same transmission (range 1-7) \r\n") );
          else IF_COMMAND_PARAM_uint16
-                 ("afc", 3, argc, argv, out, 
-                    TRX_AFC, 0, 12000, PSTR("AFC %d\r\n\0"), PSTR(" %d") );
-                   
+                 ( arg, "afc", 3, argc, argv, out, 
+                    TRX_AFC, 0, 12000, PSTR("AFC %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Frequency range (range 0-12000 Hz) for RX AFC\r\n") );
          else IF_COMMAND_PARAM_uint8
-                 ( "tracktime", 6, argc, argv, out, 
-                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 240, PSTR("TRACKTIME %d\r\n\0"), PSTR(" %d") );
-                      
+                 ( arg, "tracktime", 6, argc, argv, out, 
+                   TRACKER_SLEEP_TIME, GPS_FIX_TIME+1, 240, PSTR("TRACKTIME %d\r\n\0"), PSTR(" %d"),
+                   help, PSTR("Smallest possible interval between position reports (in seconds, max 240)\r\n") );
          else IF_COMMAND_PARAM_uint16
-                 ( "deviation", 3, argc, argv, out,
-                   TRX_AFSK_DEV, 0, 5000, PSTR("DEVIATION %d\r\n\0"), PSTR(" %d") );
-                   
+                 ( arg, "deviation", 3, argc, argv, out,
+                   TRX_AFSK_DEV, 0, 5000, PSTR("DEVIATION %d\r\n\0"), PSTR(" %d"),
+                   help, PSTR("Frequency deviation for FSK modulation (range 0-5000 Hz)\r\n") );
          else IF_COMMAND_PARAM_uint16 
-                 ( "gpsbaud", 4, argc, argv, out, 
-                    GPS_BAUD, 1200, 19200, PSTR("GPSBAUD %d\r\n\0"), PSTR(" %d") );
-         
+                 (  arg, "gpsbaud", 4, argc, argv, out, 
+                    GPS_BAUD, 1200, 19200, PSTR("GPSBAUD %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Baud rate for serial comm with GPS unit\r\n") );
          else IF_COMMAND_PARAM_uint16 
-                 ( "maxturn", 6, argc, argv, out, 
-                    TRACKER_TURN_LIMIT, 0, 360, PSTR("MAXTURN %d\r\n\0"), PSTR(" %d") );
-                        
+                 ( arg, "maxturn", 6, argc, argv, out, 
+                    TRACKER_TURN_LIMIT, 0, 180, PSTR("MAXTURN %d\r\n\0"), PSTR(" %d"), 
+                    help, PSTR("Course change threshold (0-180 degrees)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( "maxpause", 6, argc, argv, out, 
-                    TRACKER_MAXPAUSE, 1, 200, PSTR("MAXPAUSE %d\r\n\0"), PSTR(" %d") );
-       
+                 ( arg, "maxpause", 6, argc, argv, out, 
+                    TRACKER_MAXPAUSE, 1, 200, PSTR("MAXPAUSE %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Max time between tracker position reports (in TRACKTIME units)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( "minpause", 6, argc, argv, out, 
-                    TRACKER_MINPAUSE, 1, 200, PSTR("MINPAUSE %d\r\n\0"), PSTR(" %d") );
-    
+                 ( arg, "minpause", 6, argc, argv, out, 
+                    TRACKER_MINPAUSE, 1, 200, PSTR("MINPAUSE %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Min time between tracker position reports in straight forward movement (in TRACKTIME units)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( "mindist", 6, argc, argv, out, 
-                    TRACKER_MINDIST, 1, 200, PSTR("MINDIST %d\r\n\0"), PSTR(" %d") );
-         
+                 ( arg, "mindist", 6, argc, argv, out, 
+                    TRACKER_MINDIST, 1, 200, PSTR("MINDIST %d\r\n\0"), PSTR(" %d"),
+                    help, PSTR("Distance between position reports when moving slowly (in meters)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( "statustime", 7, argc, argv, out, 
-                    STATUS_TIME, 1, 200, PSTR("STATUSTIME %d\r\n\0"), PSTR(" %d") );
-         
+                 ( arg, "statustime", 7, argc, argv, out, 
+                    STATUS_TIME, 1, 200, PSTR("STATUSTIME %d\r\n\0"), PSTR(" %d"), 
+                    help, PSTR("Time between status reports (in TRACKTIME units)\r\n") );
          else IF_COMMAND_PARAM_bool 
-                 ( "altitude", 3, argc, argv, out, ALTITUDE_ON, PSTR("ALTITUDE") );
-         
+                 ( arg, "altitude", 3, argc, argv, out, ALTITUDE_ON, PSTR("ALTITUDE"),
+                    help, PSTR("Send altitude with position reports (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool           
-                 ( "timestamp", 4, argc, argv, out, TIMESTAMP_ON, PSTR("TIMESTAMP") );
-                 
+                 ( arg, "timestamp", 4, argc, argv, out, TIMESTAMP_ON, PSTR("TIMESTAMP"),
+                    help, PSTR("Send timestamp with position reports (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
-                 ( "compress", 4, argc, argv, out, COMPRESS_ON, PSTR("COMPRESS") );
-                 
+                 ( arg, "compress", 4, argc, argv, out, COMPRESS_ON, PSTR("COMPRESS"),
+                   help, PSTR("Compress position reports (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
-                 ( "powersave", 6, argc, argv, out, GPS_POWERSAVE, PSTR("POWERSAVE") );  
-                          
+                 ( arg, "powersave", 6, argc, argv, out, GPS_POWERSAVE, PSTR("POWERSAVE"),
+                   help, PSTR("Try to save power by turning off GPS when not moving (on/off)\r\n") );  
          else IF_COMMAND_PARAM_bool
-                 ( "beep", 2, argc, argv, out, REPORT_BEEP, PSTR("BEEP") );        
-                          
+                 ( arg, "beep", 2, argc, argv, out, REPORT_BEEP, PSTR("BEEP"),
+                   help, PSTR("Beep when sending position reports automatically (on/off)\r\n") );        
          else IF_COMMAND_PARAM_bool
-                 ( "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TXMON") );
-                          
+                 ( arg, "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TXMON"),
+                   help, PSTR("Monitor transmitted packets in LISTEN or CONVERSE mode (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
-                 ( "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTOPOWER") );
-                                           
-         else if (strlen(argv[0]) > 0)
+                 ( arg, "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTOPOWER"),
+                   help, PSTR("External power supply turns on/off tracker automatically (on/off)\r\n") );
+         else IF_COMMAND_PARAM_bool
+                 ( arg, "bootsound", 3, argc, argv, out, BOOT_SOUND, PSTR("BOOTSOUND"),
+                    help, PSTR("Sound signal at boot (on/off)\r\n") );
+         else IF_COMMAND_PARAM_bool
+                 ( arg, "fakereports", 6, argc, argv, out, FAKE_REPORTS, PSTR("FAKEREPORTS"),
+                   help, PSTR("In LISTEN or CONVERSE mode, display position reports every TRACKTIME (on/off)\r\n") );
+  
+         else if (strlen(arg) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
              continue; 
@@ -346,10 +389,23 @@ void cmdProcessor(Stream *in, Stream *out)
 
 
 /************************************************
+ * Invoke bootloader
+ ************************************************/
+ 
+static void do_boot(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+     /* Tell the bootloader invoke firmware upgrade */
+     /* This command does only work with the customized bootloader */
+     eeprom_write_byte ((void*)E2END, 0xff); 
+     soft_reset ();
+}
+
+
+/************************************************
  * Report firmware version
  ************************************************/
  
-static void do_version(uint8_t argc, char** argv, Stream* out)
+static void do_version(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out,PSTR(VERSION_STRING));
    putstr_P(out,PSTR("\r\n"));
@@ -387,7 +443,7 @@ static void do_rssi(uint8_t argc, char** argv, Stream* out, Stream* in)
  * Report battery voltage
  ************************************************/
  
-static void do_vbatt(uint8_t argc, char** argv, Stream* out)
+static void do_vbatt(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    sprintf_P(buf, PSTR("Battery voltage: %.2f V\r\n\0"), 
              batt_voltage());
@@ -455,17 +511,17 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   if (argc < 2)
       putstr_P(out, PSTR("Usage: GPS on|off|nmea|pos\r\n"));
       
-  if (strncasecmp("on", argv[1], 2) == 0) {
+  else if (strncasecmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS ON *****\r\n"));
       gps_on();
       return;
   } 
-  if (strncasecmp("off", argv[1], 2) == 0) {
+  else if (strncasecmp("off", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS OFF *****\r\n"));
       gps_off();
       return;
   }  
-  if (strncasecmp("nmea", argv[1], 1) == 0) {
+  else if (strncasecmp("nmea", argv[1], 1) == 0) {
       putstr_P(out, PSTR("***** NMEA PACKETS *****\r\n"));
       gps_mon_raw();
   } 
@@ -481,17 +537,6 @@ static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
   gps_mon_off();
 }
 
-
-
-
-/************************************************
- * Turn on/off transceiver chip.....
- ************************************************/
- 
-static void do_trx(uint8_t argc, char** argv, Stream* out, Stream* in)
-{
-    putstr_P(out, PSTR("***** TRX COMMAND IS NO LONGER NEEDED *****\r\n"));
-}
 
 
 
@@ -513,7 +558,7 @@ static void do_tracker(uint8_t argc, char** argv, Stream* out, Stream* in)
       putstr_P(out, PSTR("Ok\r\n"));
       tracker_on();
   }  
-  if (strncasecmp("off", argv[1], 2) == 0) {     
+  else if (strncasecmp("off", argv[1], 2) == 0) {     
       putstr_P(out, PSTR("Ok\r\n"));
       tracker_off();
   }
@@ -532,10 +577,12 @@ static void do_txon(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** TX ON *****\r\n"));
    radio_require();
+   set_port(LED2);
    adf7021_enable_tx();
 
    getch(in);
    adf7021_disable_tx();
+   clear_port(LED2);
    radio_release();
 }
 
@@ -596,7 +643,7 @@ static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
  * tx : Send AX25 test packet
  *********************************************/
 
-static void do_testpacket(uint8_t argc, char** argv, Stream* out)
+static void do_testpacket(uint8_t argc, char** argv, Stream* out, Stream* in)
 { 
     FBUF packet;    
     addr_t from, to; 
@@ -619,7 +666,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out)
  * Set identifier of object
  ************************************************/
  
-static void do_obj_id(uint8_t argc, char** argv, Stream* out)
+static void do_obj_id(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     if (argc > 1){
         if (strlen(argv[1]) <= 9)
@@ -643,7 +690,7 @@ static void do_obj_id(uint8_t argc, char** argv, Stream* out)
  * config: mycall (sender address)
  *********************************************/
  
-static void do_mycall(uint8_t argc, char** argv, Stream* out)
+static void do_mycall(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    addr_t x;
    char cbuf[11]; 
@@ -664,7 +711,7 @@ static void do_mycall(uint8_t argc, char** argv, Stream* out)
  * config: dest (destination address)
  *********************************************/
  
-static void do_dest(uint8_t argc, char** argv, Stream* out)
+static void do_dest(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    addr_t x;
    char cbuf[11]; 
@@ -686,7 +733,7 @@ static void do_dest(uint8_t argc, char** argv, Stream* out)
  * config: digipeater path
  *********************************************/
  
-static void do_digipath(uint8_t argc, char** argv, Stream* out)
+static void do_digipath(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     __digilist_t digis;
     uint8_t ndigis;
@@ -728,7 +775,7 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out)
  * config: Beacon text (comment in pos reports)
  ***********************************************/
  
-static void do_btext(uint8_t argc, char** argv, Stream* out)
+static void do_btext(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     if (argc > 1){
         SET_PARAM(REPORT_COMMENT, argv[1]);
@@ -748,7 +795,7 @@ static void do_btext(uint8_t argc, char** argv, Stream* out)
  * (for debugging)
  ************************************************/
  
-static void do_trace(uint8_t argc, char** argv, Stream* out)
+static void do_trace(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     show_trace(buf, 0, PSTR("Current run  = "), PSTR("\r\n"));
     putstr(out,buf);
@@ -762,7 +809,7 @@ static void do_trace(uint8_t argc, char** argv, Stream* out)
  * Show info about tasks (ps command)
  ************************************************/
  
-static void do_ps(uint8_t argc, char** argv, Stream* out)
+static void do_ps(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    uint8_t running = t_nRunning();
    sprintf_P(buf, PSTR("Tasks running        : %d\r\n\0"), running);
@@ -783,7 +830,7 @@ static void do_ps(uint8_t argc, char** argv, Stream* out)
  * config: symbol (APRS symbol/symbol table)
  *********************************************/
  
-static void do_symbol(uint8_t argc, char** argv, Stream* out)
+static void do_symbol(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    if (argc > 2) {
       SET_BYTE_PARAM(SYMBOL_TABLE, *argv[1]);
@@ -803,7 +850,7 @@ static void do_symbol(uint8_t argc, char** argv, Stream* out)
  * config: object symbol (APRS symbol/symbol table)
  ****************************************************/
 
-static void do_obj_symbol(uint8_t argc, char** argv, Stream* out)
+static void do_obj_symbol(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    if (argc > 2) {
       SET_BYTE_PARAM(OBJ_SYMBOL_TABLE, *argv[1]);
@@ -823,7 +870,7 @@ static void do_obj_symbol(uint8_t argc, char** argv, Stream* out)
  * config: transceiver frequency
  *********************************************/
  
-static void do_freq(uint8_t argc, char** argv, Stream* out)
+static void do_freq(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     uint32_t x = 0;
     if (argc > 1) {
@@ -845,7 +892,7 @@ static void do_freq(uint8_t argc, char** argv, Stream* out)
  * config: transceiver frequency calibration
  *********************************************/
  
-static void do_fcal(uint8_t argc, char** argv, Stream* out)
+static void do_fcal(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     int16_t x = 0;
     if (argc > 1) {
@@ -865,7 +912,7 @@ static void do_fcal(uint8_t argc, char** argv, Stream* out)
  * config: transmitter power (dBm)
  *********************************************/
  
-static void do_power(uint8_t argc, char** argv, Stream* out)
+static void do_power(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     float x = 0;
     if (argc > 1) {
@@ -885,7 +932,7 @@ static void do_power(uint8_t argc, char** argv, Stream* out)
  * config: squelch level (dBm)
  *********************************************/
  
-static void do_squelch(uint8_t argc, char** argv, Stream* out)
+static void do_squelch(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
     float x = 0;
     if (argc > 1) {
