@@ -28,8 +28,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.14+ (9.12.2009)"
-#define CURRENT_VERSION_KEY 10
+#define VERSION_STRING "v0.15 (5.1.2010)"
+#define CURRENT_VERSION_KEY 11
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
 
@@ -133,7 +133,7 @@ extern uint8_t blink_length, blink_interval;
 
 
 /********************************************
- * MCU port configuration 
+ * MCU port configuration
  ********************************************/
                         
  /* Common */
