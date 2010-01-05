@@ -159,8 +159,9 @@ static void _do_command(cmd_func f, bool help, PGM_P helptext, uint8_t argc, cha
 {
     if (help)
        putstr_P(out, helptext);
-    else
+    else {
        (*f)(argc, argv, out, in);
+    }
 }
 
 
