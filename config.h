@@ -44,9 +44,8 @@ typedef uint8_t __trace_t[TRACE_LENGTH][2];
  *            Name     Type     
  ***************************************************************/ 
  
- 
-DEFINE_PARAM( MYCALL,             addr_t       );
 DEFINE_PARAM( VERSION_KEY,        uint8_t      );     
+DEFINE_PARAM( MYCALL,             addr_t       );
 DEFINE_PARAM( DEST,               addr_t       );
 DEFINE_PARAM( DIGIS,              __digilist_t );
 DEFINE_PARAM( NDIGIS,             uint8_t      );
@@ -95,9 +94,9 @@ extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
  * or the linker will complain.
  ***************************************************************/
 
-DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
 DEFAULT_PARAM( VERSION_KEY )         = 0;
-DEFAULT_PARAM( DEST )                = {"APPT0B", 0};
+DEFAULT_PARAM( MYCALL )              = {"NOCALL",0};
+DEFAULT_PARAM( DEST )                = {"APPT10", 0};
 DEFAULT_PARAM( DIGIS )               = {{"WIDE1",1}, {"WIDE2", 2}};
 DEFAULT_PARAM( NDIGIS )              = 2;
 DEFAULT_PARAM( TXDELAY )             = 20;
@@ -138,6 +137,9 @@ uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
 
 #endif
  
+#define FIRST_PARAM PARAM_MYCALL
+#define LAST_PARAM PARAM_FAKE_REPORTS
+
 
 /***************************************************************
  * Functions/macros for accessing parameters
@@ -149,6 +151,7 @@ uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
 #define GET_BYTE_PARAM(x)      get_byte_param(&PARAM_##x,(PGM_P) &PARAM_DEFAULT_##x)
 #define SET_BYTE_PARAM(x, val) set_byte_param(&PARAM_##x, ((uint8_t) val))
 
+void    reset_all_param(void);
 void    reset_param(void*, uint8_t);
 void    set_param(void*, const void*, uint8_t);
 int     get_param(const void*, void*, uint8_t, PGM_P);
