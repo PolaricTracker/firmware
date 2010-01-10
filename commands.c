@@ -1,7 +1,4 @@
-/*
- * $Id: commands.c,v 1.32 2009-05-15 22:48:11 la7eca Exp $
- */
- 
+
 #include "defines.h"
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -41,7 +38,6 @@ static void do_dest      (uint8_t, char**, Stream*, Stream*);
 static void do_symbol    (uint8_t, char**, Stream*, Stream*);
 static void do_obj_symbol(uint8_t, char**, Stream*, Stream*);
 static void do_nmea      (uint8_t, char**, Stream*, Stream*);
-static void do_trx       (uint8_t, char**, Stream*, Stream*);
 static void do_txon      (uint8_t, char**, Stream*, Stream*);                 
 static void do_tracker   (uint8_t, char**, Stream*, Stream*);
 static void do_freq      (uint8_t, char**, Stream*, Stream*);
@@ -57,6 +53,7 @@ static void do_listen    (uint8_t, char**, Stream*, Stream*);
 static void do_converse  (uint8_t, char**, Stream*, Stream*);
 static void do_btext     (uint8_t, char**, Stream*, Stream*);
 static void do_ps        (uint8_t, char**, Stream*, Stream*);
+static void do_reset     (uint8_t, char**, Stream*, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -165,6 +162,12 @@ static void _do_command(cmd_func f, bool help, PGM_P helptext, uint8_t argc, cha
 }
 
 
+static bool _cmpCmd(char* command, char* c, uint8_t cmpchars) 
+{
+    return ((strncasecmp(command, c, cmpchars) == 0) && strlen(c) <= strlen(command));
+}
+
+
 /***************************************************************************************
  * Macro to test for command to get or set numeric parameter. 
  * Usage: 
@@ -181,22 +184,20 @@ static void _do_command(cmd_func f, bool help, PGM_P helptext, uint8_t argc, cha
  ***************************************************************************************/
 
 #define IF_COMMAND_PARAM_uint16(c, command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt, help, helptext)  \
-    if (strncasecmp(command, c, cmpchars) == 0) \
+    if (_cmpCmd(command, c, cmpchars)) \
         _parameter_setting_uint16(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt, help, helptext) 
 
 #define IF_COMMAND_PARAM_uint8(c, command, cmpchars, argc, argv, out, x, lower, upper, pfmt, sfmt, help, helptext)  \
-    if (strncasecmp(command, c, cmpchars) == 0) \
+    if (_cmpCmd(command, c, cmpchars)) \
         _parameter_setting_uint8(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, lower, upper, pfmt, sfmt, help, helptext) 
 
 #define IF_COMMAND_PARAM_bool(c, command, cmpchars, argc, argv, out, x, name, help, helptext)  \
-    if (strncasecmp(command, c, cmpchars) == 0) \
+    if (_cmpCmd(command, c, cmpchars)) \
         _parameter_setting_bool(argc, argv, out, &PARAM_##x, (PGM_P) &PARAM_DEFAULT_##x, name, help, helptext) 
 
 #define IF_COMMAND(c, command, cmpchars, f, argc, argv, out, in, help, helptext) \
-    if (strncasecmp(command, c, cmpchars) == 0) \
+    if (_cmpCmd(command, c, cmpchars)) \
         _do_command(f, help, helptext, argc, argv, out, in)
-
-
 
 
 /**************************************************************************
@@ -216,7 +217,7 @@ void cmdProcessor(Stream *in, Stream *out)
     putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
     putstr_P(out, PSTR("\n\r Welcome to 'Polaric Tracker' firmware "));
     putstr_P(out, PSTR(VERSION_STRING));
-    putstr_P(out, PSTR("\r\n (C) 2009 LA3T, Tromsogruppen av NRRL"));
+    putstr_P(out, PSTR("\r\n (C) 2010 LA3T, Tromsogruppen av NRRL"));    
     putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
     
     while (1) {
@@ -234,9 +235,9 @@ void cmdProcessor(Stream *in, Stream *out)
                 putstr_P(out, PSTR("Available commands: \r\n"));
                 putstr_P(out, PSTR("  afc, altitude, autopower, beep, boot, bootsound, btext, compress, converse,\r\n")); 
                 putstr_P(out, PSTR("  dest, digipath, fcal, fakereports, freq, gps, listen,  maxframe, maxpause, \r\n"));
-                putstr_P(out, PSTR("  maxturn, mindist, minpause, mycall, oident, osymbol, powersave, rssi, squelch, \r\n"));
-                putstr_P(out, PSTR("  statustime, symbol, testpacket, timestamp, teston, tracker, tracktime, txdelay, \r\n"));
-                putstr_P(out, PSTR("  txon, txmon, txtail, txtone, version\r\n"));
+                putstr_P(out, PSTR("  maxturn, mindist, minpause, mycall, oident, osymbol, powersave, reset, rssi, \r\n"));
+                putstr_P(out, PSTR("  squelch, statustime, symbol, testpacket, timestamp, teston, tracker, tracktime, \r\n"));
+                putstr_P(out, PSTR("  txdelay, txon, txmon, txtail, txtone, version\r\n"));
                 putstr_P(out, PSTR("\r\nMore info: \r\nhelp <command> or ? <command>\r\n\r\n"));
                 continue;
              }
@@ -256,7 +257,7 @@ void cmdProcessor(Stream *in, Stream *out)
          else IF_COMMAND(arg, "testpacket", 5, do_testpacket, argc, argv, out, in, 
               help, PSTR("Send test packet\r\n"));                               
          else IF_COMMAND(arg, "gps", 4, do_nmea, argc, argv, out, in, 
-              help, PSTR("GPS ON|OFF|NMEA|POS:\r\n  GPS ON/OFF - turn on or off GPS\r\n  GPS NMEA - show nmea stream\r\n  GPS POS - show valid positions\r\n"));     
+              help, PSTR("GPS ON|OFF|NMEA|POS:\r\n  GPS ON/OFF - turn on or off GPS (should only be used when TRACKER is OFF)\r\n  GPS NMEA - show nmea stream\r\n  GPS POS - show valid positions\r\n"));     
          else IF_COMMAND(arg, "tracker", 6, do_tracker, argc, argv, out, in,
               help, PSTR("Turn on or off automatic tracking\r\n"));
          else IF_COMMAND(arg, "txon", 4, do_txon, argc, argv, out, in,
@@ -271,12 +272,12 @@ void cmdProcessor(Stream *in, Stream *out)
               help, PSTR("Show battery voltage\r\n"));
          else IF_COMMAND(arg, "listen", 3, do_listen, argc, argv, out, in, 
               help, PSTR("Enter listen mode. Show incoming packets on console (CTRL-C to leave)\r\n"));            
-         else if (strncasecmp("k", arg, 1) == 0 || strncasecmp("converse", argv, 4) == 0)
+         else if (strncasecmp("k", arg, 1) == 0 || strncasecmp("converse", arg, 4) == 0)
              _do_command( do_converse, help, 
                 PSTR("Enter converse mode. Show incoming packets. Send typed text as packets (CTRL-C to leave\r\n"), 
                 argc, argv, out, in );   
-	      else IF_COMMAND(arg, "boot", 4, do_boot, argc, argv, out, in,
-               help, PSTR("Invoke bootloader for firmware upgrade\r\n"));
+         else IF_COMMAND(arg, "reset", 4, do_reset, argc, argv, out, in,
+               help, PSTR("Reset all settings to defaults\r\n"));      
 	      else if (strcasecmp("protocol", arg) == 0) 
 	           putstr_P(out,PSTR("protocol 1\r\n"));
 	             
@@ -371,15 +372,16 @@ void cmdProcessor(Stream *in, Stream *out)
                  ( arg, "txmon", 3, argc, argv, out, TXMON_ON, PSTR("TXMON"),
                    help, PSTR("Monitor transmitted packets in LISTEN or CONVERSE mode (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
-                 ( arg, "autopower", 3, argc, argv, out, AUTOPOWER, PSTR("AUTOPOWER"),
+                 ( arg, "autopower", 4, argc, argv, out, AUTOPOWER, PSTR("AUTOPOWER"),
                    help, PSTR("External power supply turns on/off tracker automatically (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
-                 ( arg, "bootsound", 3, argc, argv, out, BOOT_SOUND, PSTR("BOOTSOUND"),
+                 ( arg, "bootsound", 5, argc, argv, out, BOOT_SOUND, PSTR("BOOTSOUND"),
                     help, PSTR("Sound signal at boot (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
                  ( arg, "fakereports", 6, argc, argv, out, FAKE_REPORTS, PSTR("FAKEREPORTS"),
-                   help, PSTR("In LISTEN or CONVERSE mode, display position reports every TRACKTIME (on/off)\r\n") );
-  
+                   help, PSTR("In LISTEN or CONVERSE mode, display position reports every TRACKTIME (on/off)\r\n") ); 	     
+         else IF_COMMAND(arg, "boot", 4, do_boot, argc, argv, out, in,
+               help, PSTR("Invoke bootloader for firmware upgrade\r\n"));
          else if (strlen(arg) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
          else 
@@ -401,6 +403,15 @@ static void do_boot(uint8_t argc, char** argv, Stream* out, Stream* in)
      soft_reset ();
 }
 
+/************************************************
+ * Invoke bootloader
+ ************************************************/
+ 
+static void do_reset(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+   reset_all_param();
+   putstr_P(out, PSTR("Ok (reset settings)\r\n"));
+}
 
 /************************************************
  * Report firmware version
@@ -509,9 +520,10 @@ Semaphore nmea_run;
 
 static void do_nmea(uint8_t argc, char** argv, Stream* out, Stream* in)
 {                                                                                                            
-  if (argc < 2)
+  if (argc < 2) {
       putstr_P(out, PSTR("Usage: GPS on|off|nmea|pos\r\n"));
-      
+      return;
+  }
   else if (strncasecmp("on", argv[1], 2) == 0) {
       putstr_P(out, PSTR("***** GPS ON *****\r\n"));
       gps_on();
@@ -679,7 +691,7 @@ static void do_obj_id(uint8_t argc, char** argv, Stream* out, Stream* in)
            putstr_P(out,PSTR("ERROR: Id cannot be longer than 9 characters\r\n"));
     }
     else {
-        char x[9];
+        char x[10];
         GET_PARAM(OBJ_ID, x);
         sprintf_P(buf, PSTR("OIDENT \"%s\"\r\n\0"), x);
         putstr(out, buf);
