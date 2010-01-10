@@ -257,20 +257,12 @@ void powerdown_handler()
     /* External devices should be turned off. Todo: USB. 
      * Note that after this, the device should be reset when it is re-activated */
      autopower = false;
-     adf7021_power_off();
+     radio_release();
      gps_off();
      clear_port(LED1);
      clear_port(LED2);
      rgb_led_off();
 
-     DDRA = 0;
-     PORTA = 0;
-     DDRC = 0;
-     PORTC = 0;
-     DDRD = 0;
-     PORTD = 0;
-     DDRF = 0;
-     PORTF = 0; 
      make_input(BUTTON);
      asleep = true;
      wdt_disable();
