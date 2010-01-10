@@ -1,6 +1,4 @@
-/*
- * $Id: defines.h,v 1.36 2009-05-15 22:49:48 la7eca Exp $ 
- */
+
 
 #include <stdint.h>
 #include <stdio.h>
@@ -28,8 +26,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.15 (5.1.2010)"
-#define CURRENT_VERSION_KEY 11
+#define VERSION_STRING "v0.16 (8.1.2010)"
+#define CURRENT_VERSION_KEY 12
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
 
@@ -62,7 +60,7 @@
 #define STACK_MAIN             180
 #define STACK_LED              150
 #define STACK_BATT             210
-#define STACK_USBLISTENER      440
+#define STACK_USBLISTENER      480
 #define STACK_HDLCENCODER      200
 #define STACK_HDLCDECODER      220
 #define STACK_HDLCENCODER_TEST 150
@@ -81,7 +79,6 @@
 #define FBUF_SLOTS         88
 #define FBUF_SLOTSIZE      24
 
-/* Plass til FBUF: 88 x (24+3) = 2376 bytes */
 
 #define AFSK_ENCODER_BUFFER_SIZE 64
 #define AFSK_DECODER_BUFFER_SIZE 64
