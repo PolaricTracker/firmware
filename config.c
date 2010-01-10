@@ -34,6 +34,14 @@ void reset_param(void* ee_addr, uint8_t size)
 }
 
 
+void reset_all_param()
+{   while (!eeprom_is_ready())
+      t_yield();
+    for (void* eeptr = &FIRST_PARAM;  eeptr <= &LAST_PARAM; eeptr += 2)
+       eeprom_write_byte(eeptr, 0xff);
+}
+
+
 /************************************************************************
  * Write config parameter into EEPROM. 
  ************************************************************************/
