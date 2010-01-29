@@ -157,7 +157,13 @@ Version 0.16
 
 Version 1.0
 -----------
+* Crash when clearing objects (Does not crash when in converse mode - trx is already on)
+* TRACKER OFF by default
+* TRACKER OFF implies gps_fix = false ??
+* POWER -> TXPOWER
+* shortened commands accepts bad characters. Fix. 
 * Indication of charging when battery is very low??
+
 
 
 Further development
