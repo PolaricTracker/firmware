@@ -164,7 +164,10 @@ static void _do_command(cmd_func f, bool help, PGM_P helptext, uint8_t argc, cha
 
 static bool _cmpCmd(char* command, char* c, uint8_t cmpchars) 
 {
-    return ((strncasecmp(command, c, cmpchars) == 0) && strlen(c) <= strlen(command));
+    uint8_t n = strlen(c);
+    if (n<cmpchars)
+       return false;
+    return ((strncasecmp(command, c, n) == 0) && n <= strlen(command));
 }
 
 
@@ -229,7 +232,7 @@ void cmdProcessor(Stream *in, Stream *out)
          /* Split input line into argument tokens */
          argc = tokenize(buf, argv, MAXTOKENS, " \t\r\n,", true);
          char* arg = argv[0]; 
-         if (strncasecmp("help", arg, 4)==0 || strcmp("?", arg) == 0)
+         if (_cmpCmd("help", arg, 3) || strcmp("?", arg) == 0)
          {
              if (argc < 2) {
                 putstr_P(out, PSTR("Available commands: \r\n"));
@@ -272,7 +275,7 @@ void cmdProcessor(Stream *in, Stream *out)
               help, PSTR("Show battery voltage\r\n"));
          else IF_COMMAND(arg, "listen", 3, do_listen, argc, argv, out, in, 
               help, PSTR("Enter listen mode. Show incoming packets on console (CTRL-C to leave)\r\n"));            
-         else if (strncasecmp("k", arg, 1) == 0 || strncasecmp("converse", arg, 4) == 0)
+         else if (strcasecmp("k", arg) == 0 || _cmpCmd("converse", arg, 4))
              _do_command( do_converse, help, 
                 PSTR("Enter converse mode. Show incoming packets. Send typed text as packets (CTRL-C to leave\r\n"), 
                 argc, argv, out, in );   
@@ -491,7 +494,7 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
    putstr_P(out, PSTR("***** CONVERSE MODE *****\r\n"));
    radio_require();
    afsk_enable_decoder();
-   mon_activate(true);
+   mon_activate(true); 
    while ( readLine(in, out, buf, BUFSIZE)) {
         FBUF packet;    
         addr_t from, to; 
@@ -505,7 +508,7 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
         fbq_put(outframes, packet);
    }
    mon_activate(false);
-   afsk_disable_decoder();
+   afsk_disable_decoder(); 
    radio_release();
 }
 
@@ -935,7 +938,7 @@ static void do_power(uint8_t argc, char** argv, Stream* out, Stream* in)
     } 
     else {
        GET_PARAM(TRX_TXPOWER, &x);
-       sprintf_P(buf, PSTR("POWER %f\r\n\0"), x);
+       sprintf_P(buf, PSTR("TXPOWER %f\r\n\0"), x);
        putstr(out, buf);
     }
 }
