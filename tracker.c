@@ -28,7 +28,6 @@ static BCond tready;
 void tracker_init(void);
 void tracker_on(void); 
 void tracker_off(void);
-void tracker_clearObjects();
 
 static void trackerThread(void);
 static void activate_tx(void);
@@ -121,7 +120,7 @@ void tracker_addObject()
 
 
 void tracker_clearObjects()
-{
+{ 
     report_objects(false);
     nObjects = 0; nextObj = 0;
     activate_tx();
@@ -132,7 +131,7 @@ void tracker_clearObjects()
 static void report_object(int8_t pos, bool add)
 {
     uint8_t i = 0;
-    char id[10];
+    char id[11];
     GET_PARAM(OBJ_ID, id);
     uint8_t len = strlen( id );
     if (len>=8) 
@@ -141,7 +140,7 @@ static void report_object(int8_t pos, bool add)
        id[i] = ' ';
     id[len] = 48+pos;   
     id[9] = '\0';  
-    report_object_position(&(object_pos[pos]), id, add);
+    report_object_position(&(object_pos[pos]), id, add); 
 }
 
 
