@@ -26,8 +26,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.16 (8.1.2010)"
-#define CURRENT_VERSION_KEY 12
+#define VERSION_STRING "v0.17 (30.1.2010)"
+#define CURRENT_VERSION_KEY 13
 #define VERSION_0_10 6 
 #define COMMENT_PERIOD 4
 
@@ -57,7 +57,7 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
-#define STACK_MAIN             180
+#define STACK_MAIN             180 
 #define STACK_LED              150
 #define STACK_BATT             210
 #define STACK_USBLISTENER      480
@@ -65,8 +65,8 @@
 #define STACK_HDLCDECODER      220
 #define STACK_HDLCENCODER_TEST 150
 #define STACK_GPSLISTENER      350
-#define STACK_TRACKER          480
-#define STACK_MONITOR          280 
+#define STACK_TRACKER          480   
+#define STACK_MONITOR          280   
 
 /* Sum: 2620 bytes */
 
@@ -105,7 +105,7 @@ extern uint8_t blink_length, blink_interval;
 
 
 /*******************************************
- * B�ttery stuff
+ * Battery stuff
  *******************************************/
  
 #define BATT_HIGHCHARGE_MAX 7.15
