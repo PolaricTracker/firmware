@@ -155,15 +155,24 @@ Version 0.16
 
 
 
+Version 0.17
+------------
+* Crash when clearing objects, etc...
+     DONE (Note: beware of watchdog timer reset)
+* TRACKER ON by default
+     DONE
+* TRACKER OFF implies gps_fix = false ??
+     DONE
+* POWER -> TXPOWER
+     DONE
+* shortened commands accepts bad characters. Fix. 
+     DONE
+* Ensure that PA is not going on when going to sleep
+     NOT SURE
+
 Version 1.0
 -----------
-* Crash when clearing objects (Does not crash when in converse mode - trx is already on)
-* TRACKER OFF by default
-* TRACKER OFF implies gps_fix = false ??
-* POWER -> TXPOWER
-* shortened commands accepts bad characters. Fix. 
 * Indication of charging when battery is very low??
-
 
 
 Further development
