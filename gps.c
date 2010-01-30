@@ -247,7 +247,7 @@ void notify_fix(bool lock)
 
 
 bool gps_is_fixed()
-   { return is_fixed; }
+   { return is_fixed && GET_BYTE_PARAM(TRACKER_ON); }
    
   
 /* Return true if we waited */   
