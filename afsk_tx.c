@@ -37,7 +37,8 @@ stream_t* afsk_init_encoder(void)
 {
     STREAM_INIT(afsk_tx_stream, AFSK_ENCODER_BUFFER_SIZE);   
 
-    DAC_DDR |= DAC_MASK;
+//    DAC_DDR |= DAC_MASK;
+    DAC_DDR &= ~DAC_MASK;
     DAC_PORT = 0;
     /* Clear TXDATA pin, even when using DAC method */
     make_output(TXDATA);
@@ -60,7 +61,8 @@ void afsk_high_tone(bool t)
  *******************************************************************************/
  
 void afsk_ptt_on()
-{        
+{ 
+    DAC_DDR |= DAC_MASK;     
     TCCR3B = _PRESCALER3_SETTING     /* Pre-scaler for timer3 */             
              | (1<<WGM32) ;          /* CTC mode */   
 //    TCCR3A |= (1<<COM3A0);         /* Toggle OC3A on compare match. */
@@ -91,6 +93,7 @@ void afsk_ptt_off(void)
     DAC_PORT = 0;
     adf7021_disable_tx();
     start_tone = _TXI_MARK;
+    DAC_DDR &= ~DAC_MASK;
 }
 
 
