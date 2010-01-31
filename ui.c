@@ -59,12 +59,31 @@ void ui_init()
 
       make_input(BUTTON);
       make_input(EXT_CHARGER); 
+      enable_ports_offmode();
       clear_port(EXT_CHARGER); /* No internal pull-up */
       THREAD_START(ui_thread, STACK_LED); 
       THREAD_START(batt_check_thread, STACK_BATT); 
 }
 
 
+
+/*************************************************************************
+ * Port to be enabled, when MCU wakes up for charging.
+ *************************************************************************/
+
+static void enable_ports_offmode()
+{
+      make_output(HIGH_CHARGE);
+      clear_port(HIGH_CHARGE);
+      make_output(LED1);
+      make_output(LED2);
+      make_output(LED3);
+      make_output(LED4);
+      make_output(LED5);
+      clear_port(LED1);
+      clear_port(LED2);
+      rgb_led_off();
+}
 
 
 /*************************************************************************
@@ -147,12 +166,10 @@ void tracker_clearObjects(void);
 void push_handler()
 {
     if (is_off)
-       return;
+        return;
        
     else if (push_count == 2) 
-       // report_batt();
-    {   beeps("..---");
-       sleep(200); }   /* KRÆSJ */
+        report_batt();
     else if (push_count == 3) {
         beeps(".-.");   
         sleep(100); 
@@ -164,7 +181,7 @@ void push_handler()
     }
     else if (push_count == 5) {
         beeps("..-. -.-.");
-        tracker_clearObjects();  /* KRÆSJ HVIS OBJEKTER */
+        tracker_clearObjects();
     }
     push_count = 0;   
 }
@@ -195,6 +212,7 @@ static void wakeup_handler()
    if (asleep && is_off && (pin_is_high(EXT_CHARGER) || usb_on || usb_con())) {
        wdt_enable(WDTO_4S);
        asleep = false;
+       enable_ports_offmode();
        if(GET_BYTE_PARAM(AUTOPOWER)) {   
           is_off = false;
           autopower = true; /* Turn off if ext pwr is removed */
@@ -202,6 +220,8 @@ static void wakeup_handler()
        }
    }    
 }
+
+
 
 /****************************************************************************
  * Routines to turn off the device.
@@ -552,12 +572,12 @@ static void batt_check_thread()
              sleep(50);
              cusb = 3;
           }
-         if (autopower && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con())
-            turn_off();
-         sleep(10);
-         led_usb_restore();   
-         /* Turn off device if told to */
-         sleepmode();
+          if (autopower && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con())
+             turn_off();
+          sleep(10);
+          led_usb_restore();   
+          /* Turn off device if told to */
+          sleepmode();
        }   
        wdt_reset();
        sleep(100);
