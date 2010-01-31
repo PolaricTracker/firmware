@@ -172,6 +172,7 @@ Version 0.17
 
 Version 1.0
 -----------
+* TXTONE command not recognised. Fix.
 * Indication of charging when battery is very low??
 
 
