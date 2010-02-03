@@ -1,5 +1,4 @@
 /*
- * $Id: ui.c,v 1.9 2009-03-26 22:11:57 la7eca Exp $
  *
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
@@ -40,8 +39,8 @@ static void batt_check_thread(void);
 static void wakeup_handler(void);
 static void enable_ports_offmode();
 
-
-
+#define ENABLE_BUTTON_INT  EIMSK |= (1<<INT1)
+#define DISABLE_BUTTON_INT EIMSK &= ~(1<<INT1)
 
 void ui_init()
 {   
@@ -53,9 +52,9 @@ void ui_init()
       clear_port(BUZZER);
       usb_on = false;
       mutex_init(&beep_mutex);
-
-      EICRA = (1<<ISC10);
-      EIMSK = (1<<INT1);
+      
+      EICRA |= (1<<ISC10);
+      ENABLE_BUTTON_INT;
 
       make_input(BUTTON);
       make_input(EXT_CHARGER); 
@@ -99,6 +98,7 @@ static void onoff_handler(void*);
 static void sleepmode(void);
 
 static uint8_t tmp_push_count = 0, push_count = 0;
+
 static void push_thandler(void* x)
 {
    push_count = tmp_push_count;
@@ -111,26 +111,27 @@ bool buttdown = false;
 /* Button pin change interrupt */
 ISR(INT1_vect)
 { 
-    nop();
     if (!pin_is_high(BUTTON)) {
-       if (buttdown) return;
-       buttdown = true;
-       set_sleep_mode(SLEEP_MODE_IDLE);
-       timer_set(&onoff_timer, ONOFF_TIME);
-       timer_callback(&onoff_timer, onoff_handler, NULL);
+       if (!buttdown) {
+          buttdown = true;
+          set_sleep_mode(SLEEP_MODE_IDLE);
        
-       if (tmp_push_count > 0)
-           timer_cancel(&push_timer); 
+          timer_set(&onoff_timer, ONOFF_TIME);
+          timer_callback(&onoff_timer, onoff_handler, NULL);
+          if (tmp_push_count > 0)
+             timer_cancel(&push_timer);  
+       }
     }   
     else {
-       if (!buttdown) return;
-       buttdown = false;
-       timer_cancel(&onoff_timer);
+       if (buttdown) {
+          buttdown = false;
        
-       tmp_push_count++;
-       timer_set(&push_timer, PUSH_TIME);
-       timer_callback(&push_timer, push_thandler, NULL); 
-    }
+          timer_cancel(&onoff_timer);
+          tmp_push_count++;
+          timer_set(&push_timer, PUSH_TIME);
+          timer_callback(&push_timer, push_thandler, NULL); 
+       }
+    }     
 }
 
 
@@ -163,8 +164,9 @@ void tracker_posReport(void);
 void tracker_addObject(void);
 void tracker_clearObjects(void);
 
+
 void push_handler()
-{
+{ 
     if (is_off)
         return;
        
@@ -183,20 +185,20 @@ void push_handler()
         beeps("..-. -.-.");
         tracker_clearObjects();
     }
-    push_count = 0;   
+    push_count = 0;
 }
 
 
 void report_batt()
 {
    if (batt_voltage() > 6.55)
-        rgb_led_on(false, true, false);
+        pri_rgb_led_on(false, true, false);
    else if (batt_voltage() > 6.10)
-        rgb_led_on(true, true, false);
+        pri_rgb_led_on(true, true, false);
    else
-        rgb_led_on(true, false, false);
+        pri_rgb_led_on(true, false, false);
    sleep(150);
-   rgb_led_off();
+   pri_rgb_led_off();
    sleep(30);
 }
 
@@ -246,7 +248,6 @@ void powerdown_handler()
     
      _powerdown = false;
     
-     EIMSK = (1<<INT1); 
     /*
      * Use pin-change interrupt to wake up the device if 
      * external charger is plugged in. We do not need an ISR for this
@@ -264,8 +265,8 @@ void powerdown_handler()
      clear_port(LED1);
      clear_port(LED2);
      rgb_led_off();
-
-     make_input(BUTTON);
+       make_input(EXT_CHARGER);
+       clear_port(EXT_CHARGER);
      asleep = true;
      wdt_disable();
 }
@@ -476,8 +477,13 @@ static void ui_thread(void)
     rgb_led_off();
 
     /* 'QRV' in morse code */
-    if ( GET_BYTE_PARAM(BOOT_SOUND) )
-        beeps("--.- .-. ...-");
+    wdt_reset();
+    if ( GET_BYTE_PARAM(BOOT_SOUND) ) {
+        beeps("--.-"); 
+        wdt_reset(); 
+        beeps(" .-. ...-");
+        wdt_reset();
+    }
     report_batt(); 
     if (usb_on)
         rgb_led_on(false,false,true);
@@ -487,7 +493,10 @@ static void ui_thread(void)
         set_port( LED1 );        
         sleep(blink_length);
         clear_port( LED1 );
-        sleep( is_off ? 500 : blink_interval );
+        sleep( is_off ? 250 : blink_interval );
+        wdt_reset();
+        if (is_off) 
+          { sleep(250); wdt_reset(); }
     }
 }
  
@@ -502,11 +511,11 @@ static void ui_thread(void)
 float batt_voltage()
   {return _batt_voltage;}
   
+
   
 static void batt_check_thread()
 {
     uint8_t cbeep = 1, cusb = 1;
-    
     while (true) 
     {  
        /* Read battery voltage */
@@ -547,13 +556,13 @@ static void batt_check_thread()
           }   
        }
         
-       /*
+        /*
         * External charger handler. Indicate when plugged in
         * even if device is "turned off" 
         */   
        make_output(EXT_CHARGER); 
        clear_port(EXT_CHARGER); /* Need to pull down due to hw design flaw */
-       sleep(50);
+       sleep(20);
        make_input(EXT_CHARGER);
        clear_port(EXT_CHARGER);
        sleep(10);
@@ -566,7 +575,7 @@ static void batt_check_thread()
        }
        else {
           /* If only USB is connected, go briefly to red every 3rd round, 
-           * if battery is not fully charged */
+          * if battery is not fully charged */
           if (usb_on && cusb-- == 0 && !_batt_charged) {
              rgb_led_on(true, false, false);
              sleep(50);
@@ -579,15 +588,12 @@ static void batt_check_thread()
           /* Turn off device if told to */
           sleepmode();
        }   
-       wdt_reset();
        sleep(100);
        /* Things to do if waked up by external charger */
        wakeup_handler();
        
-       if (push_count > 0) {
+       if (push_count > 0) 
           push_handler();
-          wdt_reset();
-       }
     }   
 }
 
