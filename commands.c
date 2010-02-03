@@ -255,11 +255,11 @@ void cmdProcessor(Stream *in, Stream *out)
               help, PSTR("Send test signal with given pattern (type a key to turn off)\r\n"));
          else IF_COMMAND(arg, "version", 3, do_version, argc, argv, out, in, 
               help, PSTR("Show firmware version\r\n"));
-         else IF_COMMAND(arg, "txtone", 7, do_txtone, argc, argv, out, in, 
+         else IF_COMMAND(arg, "txtone", 5, do_txtone, argc, argv, out, in, 
               help, PSTR("TXTONE HIGH|LOW\r\nSend test signal with high or low tone (type a key to turn off)\r\n"));
          else IF_COMMAND(arg, "testpacket", 5, do_testpacket, argc, argv, out, in, 
               help, PSTR("Send test packet\r\n"));                               
-         else IF_COMMAND(arg, "gps", 4, do_nmea, argc, argv, out, in, 
+         else IF_COMMAND(arg, "gps", 2, do_nmea, argc, argv, out, in, 
               help, PSTR("GPS ON|OFF|NMEA|POS:\r\n  GPS ON/OFF - turn on or off GPS (should only be used when TRACKER is OFF)\r\n  GPS NMEA - show nmea stream\r\n  GPS POS - show valid positions\r\n"));     
          else IF_COMMAND(arg, "tracker", 6, do_tracker, argc, argv, out, in,
               help, PSTR("Turn on or off automatic tracking\r\n"));
@@ -279,7 +279,7 @@ void cmdProcessor(Stream *in, Stream *out)
              _do_command( do_converse, help, 
                 PSTR("Enter converse mode. Show incoming packets. Send typed text as packets (CTRL-C to leave\r\n"), 
                 argc, argv, out, in );   
-         else IF_COMMAND(arg, "reset", 4, do_reset, argc, argv, out, in,
+         else IF_COMMAND(arg, "reset", 5, do_reset, argc, argv, out, in,
                help, PSTR("Reset all settings to defaults\r\n"));      
 	      else if (strcasecmp("protocol", arg) == 0) 
 	           putstr_P(out,PSTR("protocol 1\r\n"));
@@ -291,7 +291,7 @@ void cmdProcessor(Stream *in, Stream *out)
               help, PSTR("Ident prefix for object reports\r\n"));           
          else IF_COMMAND(arg, "dest", 3, do_dest, argc, argv, out, in,
               help, PSTR("Destination address\r\n"));  
-         else IF_COMMAND(arg, "digipath", 4, do_digipath, argc, argv, out, in,
+         else IF_COMMAND(arg, "digipath", 3, do_digipath, argc, argv, out, in,
               help, PSTR("Digipeater path\r\n"));
          else IF_COMMAND(arg, "symbol", 3, do_symbol, argc, argv, out, in,
               help, PSTR("Symbol for position reports. <symtable> <symbol>\r\n"));  
@@ -337,19 +337,19 @@ void cmdProcessor(Stream *in, Stream *out)
                     GPS_BAUD, 1200, 19200, PSTR("GPSBAUD %d\r\n\0"), PSTR(" %d"),
                     help, PSTR("Baud rate for serial comm with GPS unit\r\n") );
          else IF_COMMAND_PARAM_uint16 
-                 ( arg, "maxturn", 6, argc, argv, out, 
+                 ( arg, "maxturn", 5, argc, argv, out, 
                     TRACKER_TURN_LIMIT, 0, 180, PSTR("MAXTURN %d\r\n\0"), PSTR(" %d"), 
                     help, PSTR("Course change threshold (0-180 degrees)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( arg, "maxpause", 6, argc, argv, out, 
+                 ( arg, "maxpause", 5, argc, argv, out, 
                     TRACKER_MAXPAUSE, 1, 200, PSTR("MAXPAUSE %d\r\n\0"), PSTR(" %d"),
                     help, PSTR("Max time between tracker position reports (in TRACKTIME units)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( arg, "minpause", 6, argc, argv, out, 
+                 ( arg, "minpause", 5, argc, argv, out, 
                     TRACKER_MINPAUSE, 1, 200, PSTR("MINPAUSE %d\r\n\0"), PSTR(" %d"),
                     help, PSTR("Min time between tracker position reports in straight forward movement (in TRACKTIME units)\r\n") );
          else IF_COMMAND_PARAM_uint8 
-                 ( arg, "mindist", 6, argc, argv, out, 
+                 ( arg, "mindist", 5, argc, argv, out, 
                     TRACKER_MINDIST, 1, 200, PSTR("MINDIST %d\r\n\0"), PSTR(" %d"),
                     help, PSTR("Distance between position reports when moving slowly (in meters)\r\n") );
          else IF_COMMAND_PARAM_uint8 
