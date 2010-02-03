@@ -150,7 +150,6 @@ static void hdlc_decode ()
    if (crc_match(&fbuf, length)) 
    {     
       /* Send packets to subscriber, if any 
-       * FIXME: Check for fqueue as well. buffer must be "shared".
        */
       if (mqueue) {      
           fbq_put( mqueue, fbuf);
