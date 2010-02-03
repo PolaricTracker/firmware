@@ -155,6 +155,10 @@ extern uint8_t blink_length, blink_interval;
 #define PD0OUT_BIT          0
 #define PD0OUT_DDR          DDRD
 
+#define PE2_IN_PORT         PORTE
+#define PE2_IN_BIT          2
+#define PE2_IN_DDR          DDRE
+
 #define BUTTON_PORT         PORTD
 #define BUTTON_BIT          1
 #define BUTTON_DDR          DDRD
