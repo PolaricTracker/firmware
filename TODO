@@ -168,12 +168,20 @@ Version 0.17
 * shortened commands accepts bad characters. Fix. 
      DONE
 * Ensure that PA is not going on when going to sleep
-     NOT SURE
+     need testing
+
+Version 0.18
+------------
+* TXTONE command not recognised. Fix.
+     DONE
+* Indication of charging when battery is very low??
+     DONE
+
 
 Version 1.0
 -----------
-* TXTONE command not recognised. Fix.
-* Indication of charging when battery is very low??
+?
+
 
 
 Further development
