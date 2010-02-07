@@ -55,9 +55,10 @@ void ui_init()
       
       EICRA |= (1<<ISC10);
       ENABLE_BUTTON_INT;
-
-      make_input(BUTTON);
-      make_input(EXT_CHARGER); 
+      
+      make_float(PE2_IN);
+      make_float(BUTTON);
+      make_float(EXT_CHARGER); 
       enable_ports_offmode();
       clear_port(EXT_CHARGER); /* No internal pull-up */
       THREAD_START(ui_thread, STACK_LED); 
@@ -110,7 +111,7 @@ static void push_thandler(void* x)
 bool buttdown = false;
 /* Button pin change interrupt */
 ISR(INT1_vect)
-{ 
+{
     if (!pin_is_high(BUTTON)) {
        if (!buttdown) {
           buttdown = true;
@@ -247,7 +248,8 @@ void powerdown_handler()
          return;
     
      _powerdown = false;
-    
+     make_float(EXT_CHARGER);
+
     /*
      * Use pin-change interrupt to wake up the device if 
      * external charger is plugged in. We do not need an ISR for this
@@ -265,10 +267,10 @@ void powerdown_handler()
      clear_port(LED1);
      clear_port(LED2);
      rgb_led_off();
-       make_input(EXT_CHARGER);
-       clear_port(EXT_CHARGER);
+
      asleep = true;
      wdt_disable();
+     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 }
 
 
@@ -280,7 +282,6 @@ static void sleepmode()
 {
     if (is_off && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con() && pin_is_high(BUTTON)) {
         _powerdown = true;
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
         /* powerdown_handler will be called as the last thing */
     }
     else
@@ -525,7 +526,7 @@ static void batt_check_thread()
        _batt_voltage += adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
        _batt_voltage /= 2;
        adc_disable();
-
+       
        /* If battery is fully charged, charge current should be low. If not, it should
         * be high
         */
@@ -538,7 +539,7 @@ static void batt_check_thread()
              _batt_charged = false;
              set_port(HIGH_CHARGE);
           }
-
+      
        /* Warn or turn off device if battery voltage is too low */
        if (_batt_voltage <= BATT_LOW_WARNING) {
           if (_batt_voltage <= BATT_LOW_TURNOFF)
@@ -555,7 +556,7 @@ static void batt_check_thread()
              led_usb_restore();
           }   
        }
-        
+       
         /*
         * External charger handler. Indicate when plugged in
         * even if device is "turned off" 
@@ -563,10 +564,9 @@ static void batt_check_thread()
        make_output(EXT_CHARGER); 
        clear_port(EXT_CHARGER); /* Need to pull down due to hw design flaw */
        sleep(20);
-       make_input(EXT_CHARGER);
-       clear_port(EXT_CHARGER);
+       make_float(EXT_CHARGER);
        sleep(10);
- 
+       
        if (((pin_is_high(EXT_CHARGER) )  || usb_con()) && !usb_on) {
           if (_batt_charged) 
              rgb_led_on(false,true,false); /* Green if fully charged */
@@ -578,20 +578,22 @@ static void batt_check_thread()
           * if battery is not fully charged */
           if (usb_on && cusb-- == 0 && !_batt_charged) {
              rgb_led_on(true, false, false);
-             sleep(50);
+             sleep(20);
              cusb = 3;
           }
           if (autopower && !pin_is_high(EXT_CHARGER) && !usb_on && !usb_con())
              turn_off();
+      
           sleep(10);
           led_usb_restore();   
           /* Turn off device if told to */
           sleepmode();
        }   
+
        sleep(100);
        /* Things to do if waked up by external charger */
        wakeup_handler();
-       
+
        if (push_count > 0) 
           push_handler();
     }   
