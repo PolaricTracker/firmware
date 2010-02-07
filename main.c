@@ -1,9 +1,8 @@
 /*
- * $Id: main.c,v 1.29 2009-05-15 22:55:09 la7eca Exp $
  *
  * Polaric tracker main program.
- * Copyright (C) 2008 LA3T Troms�gruppen av NRRL
- * Copyright (C) 2008 �yvind Hanssen la7eca@hans.priv.no 
+ * Copyright (C) 2008 LA3T Tromsøgruppen av NRRL
+ * Copyright (C) 2008 Øyvind Hanssen la7eca@hans.priv.no 
  * Copyright (C) 2008 Espen S Johnsen esj@cs.uit.no
  *
  * This program is free software: you can redistribute it and/or modify
