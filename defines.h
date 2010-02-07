@@ -58,7 +58,7 @@
  *********************************************/
 
 #define STACK_MAIN             180 
-#define STACK_LED              150
+#define STACK_LED              180
 #define STACK_BATT             210
 #define STACK_USBLISTENER      480
 #define STACK_HDLCENCODER      200
@@ -68,7 +68,6 @@
 #define STACK_TRACKER          480   
 #define STACK_MONITOR          280   
 
-/* Sum: 2620 bytes */
 
 
 /******************************************* 
