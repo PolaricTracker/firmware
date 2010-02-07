@@ -177,6 +177,13 @@ Version 0.18
 * Indication of charging when battery is very low??
      DONE
 
+Version 0.19
+------------
+* Some inputs were set with internal pullup. Fix. 
+     DONE
+* Some trackers did not put CPU to sleep
+     DONE
+
 
 Version 1.0
 -----------
