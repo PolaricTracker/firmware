@@ -46,6 +46,10 @@ void ui_init()
 {   
       /* Enable wdt */
       wdt_enable(WDTO_4S);
+
+      /* Disable USB charger */
+      make_output(USB_CHARGER);
+      clear_port(USB_CHARGER);
       
       make_output(BUZZER);     
       rgb_led_off();

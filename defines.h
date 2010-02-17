@@ -171,6 +171,10 @@ extern uint8_t blink_length, blink_interval;
 #define HIGH_CHARGE_BIT     4
 #define HIGH_CHARGE_DDR     DDRA
 
+#define USB_CHARGER_PORT    PORTA
+#define USB_CHARGER_BIT     3
+#define USB_CHARGER_DDR     DDRA
+
 #define EXT_CHARGER_PORT    PORTB
 #define EXT_CHARGER_BIT     6
 #define EXT_CHARGER_DDR     DDRB
