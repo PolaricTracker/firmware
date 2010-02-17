@@ -96,12 +96,9 @@ overallsize:
 %.bin: %.elf
 	$(OBJCOPY) -j .text -j .data -O binary $< $@
 
-# Create final output files (.hex, .img, .lss) from ELF output file.
+# Create final output files (.hex, .lss) from ELF output file.
 %.hex: %.elf
 	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
-
-%.img: %.elf
-	$(OBJCOPY) -O binary -R .eeprom $< $@
 
 # Create extended listing file from ELF output file.
 %.lss: %.elf
