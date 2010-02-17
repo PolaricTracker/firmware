@@ -18,7 +18,8 @@
 #include "adc.h"
 #include "afsk.h"
 #include "ui.h"
-#include <avr/wdt.h>
+#include "usb.h"
+
 
 
 #define MAXTOKENS 10
@@ -397,13 +398,25 @@ void cmdProcessor(Stream *in, Stream *out)
 /************************************************
  * Invoke bootloader
  ************************************************/
- 
+
+typedef void (*AppPtr_t)(void) ATTR_NO_RETURN;
+
 static void do_boot(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-     /* Tell the bootloader invoke firmware upgrade */
-     /* This command does only work with the customized bootloader */
-     eeprom_write_byte ((void*)E2END, 0xff); 
-     soft_reset ();
+  /* Disable all interrupts */
+  cli ();
+  TIMSK0 = TIMSK1 = TIMSK2 = TIMSK3 = 0;
+  UCSR1B = 0;
+
+  /* Turn off external devices */
+  USB_ShutDown ();  
+  gps_off ();
+  adf7021_power_off ();
+  
+  typedef void (*f_ptr_type)(void);
+
+  AppPtr_t bootloader_entry_point = 0x1E000;
+  bootloader_entry_point ();
 }
 
 /************************************************
