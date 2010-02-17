@@ -26,9 +26,8 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v0.19 (7.2.2010)"
-#define CURRENT_VERSION_KEY 14
-#define VERSION_0_10 6 
+#define VERSION_STRING "v1.0.RC1 (17.2.2010)"
+#define CURRENT_VERSION_KEY 15
 #define COMMENT_PERIOD 4
 
 
@@ -103,6 +102,13 @@ extern uint8_t blink_length, blink_interval;
 #define ADC_VBATT_DIVIDE 2.20513
 
 
+/****************************************** 
+ *  RSSI level calibration
+ ******************************************/
+ 
+#define RSSI_CALIBRATION 9.0
+
+
 /*******************************************
  * Battery stuff
  *******************************************/
@@ -166,6 +172,10 @@ extern uint8_t blink_length, blink_interval;
 #define OC3A_PORT           PORTC
 #define OC3A_BIT            6
 #define OC3A_DDR            DDRC
+
+#define USB_CHARGE_PORT     PORTA
+#define USB_CHARGE_BIT      3
+#define USB_CHARGE_DDR      DDRA
 
 #define HIGH_CHARGE_PORT    PORTA
 #define HIGH_CHARGE_BIT     4
