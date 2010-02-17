@@ -403,17 +403,20 @@ typedef void (*AppPtr_t)(void) ATTR_NO_RETURN;
 
 static void do_boot(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
-  /* Disable all interrupts */
-  cli ();
-  TIMSK0 = TIMSK1 = TIMSK2 = TIMSK3 = 0;
-  UCSR1B = 0;
-
   /* Turn off external devices */
-  USB_ShutDown ();  
+  USB_ShutDown ();
   gps_off ();
   adf7021_power_off ();
-  
-  typedef void (*f_ptr_type)(void);
+  clear_port (HIGH_CHARGE);
+  clear_port (USB_CHARGER);
+  rgb_led_off ();
+  clear_port (LED1);
+  clear_port (LED2);
+
+  /* Disable all interrupts */
+  TIMSK0 = TIMSK1 = TIMSK2 = TIMSK3 = 0;
+  ADCSRA = UCSR1B = PCICR = EIMSK = 0;
+  cli ();
 
   AppPtr_t bootloader_entry_point = 0x1E000;
   bootloader_entry_point ();
