@@ -496,6 +496,6 @@ double adf7021_read_rssi ()
   default:  gain = 0.0;
   }
     
-  return -130.0 + (rssi + gain) * 0.5;
+  return -130.0 + RSSI_CALIBRATION + (rssi + gain) * 0.5;
 }
 
