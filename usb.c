@@ -1,7 +1,4 @@
-/*
- * $Id: usb.c,v 1.16 2009-05-16 16:04:04 la7eca Exp $
- */
- 
+
 #include "usb.h"
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
@@ -179,36 +176,33 @@ void usb_kickout(void)
 
 ISR(ENDPOINT_PIPE_vect, ISR_BLOCK)
 { 
-	if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
-	{
-		Endpoint_ClearEndpointInterrupt(ENDPOINT_CONTROLEP);
-      USB_USBTask();
-		USB_INT_Clear(ENDPOINT_INT_SETUP);
-	}     
-	if (Endpoint_HasEndpointInterrupted(CDC_RX_EPNUM))
-	{
-		Endpoint_ClearEndpointInterrupt(CDC_RX_EPNUM);
-		Endpoint_SelectEndpoint(CDC_RX_EPNUM);	
-
-		if ( USB_INT_HasOccurred(ENDPOINT_INT_OUT) ) {
-         USB_INT_Clear(ENDPOINT_INT_OUT);
-         if (Endpoint_IsReadWriteAllowed()){
-             while (Endpoint_BytesInEndpoint() && !stream_full(&cdc_instr) ) 
-                 stream_put_nb(&cdc_instr, Endpoint_Read_Byte());
-             Endpoint_ClearIN (); //Endpoint_ClearCurrentBank();
-         }   
-      }
-
+    if (Endpoint_HasEndpointInterrupted(ENDPOINT_CONTROLEP))
+    {
+	    Endpoint_ClearEndpointInterrupt(ENDPOINT_CONTROLEP);
+            USB_USBTask();
+  	    USB_INT_Clear(ENDPOINT_INT_SETUP);
+    }     
+    if (Endpoint_HasEndpointInterrupted(CDC_RX_EPNUM))
+    {
+            Endpoint_ClearEndpointInterrupt(CDC_RX_EPNUM);
+            Endpoint_SelectEndpoint(CDC_RX_EPNUM);	
+            if ( USB_INT_HasOccurred(ENDPOINT_INT_OUT) ) {
+                USB_INT_Clear(ENDPOINT_INT_OUT);
+                if (Endpoint_IsReadWriteAllowed()){
+                    while (Endpoint_BytesInEndpoint() && !stream_full(&cdc_instr) ) 
+                    stream_put_nb(&cdc_instr, Endpoint_Read_Byte());
+                    Endpoint_ClearIN (); //Endpoint_ClearCurrentBank();
+               }   
+           }
    }
-   if (Endpoint_HasEndpointInterrupted(CDC_TX_EPNUM))
-	{	
-		Endpoint_ClearEndpointInterrupt(CDC_TX_EPNUM);
-		Endpoint_SelectEndpoint(CDC_TX_EPNUM);	
-		if ( USB_INT_HasOccurred(ENDPOINT_INT_IN) ) {  
-           cli();
-           USB_INT_Clear(ENDPOINT_INT_IN);
-           usb_kickout(); 
-      }
+   else if (Endpoint_HasEndpointInterrupted(CDC_TX_EPNUM)) 
+   {
+	   Endpoint_ClearEndpointInterrupt(CDC_TX_EPNUM);
+   	   Endpoint_SelectEndpoint(CDC_TX_EPNUM);	
+	   if ( USB_INT_HasOccurred(ENDPOINT_INT_IN) ) {  
+              USB_INT_Clear(ENDPOINT_INT_IN);
+              usb_kickout(); 
+           }
    }   
 }
 
