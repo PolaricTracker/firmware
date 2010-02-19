@@ -38,7 +38,7 @@ void sleep(uint16_t);
 void timer_cancel(Timer*);
 
 #define timer_callback(t, cb, arg) { (t)->cbarg = arg; (t)->callback = cb; }
-#define timer_wait(t)              { wait( &(t)->kick ); }
+#define timer_wait(t)              { if ((t)->count != 0) wait( &(t)->kick ); }
 #define timer_count(t)             ((t)->count)
 
 /* Must be called periodically from a timer interrupt handler */
