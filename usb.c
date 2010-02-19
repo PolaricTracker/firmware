@@ -2,6 +2,7 @@
 #include "usb.h"
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
+#include "kernel/timer.h"
 #include "defines.h"
 #include "ui.h"
 #include <avr/sleep.h>
@@ -20,6 +21,7 @@ CDC_Line_Coding_t LineCoding = { BaudRateBPS: 9600,
 Semaphore cdc_run;    
 Stream cdc_instr; 
 Stream cdc_outstr;
+Timer usb_startup; 
 
 
 bool usb_con()
@@ -30,7 +32,7 @@ bool usb_con()
 EVENT_HANDLER(USB_Connect)
 {
   set_sleep_mode(SLEEP_MODE_IDLE); 
-  clear_port(LED2);
+  timer_set(&usb_startup, 300);
 }
 
 void usb_disable()
@@ -83,16 +85,16 @@ EVENT_HANDLER(USB_ConfigurationChanged)
 
 	/* LED to indicate USB connected and ready */
 	led_usb_on();
-   enter_critical();
-   Endpoint_SelectEndpoint(CDC_RX_EPNUM);
-   Endpoint_EnableEndpoint();
-   USB_INT_Enable( ENDPOINT_INT_OUT ); 
+        enter_critical();
+        Endpoint_SelectEndpoint(CDC_RX_EPNUM);
+        Endpoint_EnableEndpoint();
+        USB_INT_Enable( ENDPOINT_INT_OUT ); 
    
-   Endpoint_SelectEndpoint(CDC_TX_EPNUM);
-   Endpoint_EnableEndpoint();   	 
-   USB_INT_Enable( ENDPOINT_INT_IN );    
-   sem_up(&cdc_run);    
-   leave_critical();    
+        Endpoint_SelectEndpoint(CDC_TX_EPNUM);
+        Endpoint_EnableEndpoint();   	 
+        USB_INT_Enable( ENDPOINT_INT_IN );    
+        sem_up(&cdc_run);    
+        leave_critical();    
 }
 
 
@@ -215,7 +217,7 @@ void usb_init()
    /* See makefile for mode constraints */
    USB_Init();
    sem_init(&cdc_run, 0);
-  
+
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);
    STREAM_INIT( cdc_outstr, CDC_BUF_SIZE);
    cdc_outstr.kick = usb_kickout;
