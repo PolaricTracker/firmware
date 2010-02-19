@@ -517,7 +517,8 @@ float batt_voltage()
   {return _batt_voltage;}
   
 
-  
+extern Timer usb_startup;
+
 static void batt_check_thread()
 {
     uint8_t cbeep = 1, cusb = 1;
@@ -564,13 +565,16 @@ static void batt_check_thread()
         /*
         * External charger handler. Indicate when plugged in
         * even if device is "turned off" 
-        */   
+        */
        make_output(EXT_CHARGER); 
-       clear_port(EXT_CHARGER); /* Need to pull down due to hw design flaw */
+       clear_port(EXT_CHARGER);   /* Need to pull down due to hw design flaw */
        sleep(20);
        make_float(EXT_CHARGER);
        sleep(10);
-       
+
+
+
+       /* LED indication of charging status */
        if (((pin_is_high(EXT_CHARGER) )  || usb_con()) && !usb_on) {
           if (_batt_charged) 
              rgb_led_on(false,true,false); /* Green if fully charged */
@@ -593,7 +597,21 @@ static void batt_check_thread()
           /* Turn off device if told to */
           sleepmode();
        }   
-
+       
+       /*
+        * Turn on USB charger if connected and other charger is not used. 
+        * otherwise, turn it off 
+        */
+       if (usb_con() && !pin_is_high(EXT_CHARGER)) {
+          timer_wait(&usb_startup);  /* Wait while USB is starting up */
+         // set_port(USB_CHARGER);
+         make_float(USB_CHARGER);
+       }
+       else {
+          make_output(USB_CHARGER);
+          clear_port(USB_CHARGER);
+       }      
+          
        sleep(100);
        /* Things to do if waked up by external charger */
        wakeup_handler();
