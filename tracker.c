@@ -37,7 +37,7 @@ static void report_station_position(posdata_t*, bool);
 static void report_object_position(posdata_t*, char*, bool);
 static void report_objects(bool);
 
-static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool);
+static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool, bool);
 static void send_header(FBUF*, bool);
 static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
@@ -367,7 +367,7 @@ static void report_station_position(posdata_t* pos, bool no_tx)
     uint8_t tstamp = GET_BYTE_PARAM(TIMESTAMP_ON); 
     fbuf_putChar(&packet, (tstamp ? '/' : '!')); 
     send_pos_report(&packet, pos, GET_BYTE_PARAM(SYMBOL), GET_BYTE_PARAM(SYMBOL_TABLE), 
-       tstamp, (GET_BYTE_PARAM(COMPRESS_ON) != 0) );
+       tstamp, (GET_BYTE_PARAM(COMPRESS_ON) != 0), false );
     
     /* Comment */
     if (ccount-- == 0) 
@@ -410,7 +410,7 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
     fbuf_putChar(&packet, (add ? '*' : '_')); 
     send_pos_report(&packet, pos, 
          GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true,
-        (GET_BYTE_PARAM(COMPRESS_ON) != 0));
+        (GET_BYTE_PARAM(COMPRESS_ON) != 0), true);
     
     /* Comment field may be added later */
 
@@ -422,7 +422,7 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
 
 
 static void send_pos_report(FBUF* packet, posdata_t* pos, 
-                            char sym, char symtab, bool tstamp, bool compress)
+                            char sym, char symtab, bool tstamp, bool compress, bool simple)
 {   
     char pbuf[14];
     
@@ -452,8 +452,11 @@ static void send_pos_report(FBUF* packet, posdata_t* pos,
        
        sprintf_P(pbuf, PSTR("%03d%05.2f%c\0"), (int)longf, (longf - (int)longf) * 60, long_we);
        fbuf_putstr (packet, pbuf);
+       fbuf_putChar(packet, sym); 
        
-       fbuf_putChar(packet, sym);   
+       if (simple)
+          return;
+          
        sprintf_P(pbuf, PSTR("%03u/%03.0f\0"), pos->course, pos->speed);
        fbuf_putstr (packet, pbuf); 
 
