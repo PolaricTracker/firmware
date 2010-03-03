@@ -21,7 +21,6 @@ CDC_Line_Coding_t LineCoding = { BaudRateBPS: 9600,
 Semaphore cdc_run;    
 Stream cdc_instr; 
 Stream cdc_outstr;
-Timer usb_startup; 
 
 
 bool usb_con()
@@ -32,7 +31,6 @@ bool usb_con()
 EVENT_HANDLER(USB_Connect)
 {
   set_sleep_mode(SLEEP_MODE_IDLE); 
-  timer_set(&usb_startup, 300);
 }
 
 void usb_disable()
@@ -221,8 +219,6 @@ void usb_init()
    STREAM_INIT( cdc_instr, CDC_BUF_SIZE);
    STREAM_INIT( cdc_outstr, CDC_BUF_SIZE);
    cdc_outstr.kick = usb_kickout;
-   /* Turn off pad regulator */
-//   clear_bit(UHWCON, UVREGE);
 }
 
       
