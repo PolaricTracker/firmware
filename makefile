@@ -137,7 +137,7 @@ dfu: $(TARGET).hex
 JTAGID=jtagmkII
 JTAGDEV=usb
 jtag: $(TARGET).hex
-	avrdude -p$(MCU) -P$(JTAGDEV) -c$(JTAGID) -Uflash:w:$(TARGET).hex
+	avrdude -p$(MCU) -P$(JTAGDEV) -c$(JTAGID) -D -Uflash:w:$(TARGET).hex
 
 
 # Target: line1 project.
