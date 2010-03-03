@@ -120,7 +120,7 @@ uint32_t gps_distance(posdata_t *from, posdata_t *to)
  *    Not thread safe. Use in at most one thread, use lock, or allocate
  *    buf on the stack instead. 
  **************************************************************************/
-
+bool nmea_ok = false;
 static void nmeaListener()
 {
     char* argv[16];
@@ -152,7 +152,8 @@ static void nmeaListener()
             if (c_checksum != checksum) 
                continue;
          } 
-        
+         nmea_ok = true;
+         
          /* Split input line into tokens */
          argc = tokenize(buf, argv, NMEA_MAXTOKENS, ",", false);           
          
