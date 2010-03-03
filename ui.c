@@ -49,7 +49,7 @@ void ui_init()
 
       /* Disable USB charger */
       make_output(USB_CHARGER);
-      clear_port(USB_CHARGER);
+      set_port(USB_CHARGER);
       
       make_output(BUZZER);     
       rgb_led_off();
@@ -470,6 +470,7 @@ void pri_rgb_led_off()
  
 uint8_t blink_length, blink_interval;
 Cond dont_blink;
+extern bool nmea_ok;
  
 static void ui_thread(void)
 {       
@@ -498,6 +499,13 @@ static void ui_thread(void)
         set_port( LED1 );        
         sleep(blink_length);
         clear_port( LED1 );
+        if (!nmea_ok) {
+            sleep(12);
+            set_port(LED1); 
+            sleep(4);
+            clear_port(LED1);
+        }
+        
         sleep( is_off ? 250 : blink_interval );
         wdt_reset();
         if (is_off) 
@@ -516,8 +524,6 @@ static void ui_thread(void)
 float batt_voltage()
   {return _batt_voltage;}
   
-
-extern Timer usb_startup;
 
 static void batt_check_thread()
 {
@@ -573,7 +579,6 @@ static void batt_check_thread()
        sleep(10);
 
 
-
        /* LED indication of charging status */
        if (((pin_is_high(EXT_CHARGER) )  || usb_con()) && !usb_on) {
           if (_batt_charged) 
@@ -597,20 +602,6 @@ static void batt_check_thread()
           /* Turn off device if told to */
           sleepmode();
        }   
-       
-       /*
-        * Turn on USB charger if connected and other charger is not used. 
-        * otherwise, turn it off 
-        */
-       if (usb_con() && !pin_is_high(EXT_CHARGER)) {
-          timer_wait(&usb_startup);  /* Wait while USB is starting up */
-         // set_port(USB_CHARGER);
-         make_float(USB_CHARGER);
-       }
-       else {
-          make_output(USB_CHARGER);
-          clear_port(USB_CHARGER);
-       }      
           
        sleep(100);
        /* Things to do if waked up by external charger */
