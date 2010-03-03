@@ -423,7 +423,7 @@ static void do_boot(uint8_t argc, char** argv, Stream* out, Stream* in)
 }
 
 /************************************************
- * Invoke bootloader
+ * Reset all settings
  ************************************************/
  
 static void do_reset(uint8_t argc, char** argv, Stream* out, Stream* in)
