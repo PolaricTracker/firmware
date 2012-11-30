@@ -26,7 +26,7 @@
 /********************************************
  *  Software version, etc
  ********************************************/
-#define VERSION_STRING "v1.0 (27.2.2010)"
+#define VERSION_STRING "v1.0 (2.3.2010)"
 #define CURRENT_VERSION_KEY 17
 #define COMMENT_PERIOD 4
 
@@ -113,7 +113,7 @@ extern uint8_t blink_length, blink_interval;
  * Battery stuff
  *******************************************/
  
-#define BATT_HIGHCHARGE_MAX 7.15
+#define BATT_HIGHCHARGE_MAX 7.2  /* justert 17 mars 2010 */
 #define BATT_LOWCHARGE_MIN  6.8 
 #define BATT_LOW_WARNING    5.7
 #define BATT_LOW_TURNOFF    5.3
