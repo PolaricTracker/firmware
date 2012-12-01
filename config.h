@@ -19,13 +19,13 @@
      EEMEM t PARAM_##x;       \
      EEMEM uint8_t PARAM_##x##_CRC
      
-#define DEFAULT_PARAM(x) PROGMEM __typeof__(PARAM_##x) PARAM_DEFAULT_##x
+#define DEFAULT_PARAM(x) const PROGMEM __typeof__(PARAM_##x) PARAM_DEFAULT_##x
 
 #else
 
 #define DEFINE_PARAM(x, t); \
      extern EEMEM t PARAM_##x; \
-     extern PROGMEM t PARAM_DEFAULT_##x 
+     extern const PROGMEM t PARAM_DEFAULT_##x 
      
 #endif
 
@@ -81,6 +81,11 @@ DEFINE_PARAM( OBJ_SYMBOL_TABLE,   uint8_t      );
 DEFINE_PARAM( OBJ_ID,             obj_id_t     );
 DEFINE_PARAM( BOOT_SOUND,         uint8_t      );
 DEFINE_PARAM( FAKE_REPORTS,       uint8_t      );
+DEFINE_PARAM( REPEAT,             uint8_t      );
+DEFINE_PARAM( EXTRATURN,          uint8_t      ); 
+DEFINE_PARAM( DIGIPEATER_ON,      uint8_t      );
+DEFINE_PARAM( DIGIPEATER_WIDE1,   uint8_t      );
+DEFINE_PARAM( DIGIPEATER_SAR,     uint8_t      );
 
 extern __trace_t trace           __attribute__ ((section (".noinit")));
 extern uint8_t   trace_index[]   __attribute__ ((section (".noinit")));
@@ -131,6 +136,11 @@ DEFAULT_PARAM( OBJ_SYMBOL_TABLE)     = '/';
 DEFAULT_PARAM( OBJ_ID)               = "MARK-";
 DEFAULT_PARAM( BOOT_SOUND )          = 1;
 DEFAULT_PARAM( FAKE_REPORTS )        = 0;
+DEFAULT_PARAM( REPEAT )              = 0;
+DEFAULT_PARAM( EXTRATURN )           = 0;
+DEFAULT_PARAM( DIGIPEATER_ON )       = 0;
+DEFAULT_PARAM( DIGIPEATER_WIDE1 )    = 0;
+DEFAULT_PARAM( DIGIPEATER_SAR)       = 1;
 
 __trace_t trace            __attribute__ ((section (".noinit")));
 uint8_t   trace_index[2]   __attribute__ ((section (".noinit")));
