@@ -11,9 +11,8 @@
 fbq_t* hdlc_init_decoder (stream_t *);
 fbq_t* hdlc_init_encoder (stream_t *);
 
-void hdlc_monitor_rx(fbq_t*);
+void hdlc_subscribe_rx(fbq_t*, uint8_t);
 void hdlc_monitor_tx(fbq_t*);
-void hdlc_subscribe(fbq_t*);
 void hdlc_test_on(uint8_t);
 void hdlc_test_off(void);
 void hdlc_wait_idle(void);
