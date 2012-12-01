@@ -27,15 +27,22 @@ LISP = clisp
 
 # LUFA definitions
 USB_PATH = LUFA/Drivers/USB
+
+LUFA_OPTS  = -D USB_DEVICE_ONLY
+LUFA_OPTS += -D FIXED_CONTROL_ENDPOINT_SIZE=8
+LUFA_OPTS += -D FIXED_NUM_CONFIGURATIONS=1
+LUFA_OPTS += -D USE_FLASH_DESCRIPTORS
+LUFA_OPTS += -D USE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
+
 USB_CFLAGS = \
-	-I$(USB_PATH) -DF_CLOCK=$(F_CPU)UL -DUSE_NONSTANDARD_DESCRIPTOR_NAMES \
-        -DNO_STREAM_CALLBACKS -DUSB_DEVICE_ONLY \
-	-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"
+	-I$(USB_PATH) -DF_CLOCK=$(F_CPU)UL $(LUFA_OPTS)
 USB_SRC = usb_descriptors.c usb.c \
-          $(USB_PATH)/LowLevel/LowLevel.c $(USB_PATH)/HighLevel/USBTask.c \
-          $(USB_PATH)/HighLevel/USBInterrupt.c $(USB_PATH)/HighLevel/Events.c \
-          $(USB_PATH)/LowLevel/DevChapter9.c $(USB_PATH)/LowLevel/Endpoint.c \
-          $(USB_PATH)/HighLevel/StdDescriptors.c 
+          $(USB_PATH)/LowLevel/USBController.c $(USB_PATH)/LowLevel/Device.c \
+          $(USB_PATH)/LowLevel/USBInterrupt.c $(USB_PATH)/HighLevel/USBTask.c \
+          $(USB_PATH)/HighLevel/Events.c $(USB_PATH)/HighLevel/EndpointStream.c $(USB_PATH)/HighLevel/PipeStream.c \
+          $(USB_PATH)/HighLevel/DeviceStandardReq.c $(USB_PATH)/LowLevel/Endpoint.c \
+          $(USB_PATH)/Class/Device/CDC.c 
+
 USB_INCLUDE = -I$(USB_PATH)
 
 # List of C source files which should be preprocessed
@@ -44,8 +51,8 @@ PSRC = commands.c
 # List C source files here.
 SRC = main.c config.c ui.c kernel/kernel.c kernel/timer.c		\
       kernel/stream.c uart.c gps.c  afsk_tx.c afsk_rx.c	\
-      hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c adc.c monitor.c	\
-      tracker.c radio.c transceiver.c $(PSRC) $(USB_SRC)
+      hdlc_encoder.c hdlc_decoder.c fbuf.c ax25.c adc.c monitor.c digipeater.c \
+      tracker.c radio.c transceiver.c heardlist.c $(PSRC) $(USB_SRC)
 
 
 # List Assembler source files here.
