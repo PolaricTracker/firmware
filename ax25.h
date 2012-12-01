@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include "fbuf.h"
 #include "kernel/stream.h"
-
+#include <stdbool.h>
 
 #define ASCII_0    0x00                 
 #define ASCII_SPC  0x20
@@ -28,6 +28,8 @@
 
 #define PID_NO_L3    0xf0
 
+#define AX25_HDR_LEN(ndigis) (14+2+(ndigis)*7)
+
 
 /* AX.25 Address Field type */
 typedef struct {
@@ -38,9 +40,8 @@ typedef struct {
 
 
 addr_t* addr(addr_t*, char*, uint8_t); 
-void str2addr(addr_t*, const char*);
 char* addr2str(char*, const addr_t*);
-
+void str2addr(addr_t* a, const char* str, bool d);
 
 /* Encode or decode header */
 void ax25_encode_header( FBUF*, addr_t*, addr_t*, addr_t[], uint8_t, 
