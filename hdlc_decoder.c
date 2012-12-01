@@ -14,7 +14,7 @@
 
 static stream_t *stream;
 static fbuf_t fbuf;
-static fbq_t *fqueue = NULL, *mqueue = NULL;
+static fbq_t* mqueue[3];
 static bool monitor = false;
 
 static void hdlc_decode (void);
@@ -27,19 +27,13 @@ static bool crc_match(FBUF*, uint8_t);
  * packets are put into the given buffer queue.
  ***********************************************************/
  
-void hdlc_monitor_rx(fbq_t* q)
-{ 
-    if (mqueue != NULL)
-        fbq_clear(mqueue);
-    mqueue = q;
-}
-   
- 
-void hdlc_subscribe(fbq_t* q)
+void hdlc_subscribe_rx(fbq_t* q, uint8_t i)
 {
-    if (fqueue != NULL)
-        fbq_clear(fqueue);
-    fqueue = q;
+    if (i > 2)
+        return;
+    if (mqueue[i] != NULL)
+        fbq_clear(mqueue[i]);
+    mqueue[i] = q;
 }
 
 
@@ -51,6 +45,7 @@ void hdlc_subscribe(fbq_t* q)
 fbq_t* hdlc_init_decoder (stream_t *s)
 {   
    stream = s;
+   mqueue[0] = mqueue[1] = mqueue[2] = NULL;
    DEFINE_FBQ(fbin, HDLC_DECODER_QUEUE_SIZE);
    fbuf_new(&fbuf);
    THREAD_START (hdlc_decode, STACK_HDLCDECODER);
@@ -120,7 +115,7 @@ static void hdlc_decode ()
    uint8_t octet = 0;
   
    fbuf_release (&fbuf); // In case we had an abort or checksum
-                         // mismatch on the previous frame
+   fbuf_new(&fbuf);      // mismatch on the previous frame
    do {
       if (length > MAX_HDLC_FRAME_SIZE)
          goto flag_sync; // Lost termination flag or only receiving noise?
@@ -151,13 +146,14 @@ static void hdlc_decode ()
    {     
       /* Send packets to subscriber, if any 
        */
-      if (mqueue) {      
-          fbq_put( mqueue, fbuf);
-          fbuf_new(&fbuf);
+      if (mqueue[0] || mqueue[1] || mqueue[2]) { 
+         if (mqueue[0]) fbq_put( mqueue[0], fbuf);               /* Monitor */
+         if (mqueue[1]) fbq_put( mqueue[1], fbuf_newRef(&fbuf)); /* Digipeater */
+         if (mqueue[2]) fbq_put( mqueue[2], fbuf_newRef(&fbuf));
       }
-      else    
-         fbuf_release(&fbuf);
-        
+      else 
+         fbuf_release(&fbuf); 
+      fbuf_new(&fbuf);
    }
   
    goto frame_sync; // Two consecutive frames may share the same flag
