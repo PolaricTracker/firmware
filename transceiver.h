@@ -4,7 +4,6 @@
 #ifndef __TRANSCEIVER_H__
 #define __TRANSCEIVER_H__
 
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -429,7 +428,7 @@ typedef enum {
   ADF7021_RX_TEST_MODE_REVERSE_IQ,
   ADF7021_RX_TEST_MODE_IQ_TO_TxRxCLK_TxRxDATA,
   ADF7021_RX_TEST_MODE_3FSK_SLICER_ON_TxRxDATA,
-  ADF7021_RX_TEST_MODE_CORRELATOR_SLICE_ON_TxRxDATA,
+  ADF7021_RX_TEST_MODE_CORRELATOR_SLICER_ON_TxRxDATA,
   ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA,// Datasheet says RXDATA
   ADF7021_RX_TEST_MODE_SDATA_TO_CDR,
   ADF7021_RX_TEST_MODE_ADDITIONAL_FILTERING_ON_IQ,
@@ -572,10 +571,13 @@ double adf7021_read_rssi (void);
 void adf7021_wait_enabled (void);
 void adf7021_wait_tx_off(void);
 
-
-#if defined USBKEY_TEST
-#define adf7021_wait_enabled() 
-#define adf7021_read_rssi() -130
+#ifdef TARGET_USBKEY
+#define adf7021_init( )
+#define adf7021_wait_enabled( )
+#define adf7021_power_off( )
+#define adf7021_enable_tx( )
+#define adf7021_disable_tx( )
+#define adf7021_read_rssi( ) -100
 #endif
 
 #endif /* __TRANSCEIVER_H__ */
