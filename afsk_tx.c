@@ -28,10 +28,7 @@ stream_t afsk_tx_stream;
 static uint16_t timertop, start_tone;
 
 bool     transmit;     /* True when transmitter(modulator) is active. */        
-extern BCond mon_ok;   /* since activity on USB/serial port disturbs modulation,
-                          there must be synchronisation to prevent those two things
-                          from running at the same time */   
-   
+
    
 stream_t* afsk_init_encoder(void) 
 {
@@ -72,7 +69,6 @@ void afsk_ptt_on()
     
     set_port(LED2);
     transmit = true; 
-    bcond_clear(&mon_ok);
 }
 
 
@@ -84,7 +80,6 @@ void afsk_ptt_on()
 
 void afsk_ptt_off(void)
 {
-    bcond_set(&mon_ok);
     transmit = false;    
     clear_port(LED2);                /* LED / PTT */
     
@@ -174,7 +169,7 @@ void afsk_txBitClock(void)
 
 ISR(TIMER3_COMPA_vect)
 {
-#if defined USBKEY_TEST
+#if defined TARGET_USBKEY
    static uint8_t sine[16] = {8, 10, 13, 14, 15, 14, 13, 10, 7, 5, 2, 1, 0, 1, 2, 5};
 #else
    static uint8_t sine[16] = {0x80,0xa0,0xd0,0xe0,0xf0,0xe0,0xd0,0xa0,0x70,0x50,0x20,0x10,0,0x10,0x20,0x50};
