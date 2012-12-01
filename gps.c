@@ -77,6 +77,7 @@ void gps_off()
 
 /*************************************************************************
  * Compute distance (in meters) between two gps positions
+ * compute bearing based on two gps positions
  *************************************************************************/
  
 /* The usual PI/180 constant */
@@ -111,6 +112,19 @@ uint32_t gps_distance(posdata_t *from, posdata_t *to)
     return (uint32_t) round(EARTH_RADIUS_IN_METERS * arcInRadians(from, to));
 }
 
+
+uint16_t gps_bearing(posdata_t *from, posdata_t *to)
+{
+    double dLon = (from->longitude - to->longitude) * DEG_TO_RAD;
+    double toLat = to->latitude * DEG_TO_RAD;
+    double fromLat = from->latitude * DEG_TO_RAD;
+    if (dLon == 0 && toLat==fromLat)
+       return -1;
+    double y = sin(dLon) * cos(from->latitude * DEG_TO_RAD);
+    double x = cos(toLat) * sin(fromLat) - sin(toLat) * cos(fromLat) * cos(dLon);
+    uint16_t brng = (uint16_t) round(atan2(y, x) / DEG_TO_RAD);
+    return (brng + 180) % 360; 
+}
 
 
 
