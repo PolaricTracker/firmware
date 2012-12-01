@@ -18,6 +18,9 @@
 // #include "math.h"
 
 posdata_t prev_pos; 
+posdata_t prev_pos_gps;
+uint16_t course=-1, prev_course=-1, prev_gps_course=-1;
+
 extern fbq_t* outframes;  
 extern Stream cdc_outstr;
 static bool maxpause_reached = false;
@@ -31,16 +34,19 @@ void tracker_off(void);
 
 static void trackerThread(void);
 static void activate_tx(void);
-static bool should_update(posdata_t*, posdata_t*);
+static bool should_update(posdata_t*, posdata_t*, posdata_t*);
+static bool course_change(uint16_t, uint16_t, uint16_t);
 static void report_status(posdata_t*);
 static void report_station_position(posdata_t*, bool);
 static void report_object_position(posdata_t*, char*, bool);
 static void report_objects(bool);
 
-static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool, bool);
+static void send_pos_report(FBUF*, posdata_t*, char, char, bool, bool);
+static void send_extra_report(FBUF* packet, posdata_t* pos, char sym, char symtab);
 static void send_header(FBUF*, bool);
 static void send_timestamp(FBUF* packet, posdata_t* pos);
 static void send_timestamp_z(FBUF* packet, posdata_t* pos);
+static void send_timestamp_compressed(FBUF* packet, posdata_t* pos);
 static void send_latlong_compressed(FBUF*, double, bool);
 static void send_csT_compressed(FBUF*, posdata_t*);
 
@@ -63,6 +69,7 @@ void tracker_init()
 {
     bcond_init(&tready, true);
     prev_pos.timestamp=0;
+    prev_pos_gps.timestamp=0;
     if (GET_BYTE_PARAM(TRACKER_ON)) 
         THREAD_START(trackerThread, STACK_TRACKER);
 }
@@ -92,8 +99,41 @@ void tracker_posReport()
 
 
 
+
 /***********************************
- * Object stuff - testing...
+ * Posreport buffer
+ ***********************************/
+
+#define MAX_BUFFERPOS 3
+static posdata_t pos_buf[MAX_BUFFERPOS];
+static int8_t nPos = 0, nextPos = 0;
+
+
+static void putPos(posdata_t p)
+{
+   if (nPos < MAX_BUFFERPOS)
+      nPos++;
+   pos_buf[nextPos] = p;
+   nextPos = (nextPos + 1) % MAX_BUFFERPOS;
+}
+
+static posdata_t getPos()
+{
+    int8_t i = nPos <= nextPos ? 
+        nextPos - nPos : MAX_BUFFERPOS+(nextPos-nPos);
+    nPos--;
+    return pos_buf[i];
+}
+
+static bool posBuf_empty()
+{
+   return (nPos == 0);
+}
+
+
+
+/***********************************
+ * Object stuff ...
  ***********************************/
 
 #define MAX_OBJECTS 4
@@ -198,7 +238,7 @@ static void trackerThread(void)
          * Send position report
          */  
         if (gps_is_fixed()) {
-           if (should_update(&prev_pos, &current_pos)) {
+           if (should_update(&prev_pos_gps, &prev_pos, &current_pos)) {
               if (GET_BYTE_PARAM(REPORT_BEEP)) 
                  { beep(3); }
             
@@ -210,6 +250,7 @@ static void trackerThread(void)
                  report_station_position(&current_pos, true);
            }
         }
+        prev_pos_gps = current_pos;
         activate_tx();
         t = GET_BYTE_PARAM(TRACKER_SLEEP_TIME);
         
@@ -253,13 +294,14 @@ static void activate_tx()
 
 
 /*********************************************************************
+ * SMART BEACONING: 
  * This function should return true if we have moved longer
  * than a certain threshold, changed direction more than a 
  * certain amount or at least a certain time has elapsed since
  * the previous update. 
  *********************************************************************/
 
-static bool should_update(posdata_t* prev, posdata_t* current)
+static bool should_update(posdata_t* prev_gps, posdata_t* prev, posdata_t* current)
 {
     uint16_t turn_limit;
     GET_PARAM(TRACKER_TURN_LIMIT, &turn_limit);
@@ -275,12 +317,35 @@ static bool should_update(posdata_t* prev, posdata_t* current)
       * the speed field in  posdata_t is in knots
       */
         
-    maxpause_reached = ( ++pause_count >= GET_BYTE_PARAM(TRACKER_MAXPAUSE));     
+    maxpause_reached = ( ++pause_count >= GET_BYTE_PARAM(TRACKER_MAXPAUSE)); 
+    
+    /* Send report if bearing has changed more than a certain threshold. 
+     *
+     * Check for both slow changes and quick changes. In the case of quick
+     * changes we may add the previous gps position to the transmission. 
+     * We may need to calculate the bearing if speed is too low.
+     */
+    prev_gps_course = course;
+    course = (current->speed > 1 ? current->course 
+                                 : gps_bearing(prev_gps, current));
+
+    if ( est_speed > 0.8 && course >= 0 && prev_course >= 0 && 
+          course_change(course, prev_course, turn_limit))
+    {
+        /* If previous gps-pos hasn't been reported already and most of the course change
+         * has happened the last period, we may add it to the transmission 
+	 */
+        if (GET_BYTE_PARAM(EXTRATURN) != 0 && 
+	        prev_gps->timestamp != prev->timestamp && course >= 0 && prev_gps_course >= 0 &&
+	        course_change(course, prev_gps_course, turn_limit*0.5))
+	   putPos(*prev_gps);
+	 
+        prev_course = course;
+        pause_count = 0;
+        beep(3);  // REMOVE.
+        return true;
+    }
     if ( maxpause_reached || waited
-       
-        /* Change in course */   
-         || ( current->speed > 1 && prev->speed > 0 &&
-                abs(current->course - prev->course) > turn_limit )
                 
         /* Send report when starting or stopping */             
          || ( pause_count >= minpause &&
@@ -298,11 +363,18 @@ static bool should_update(posdata_t* prev, posdata_t* current)
        )
     {
        pause_count = 0;
+       prev_course = course;
        return true;
     }
     return false;
 }
 
+
+static bool course_change(uint16_t crs, uint16_t prev, uint16_t limit)
+{
+     return ( (abs(crs - prev) > limit) &&
+         min (abs((crs-360) - prev), abs(crs - (prev-360))) > limit);
+}
 
 
 
@@ -366,9 +438,22 @@ static void report_station_position(posdata_t* pos, bool no_tx)
      * with Timestamp if the parameter is set */
     uint8_t tstamp = GET_BYTE_PARAM(TIMESTAMP_ON); 
     fbuf_putChar(&packet, (tstamp ? '/' : '!')); 
+    if (tstamp)
+       send_timestamp(&packet, pos);
     send_pos_report(&packet, pos, GET_BYTE_PARAM(SYMBOL), GET_BYTE_PARAM(SYMBOL_TABLE), 
-       tstamp, (GET_BYTE_PARAM(COMPRESS_ON) != 0), false );
-    
+       (GET_BYTE_PARAM(COMPRESS_ON) != 0), false );
+       
+    /* Add extra reports from buffer 
+     * FIXME: Max number of reports - configurable */
+    int i=0;
+    while (!posBuf_empty() && i++ <= 2) {
+       posdata_t p = getPos();
+       send_extra_report(&packet, &p, GET_BYTE_PARAM(SYMBOL), GET_BYTE_PARAM(SYMBOL_TABLE));
+    }
+    /* TEST: re-send report in next transmission */
+    if (GET_BYTE_PARAM(REPEAT) != 0)
+          putPos(*pos);
+     
     /* Comment */
     if (ccount-- == 0) 
     {
@@ -408,8 +493,9 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
     fbuf_putChar(&packet, ';');
     fbuf_putstr(&packet, id);     /* NOTE: LENGTH OF ID MUST BE EXCACTLY 9 CHARACTERS */ 
     fbuf_putChar(&packet, (add ? '*' : '_')); 
+    send_timestamp(&packet, pos);
     send_pos_report(&packet, pos, 
-         GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE), true,
+         GET_BYTE_PARAM(OBJ_SYMBOL), GET_BYTE_PARAM(OBJ_SYMBOL_TABLE),
         (GET_BYTE_PARAM(COMPRESS_ON) != 0), true);
     
     /* Comment field may be added later */
@@ -422,13 +508,9 @@ static void report_object_position(posdata_t* pos, char* id, bool add)
 
 
 static void send_pos_report(FBUF* packet, posdata_t* pos, 
-                            char sym, char symtab, bool tstamp, bool compress, bool simple)
+                            char sym, char symtab, bool compress, bool simple)
 {   
     char pbuf[14];
-    
-    if (tstamp) 
-        send_timestamp(packet, pos);
-    
     if (compress)
     {  
        fbuf_putChar(packet, symtab);
@@ -467,6 +549,16 @@ static void send_pos_report(FBUF* packet, posdata_t* pos,
            fbuf_putstr(packet, pbuf);
        }
     }  
+}
+
+
+
+
+static void send_extra_report(FBUF* packet, posdata_t* pos, char sym, char symtab)
+{
+   fbuf_putstr(packet, "/#\0");
+   send_timestamp_compressed(packet, pos);
+   send_pos_report(packet, pos, sym, symtab, true, true);
 }
 
 
@@ -516,7 +608,7 @@ static void send_header(FBUF* packet, bool no_tx)
     uint8_t ndigis = 0;
     if (no_tx) {
        ndigis = 1;
-       str2addr(&digis[0], "NO_TX");
+       str2addr(&digis[0], "NO_TX", false);
     }
     else {
        ndigis = GET_BYTE_PARAM(NDIGIS);
@@ -547,4 +639,17 @@ static void send_timestamp_z(FBUF* packet, posdata_t* pos)
        (uint8_t) ((pos->timestamp / 60) % 60) ); 
     fbuf_putstr(packet, ts);   
 }
+
+
+static void send_timestamp_compressed(FBUF* packet, posdata_t* pos)
+{
+    char  ts[5];
+    sprintf_P(ts, PSTR("%c%c%c\0"),
+       (char) ('0' + ((pos->timestamp / 3600) % 24)), 
+       (char) ('0' + ((pos->timestamp / 60) % 60)), 
+       (char) ('0' + (pos->timestamp % 60)) );
+    fbuf_putstr(packet, ts);
+}
+
+
 
