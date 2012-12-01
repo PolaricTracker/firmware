@@ -193,6 +193,8 @@ Version 1.0
 
 Further development
 -------------------
+* New version of LUFA and re-write USB code.
+
 * Escape sequence to issue commands in converse mode.
 * Receive commands over radio 
 * GPS powersave
