@@ -1,8 +1,10 @@
 
+#include "defines.h"
+
+#ifndef TARGET_USBKEY
 
 #include <avr/io.h>
 #include <math.h>
-#include "defines.h"
 #include "config.h"
 #include "transceiver.h"
 #include "kernel/kernel.h"
@@ -499,3 +501,4 @@ double adf7021_read_rssi ()
   return -130.0 + RSSI_CALIBRATION + (rssi + gain) * 0.5;
 }
 
+#endif
