@@ -133,7 +133,7 @@ static void hdlc_txencoder()
        * This is a blocking call.
        */ 
       buffer = fbq_get(&encoder_queue); 
-         
+
       /* Wait until channel is free 
        * P-persistence algorithm 
        */
@@ -158,10 +158,12 @@ static void hdlc_txencoder()
 
 static void wait_channel_ready()
 {
+#ifndef TARGET_USBKEY
     double sqlevel; 
     GET_PARAM(TRX_SQUELCH, &sqlevel);
     while (adf7021_read_rssi() > sqlevel) 
        sleep(10);
+#endif
 }
 
 
@@ -188,6 +190,7 @@ static void hdlc_encode_frames()
      {        
         fbuf_reset(&buffer);
         crc = 0xffff;
+
         while(!BUFFER_EMPTY)
         {
             txbyte = fbuf_getChar(&buffer);        
@@ -195,7 +198,7 @@ static void hdlc_encode_frames()
             hdlc_encode_byte(txbyte, false);
         }
         if (mqueue) {
-           fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
+//           fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
            fbq_put( mqueue, buffer);
         }
         else
