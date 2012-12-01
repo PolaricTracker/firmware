@@ -55,6 +55,7 @@ static void do_converse  (uint8_t, char**, Stream*, Stream*);
 static void do_btext     (uint8_t, char**, Stream*, Stream*);
 static void do_ps        (uint8_t, char**, Stream*, Stream*);
 static void do_reset     (uint8_t, char**, Stream*, Stream*);
+static void do_digipeater(uint8_t, char**, Stream*, Stream*);
 
 static char buf[BUFSIZE]; 
 extern fbq_t* outframes;  
@@ -219,7 +220,11 @@ void cmdProcessor(Stream *in, Stream *out)
     uint8_t argc;
     sleep (10);
     putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
+#if defined TARGET_USBKEY
+    putstr_P(out, PSTR("\n\r Welcome to 'Polaric USBKEY' firmware "));        
+#else 
     putstr_P(out, PSTR("\n\r Welcome to 'Polaric Tracker' firmware "));
+#endif    
     putstr_P(out, PSTR(VERSION_STRING));
     putstr_P(out, PSTR("\r\n (C) 2010 LA3T, Tromsogruppen av NRRL"));    
     putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
@@ -238,11 +243,11 @@ void cmdProcessor(Stream *in, Stream *out)
              if (argc < 2) {
                 putstr_P(out, PSTR("Available commands: \r\n"));
                 putstr_P(out, PSTR("  afc, altitude, autopower, beep, boot, bootsound, btext, compress, converse,\r\n")); 
-                putstr_P(out, PSTR("  dest, digipath, fcal, fakereports, freq, gps, listen,  maxframe, maxpause, \r\n"));
-                putstr_P(out, PSTR("  maxturn, mindist, minpause, mycall, oident, osymbol, powersave, reset, rssi, \r\n"));
-                putstr_P(out, PSTR("  squelch, statustime, symbol, testpacket, timestamp, teston, tracker, tracktime, \r\n"));
-                putstr_P(out, PSTR("  txdelay, txon, txmon, txtail, txtone, version\r\n"));
-                putstr_P(out, PSTR("\r\nMore info: \r\nhelp <command> or ? <command>\r\n\r\n"));
+                putstr_P(out, PSTR("  dest, digipeater, path, fcal, extraturn, fakereports, freq, gps, listen,  maxframe, \r\n"));
+                putstr_P(out, PSTR("  maxpause, maxturn, mindist, minpause, mycall, oident, osymbol, powersave, \r\n"));
+                putstr_P(out, PSTR("  repeat, reset, rssi, squelch, statustime, symbol, testpacket, timestamp, \r\n"));
+                putstr_P(out, PSTR("  teston, tracker, tracktime, txdelay, txon, txmon, txtail, txtone, version\r\n"));
+                putstr_P(out, PSTR("\r\nMore info: \r\n  help <command> or ? <command>\r\n\r\n"));
                 continue;
              }
              arg = argv[1];
@@ -264,6 +269,8 @@ void cmdProcessor(Stream *in, Stream *out)
               help, PSTR("GPS ON|OFF|NMEA|POS:\r\n  GPS ON/OFF - turn on or off GPS (should only be used when TRACKER is OFF)\r\n  GPS NMEA - show nmea stream\r\n  GPS POS - show valid positions\r\n"));     
          else IF_COMMAND(arg, "tracker", 6, do_tracker, argc, argv, out, in,
               help, PSTR("Turn on or off automatic tracking\r\n"));
+         else IF_COMMAND(arg, "digipeater", 4, do_digipeater, argc, argv, out, in,
+              help, PSTR("Turn on or off digipeater\r\n"));         
          else IF_COMMAND(arg, "txon", 4, do_txon, argc, argv, out, in,
               help, PSTR("Turn on transmitter (type a key to turn off)\r\n"));
          else IF_COMMAND(arg, "rssi", 2, do_rssi, argc, argv, out, in,
@@ -292,7 +299,7 @@ void cmdProcessor(Stream *in, Stream *out)
               help, PSTR("Ident prefix for object reports\r\n"));           
          else IF_COMMAND(arg, "dest", 3, do_dest, argc, argv, out, in,
               help, PSTR("Destination address\r\n"));  
-         else IF_COMMAND(arg, "digipath", 3, do_digipath, argc, argv, out, in,
+         else IF_COMMAND(arg, "path", 3, do_digipath, argc, argv, out, in,
               help, PSTR("Digipeater path\r\n"));
          else IF_COMMAND(arg, "symbol", 3, do_symbol, argc, argv, out, in,
               help, PSTR("Symbol for position reports. <symtable> <symbol>\r\n"));  
@@ -379,17 +386,28 @@ void cmdProcessor(Stream *in, Stream *out)
                  ( arg, "autopower", 4, argc, argv, out, AUTOPOWER, PSTR("AUTOPOWER"),
                    help, PSTR("External power supply turns on/off tracker automatically (on/off)\r\n") );
          else IF_COMMAND_PARAM_bool
+                 ( arg, "repeat", 3, argc, argv, out, REPEAT, PSTR("REPEAT"),
+                    help, PSTR("EXPERIMENTAL: Extra transmission of position reports (on/off)\r\n") );
+	 else IF_COMMAND_PARAM_bool
+	         (arg, "extraturn", 4, argc, argv, out, EXTRATURN, PSTR("EXTRATURN"),
+		    help, PSTR("EXPERIMENTAL: If reporting is triggered by course change, add previous position (on/off)\r\n") );
+	 else IF_COMMAND_PARAM_bool
                  ( arg, "bootsound", 5, argc, argv, out, BOOT_SOUND, PSTR("BOOTSOUND"),
-                    help, PSTR("Sound signal at boot (on/off)\r\n") );
+                    help, PSTR("Sound signal at boot (on/off)\r\n") );	 
+         else IF_COMMAND_PARAM_bool
+                   ( arg, "digi-sar", 6, argc, argv, out, DIGIPEATER_SAR, PSTR("DIGI-SAR"),
+                   help, PSTR("Digipeater. Preemption on SAR alias\r\n") );
+         else IF_COMMAND_PARAM_bool
+           ( arg, "digi-wide1", 6, argc, argv, out, DIGIPEATER_WIDE1, PSTR("DIGI-WIDE1"),
+                   help, PSTR("Digipeater. Preemption on SAR alias\r\n") );        
          else IF_COMMAND_PARAM_bool
                  ( arg, "fakereports", 6, argc, argv, out, FAKE_REPORTS, PSTR("FAKEREPORTS"),
-                   help, PSTR("In LISTEN or CONVERSE mode, display position reports every TRACKTIME (on/off)\r\n") ); 	     
+                   help, PSTR("EXPERIMENTAL: In LISTEN or CONVERSE mode, display position reports every TRACKTIME (on/off)\r\n") ); 	     
          else IF_COMMAND(arg, "boot", 4, do_boot, argc, argv, out, in,
                help, PSTR("Invoke bootloader for firmware upgrade\r\n"));
          else if (strlen(arg) > 0)
              putstr_P(out, PSTR("*** Unknown command\r\n"));
-         else 
-             continue; 
+         else              continue; 
          putstr(out,"\r\n");         
    }
 }   
@@ -504,7 +522,7 @@ static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 /************************************************
  * Converse mode
  ************************************************/
- 
+
 static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
    putstr_P(out, PSTR("***** CONVERSE MODE *****\r\n"));
@@ -513,6 +531,7 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
    mon_activate(true); 
    while ( readLine(in, out, buf, BUFSIZE)) {
         FBUF packet;    
+        
         addr_t from, to; 
         GET_PARAM(MYCALL, &from);
         GET_PARAM(DEST, &to);       
@@ -526,6 +545,34 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
    mon_activate(false);
    afsk_disable_decoder(); 
    radio_release();
+}
+
+
+
+
+static void do_digipeater(uint8_t argc, char** argv, Stream* out, Stream* in)
+{
+  if (argc < 2)
+  {
+    if (GET_BYTE_PARAM(DIGIPEATER_ON))
+      putstr_P(out, PSTR("DIGIPEATER ON\r\n"));
+    else
+      putstr_P(out, PSTR("DIGIPEATER OFF\r\n"));
+    return;
+  }
+  if (strncasecmp("on", argv[1], 2) == 0) {   
+    putstr_P(out, PSTR("Ok\r\n"));
+    SET_BYTE_PARAM(DIGIPEATER_ON, true);
+    digipeater_activate(true);
+  }  
+  else if (strncasecmp("off", argv[1], 2) == 0) {     
+    putstr_P(out, PSTR("Ok\r\n"));
+    SET_BYTE_PARAM(DIGIPEATER_ON, false);
+    digipeater_activate(false);
+  }
+  else {
+    putstr_P(out, PSTR("ERROR: parameter must be 'ON' or 'OFF'\r\n"));
+  }
 }
 
 
@@ -727,7 +774,7 @@ static void do_mycall(uint8_t argc, char** argv, Stream* out, Stream* in)
    addr_t x;
    char cbuf[11]; 
    if (argc > 1) {
-      str2addr(&x, argv[1]);
+      str2addr(&x, argv[1], false);
       SET_PARAM(MYCALL, &x);
       putstr_P(out,PSTR("Ok\r\n"));
    }
@@ -748,7 +795,7 @@ static void do_dest(uint8_t argc, char** argv, Stream* out, Stream* in)
    addr_t x;
    char cbuf[11]; 
    if (argc > 1) {
-      str2addr(&x, argv[1]);
+      str2addr(&x, argv[1], false);
       SET_PARAM(DEST, &x);
       putstr_P(out,PSTR("Ok\r\n"));
    }
@@ -780,7 +827,7 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out, Stream* in)
          if (ndigis > 7) 
              ndigis = 7;
          for (i=0; i<ndigis; i++)
-             str2addr(&digis[i], argv[i+1]);
+             str2addr(&digis[i], argv[i+1], false);
          SET_PARAM(DIGIS, digis);     
        }
        SET_BYTE_PARAM(NDIGIS, ndigis);
@@ -789,7 +836,7 @@ static void do_digipath(uint8_t argc, char** argv, Stream* out, Stream* in)
     else  {
        ndigis = GET_BYTE_PARAM(NDIGIS);
        GET_PARAM(DIGIS, &digis);
-       putstr_P(out, PSTR("DIGIPATH ")); 
+       putstr_P(out, PSTR("PATH ")); 
        if (ndigis==0)
            putstr_P(out, PSTR("<EMPTY>\r\n"));
        for (i=0; i<ndigis; i++)
