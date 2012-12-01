@@ -1,14 +1,16 @@
-/* $Id: */
-
 #include "defines.h"
-#include "config.h"
+#ifndef TARGET_USBKEY
+
+#include "radio.h"
 #include "transceiver.h"
+#include "config.h"
 #include "kernel/timer.h"
 #include "hdlc.h"
+#include "ui.h"
 
  
 static int count = 0; 
-static adf7021_setup_t* _radio_setup(void);
+adf7021_setup_t* _radio_setup(void);
 
 
 /******************************************************
@@ -67,7 +69,7 @@ void radio_setup(void)
  *   - Parts of the setup may be stored in EEPROM?
  **************************************************************************/
 static adf7021_setup_t trx_setup;
-static adf7021_setup_t*  _radio_setup(void)
+adf7021_setup_t*  _radio_setup(void)
 {
     uint32_t freq; 
     int16_t  fcal;
@@ -89,11 +91,22 @@ static adf7021_setup_t*  _radio_setup(void)
     adf7021_set_data_rate (&trx_setup, 4400);    
     adf7021_set_modulation (&trx_setup, ADF7021_MODULATION_OVERSAMPLED_2FSK, dev);
     adf7021_set_power (&trx_setup, power, ADF7021_PA_RAMP_OFF);   
-    adf7021_set_demodulation (&trx_setup, ADF7021_DEMOD_2FSK_LINEAR);
-    adf7021_enable_AFC(&trx_setup, afc);
+    adf7021_set_demodulation (&trx_setup, ADF7021_DEMOD_2FSK_CORRELATOR);
+    if (afc > 0)
+         adf7021_enable_AFC(&trx_setup, afc);
+    
+//    ADF7021_INIT_REGISTER(trx_setup.agc, ADF7021_AGC_REGISTER);
+//    trx_setup.agc.mode = ADF7021_AGC_MODE_AUTO;
+    
     trx_setup.demod.if_bw = ADF7021_DEMOD_IF_BW_12_5;
-    adf7021_set_post_demod_filter (&trx_setup, 3500); 
+    adf7021_set_post_demod_filter (&trx_setup, 3400); 
     ADF7021_INIT_REGISTER(trx_setup.test_mode, ADF7021_TEST_MODE_REGISTER);
     trx_setup.test_mode.rx = ADF7021_RX_TEST_MODE_LINEAR_SLICER_ON_TxRxDATA;
     return &trx_setup;
 }
+
+#endif
+
+
+
+
