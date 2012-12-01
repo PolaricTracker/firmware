@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
-
  
 /* Static functions */
 static void encode_addr(FBUF *, char*, uint8_t, uint8_t);
@@ -22,7 +21,7 @@ static uint8_t decode_addr(FBUF *, addr_t* );
  * Format: <callsign>-<ssid> 
  **************************************************************************/
 
-void str2addr(addr_t* addr, const char* string)
+void str2addr(addr_t* addr, const char* string, bool digi)
 {
    register uint8_t ssid = 0;
    register uint8_t i;
@@ -35,6 +34,7 @@ void str2addr(addr_t* addr, const char* string)
    }
    addr->callsign[i] = 0;
    addr->ssid = ssid & 0x0f; 
+   addr->flags = (digi ? FLAG_DIGI : 0);
 }
 
 
@@ -74,7 +74,8 @@ void ax25_encode_header(FBUF* b, addr_t* from,
     
     /* Digipeater field */
     for (i=0; i<ndigis; i++)
-        encode_addr(b, digis[i].callsign, digis[i].ssid, (i+1==ndigis ? FLAG_LAST : 0));
+        encode_addr(b, digis[i].callsign, digis[i].ssid, 
+            digis[i].flags | (i+1==ndigis ? FLAG_LAST : 0));
 
     
     fbuf_putChar(b, ctrl);           // CTRL field
@@ -82,6 +83,7 @@ void ax25_encode_header(FBUF* b, addr_t* from,
          ctrl == FTYPE_UI)           // or UI frame
        fbuf_putChar(b, pid);        
 }
+
 
 
 
@@ -180,20 +182,18 @@ void ax25_display_frame(Stream* out, FBUF *b)
     for (i=0; i<ndigis; i++) {
        putstr_P(out, PSTR(","));
        ax25_display_addr(out, &digis[i]);
-       if (digis[i].flags & FLAG_DIGI && (i >= ndigis-1 || !(digis[i+1].flags & FLAG_DIGI)))
+       if (digis[i].flags & FLAG_DIGI)
            putstr_P(out, PSTR("*"));
     }
     if (ctrl == FTYPE_UI)
     {
        putstr_P(out, PSTR(":"));    
-       for (i=0; i < fbuf_length(b) - (14+2+ndigis*7)-2; i++) {
+       for (i=0; i < fbuf_length(b) - AX25_HDR_LEN(ndigis)-2; i++) {
           register char c = fbuf_getChar(b); 
-          if (c!='\n' && c!='\r' && c>=' ')
+          if (c!='\n' && c!='\r' && c>=(char) 28)
               putch(out, c);
        }
     }
-    else
-       putstr_P(out, PSTR(" *** NON-UI FRAME ***")); 
 
 }
 
