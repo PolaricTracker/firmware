@@ -73,7 +73,7 @@ ISR(TIMER2_COMPA_vect)
         timer_tick();  
         ticks = 0; 
      }  
-     if (++rxticks == 240) {
+     if (++rxticks == 60) {
         rxticks = 0; 
         afsk_check_channel ();
      }
@@ -119,7 +119,7 @@ int main(void)
 {
       CLKPR = (1<<7);
       CLKPR = 0;
-      
+
       /* Disable watchdog timer */
       MCUSR = 0;
       wdt_disable();
@@ -139,13 +139,14 @@ int main(void)
                             
       /* HDLC and AFSK setup */
       mon_init(&cdc_outstr);
+      digipeater_init();
       adf7021_init();
       inframes  = hdlc_init_decoder( afsk_init_decoder() );
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
 
 
       /* USB */
-      usb_init();    
+      usb_init();  
       THREAD_START(usbSerListener, STACK_USBLISTENER);
   
       ui_init();    
