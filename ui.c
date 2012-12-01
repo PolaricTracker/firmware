@@ -17,6 +17,7 @@
 #include <inttypes.h>
 #include <avr/interrupt.h>
 #include "transceiver.h"
+#include "radio.h"
 #include "gps.h"
 #include "adc.h"
 #include "usb.h"
@@ -42,10 +43,11 @@ static void enable_ports_offmode();
 #define ENABLE_BUTTON_INT  EIMSK |= (1<<INT1)
 #define DISABLE_BUTTON_INT EIMSK &= ~(1<<INT1)
 
+
 void ui_init()
 {   
       /* Enable wdt */
-      wdt_enable(WDTO_4S);
+//      wdt_enable(WDTO_4S);
 
       /* Disable USB charger */
       make_output(USB_CHARGER);
@@ -490,7 +492,7 @@ static void ui_thread(void)
         beeps(" .-. ...-");
         wdt_reset();
     }
-    report_batt(); 
+//    report_batt(); 
     if (usb_on)
         rgb_led_on(false,false,true);
    
@@ -513,7 +515,6 @@ static void ui_thread(void)
     }
 }
  
- 
 
 /**********************************************************************
  * Thread that mainly controls charging of battery.
@@ -530,13 +531,14 @@ static void batt_check_thread()
     uint8_t cbeep = 1, cusb = 1;
     while (true) 
     {  
+#if !defined TARGET_USBKEY       
        /* Read battery voltage */
        adc_enable();
        _batt_voltage = adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
        sleep(10);
        _batt_voltage += adc_get(ADC_CHANNEL_0) * ADC_VBATT_DIVIDE;
        _batt_voltage /= 2;
-       adc_disable();
+       adc_disable(); 
        
        /* If battery is fully charged, charge current should be low. If not, it should
         * be high
@@ -566,7 +568,7 @@ static void batt_check_thread()
              sleep(40);
              led_usb_restore();
           }   
-       }
+       } 
        
         /*
         * External charger handler. Indicate when plugged in
@@ -599,14 +601,15 @@ static void batt_check_thread()
       
           sleep(10);
           led_usb_restore();   
+       
           /* Turn off device if told to */
           sleepmode();
        }   
-          
+
+#endif            
        sleep(100);
        /* Things to do if waked up by external charger */
        wakeup_handler();
-
        if (push_count > 0) 
           push_handler();
     }   
