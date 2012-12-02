@@ -89,7 +89,7 @@ ASFLAGS += -mmcu=$(MCU)
 LDFLAGS += -mmcu=$(MCU)	
 
 .PHONY : build
-build: $(TARGET).elf $(TARGET).hex $(TARGET).img $(TARGET).lss $(TARGET).bin line1 overallsize line2
+build: $(TARGET).elf $(TARGET).hex $(TARGET).lss $(TARGET).bin line1 overallsize line2
 
 .PHONY : BuildAll
 buildall: clean build

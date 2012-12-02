@@ -1,18 +1,18 @@
 /*
              LUFA Library
-     Copyright (C) Dean Camera, 2009.
-              
+     Copyright (C) Dean Camera, 2010.
+
   dean [at] fourwalledcubicle [dot] com
-      www.fourwalledcubicle.com
+           www.lufa-lib.org
 */
 
 /*
-  Copyright 2009  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+  Copyright 2010  Dean Camera (dean [at] fourwalledcubicle [dot] com)
 
-  Permission to use, copy, modify, and distribute this software
-  and its documentation for any purpose and without fee is hereby
-  granted, provided that the above copyright notice appear in all
-  copies and that both that the copyright notice and this
+  Permission to use, copy, modify, distribute, and sell this
+  software and its documentation for any purpose is hereby granted
+  without fee, provided that the above copyright notice appear in
+  all copies and that both that the copyright notice and this
   permission notice and warranty disclaimer appear in supporting
   documentation, and that the name of the author not be used in
   advertising or publicity pertaining to distribution of the
@@ -29,6 +29,7 @@
 */
 
 /** \file
+ *  \brief Supported board hardware defines.
  *
  *  This file contains constants which can be passed to the compiler (via setting the macro BOARD) in the
  *  user project makefile using the -D option to configure the library board-specific drivers.
@@ -45,7 +46,7 @@
  *
  *  @{
  */
-	
+
 #ifndef __BOARDTYPES_H__
 #define __BOARDTYPES_H__
 
@@ -56,18 +57,18 @@
 
 	/* Public Interface - May be used in end-application: */
 		/* Macros: */
-			/** Selects the USBKEY specific board drivers, including Dataflash, Joystick and LED drivers. */
+			/** Selects the USBKEY specific board drivers, including Temperature, Button, Dataflash, Joystick and LED drivers. */
 			#define BOARD_USBKEY        0
 
-			/** Selects the STK525 specific board drivers, including Dataflash, Joystick and LED drivers. */
+			/** Selects the STK525 specific board drivers, including Temperature, Button, Dataflash, Joystick and LED drivers. */
 			#define BOARD_STK525        1
 
-			/** Selects the STK526 specific board drivers, including Dataflash, Joystick and LED drivers. */
+			/** Selects the STK526 specific board drivers, including Temperature, Button, Dataflash, Joystick and LED drivers. */
 			#define BOARD_STK526        2
 
 			/** Selects the RZUSBSTICK specific board drivers, including the driver for the boards LEDs. */
 			#define BOARD_RZUSBSTICK    3
-			
+
 			/** Selects the ATAVRUSBRF01 specific board drivers, including the driver for the board LEDs. */
 			#define BOARD_ATAVRUSBRF01  4
 
@@ -78,6 +79,73 @@
 			 */
 			#define BOARD_USER          5
 
+			/** Selects the BUMBLEB specific board drivers, using the officially recommended peripheral layout. */
+			#define BOARD_BUMBLEB       6
+
+			/** Selects the XPLAIN (Revision 2 or newer) specific board drivers, including LED and Dataflash driver. */
+			#define BOARD_XPLAIN        7
+
+			/** Selects the XPLAIN (Revision 1) specific board drivers, including LED and Dataflash driver. */
+			#define BOARD_XPLAIN_REV1   8
+
+			/** Selects the EVK527 specific board drivers, including Temperature, Button, Dataflash, Joystick and LED drivers. */
+			#define BOARD_EVK527        9
+
+			/** Disables board drivers when operation will not be adversely affected (e.g. LEDs) - use of board drivers
+			 *  such as the Joystick driver, where the removal would adversely affect the code's operation is still disallowed. */
+			#define BOARD_NONE          10
+
+			/** Selects the Teensy (all versions) specific board drivers, including the driver for the board LEDs. */
+			#define BOARD_TEENSY        11
+
+			/** Selects the USBTINY MKII specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_USBTINYMKII   12
+
+			/** Selects the Benito specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_BENITO        13
+
+			/** Selects the JM-DB-U2 specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_JMDBU2        14
+
+			/** Selects the Olimex AVR-USB-162 specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_OLIMEX162     15
+
+			/** Selects the UDIP specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_UDIP          16
+
+			/** Selects the BUI specific board drivers, including the driver for the board LEDs. */
+			#define BOARD_BUI           17
+
+			/** Selects the Arduino Uno specific board drivers, including the driver for the board LEDs. */
+			#define BOARD_UNO           18
+
+			/** Selects the CUL V3 specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_CULV3         19
+
+			/** Selects the Blackcat USB JTAG specific board drivers, including the driver for the board LEDs. */
+			#define BOARD_BLACKCAT      20
+
+			/** Selects the Maximus specific board drivers, including the driver for the board LEDs. */
+			#define BOARD_MAXIMUS       21
+
+			/** Selects the Minimus specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_MINIMUS       22
+
+			/** Selects the Adafruit U4 specific board drivers, including the Button driver. */
+			#define BOARD_ADAFRUITU4    23
+
+			/** Selects the Microsin AVR-USB162 specific board drivers, including the Button and LEDs drivers. */
+			#define BOARD_MICROSIN162   24
+
+			#if !defined(__DOXYGEN__)
+				#define BOARD_          BOARD_NONE
+
+				#if !defined(BOARD)
+					#define BOARD       BOARD_NONE
+				#endif
+			#endif
+
 #endif
 
 /** @} */
+

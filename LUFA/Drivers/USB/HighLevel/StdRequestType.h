@@ -1,18 +1,18 @@
 /*
              LUFA Library
-     Copyright (C) Dean Camera, 2009.
-              
+     Copyright (C) Dean Camera, 2010.
+
   dean [at] fourwalledcubicle [dot] com
-      www.fourwalledcubicle.com
+           www.lufa-lib.org
 */
 
 /*
-  Copyright 2009  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+  Copyright 2010  Dean Camera (dean [at] fourwalledcubicle [dot] com)
 
-  Permission to use, copy, modify, and distribute this software
-  and its documentation for any purpose and without fee is hereby
-  granted, provided that the above copyright notice appear in all
-  copies and that both that the copyright notice and this
+  Permission to use, copy, modify, distribute, and sell this
+  software and its documentation for any purpose is hereby granted
+  without fee, provided that the above copyright notice appear in
+  all copies and that both that the copyright notice and this
   permission notice and warranty disclaimer appear in supporting
   documentation, and that the name of the author not be used in
   advertising or publicity pertaining to distribution of the
@@ -28,17 +28,34 @@
   this software.
 */
 
+/** \file
+ *  \brief USB control endpoint request definitions.
+ *
+ *  This file contains structures and macros for the easy creation and parsing of standard USB control requests.
+ *
+ *  \note This file should not be included directly. It is automatically included as needed by the USB driver
+ *        dispatch header located in LUFA/Drivers/USB/USB.h.
+ */
+
 /** \ingroup Group_USB
  *  @defgroup Group_StdRequest Standard USB Requests
  *
  *  This module contains definitions for the various control request parameters, so that the request
- *   details (such as data direction, request recipient, etc.) can be extracted via masking.
+ *  details (such as data direction, request recipient, etc.) can be extracted via masking.
  *
  *  @{
  */
 
 #ifndef __STDREQTYPE_H__
 #define __STDREQTYPE_H__
+
+	/* Includes: */
+		#include <stdint.h>
+
+	/* Preprocessor Checks: */
+		#if !defined(__INCLUDE_FROM_USB_DRIVER)
+			#error Do not include this file directly. Include LUFA/Drivers/USB/USB.h instead.
+		#endif
 
 	/* Public Interface - May be used in end-application: */
 		/* Macros: */
@@ -64,6 +81,8 @@
 			 */
 			#define CONTROL_REQTYPE_RECIPIENT  0x1F
 
+			/** \name Control Request Data Direction Masks */
+			//@{
 			/** Request data direction mask, indicating that the request data will flow from host to device.
 			 *
 			 *  \see \ref CONTROL_REQTYPE_DIRECTION macro.
@@ -75,7 +94,10 @@
 			 *  \see \ref CONTROL_REQTYPE_DIRECTION macro.
 			 */
 			#define REQDIR_DEVICETOHOST        (1 << 7)
+			//@}
 
+			/** \name Control Request Type Masks */
+			//@{
 			/** Request type mask, indicating that the request is a standard request.
 			 *
 			 *  \see \ref CONTROL_REQTYPE_TYPE macro.
@@ -93,7 +115,10 @@
 			 *  \see \ref CONTROL_REQTYPE_TYPE macro.
 			 */
 			#define REQTYPE_VENDOR             (2 << 5)
+			//@}
 
+			/** \name Control Request Recipient Masks */
+			//@{
 			/** Request recipient mask, indicating that the request is to be issued to the device as a whole.
 			 *
 			 *  \see \ref CONTROL_REQTYPE_RECIPIENT macro.
@@ -120,23 +145,12 @@
 			 *  \see \ref CONTROL_REQTYPE_RECIPIENT macro.
 			 */
 			#define REQREC_OTHER               (3 << 0)
-			
-			/** Feature indicator for Clear Feature or Set Feature commands. When used in a Clear Feature
-			 *  request this indicates that an endpoint (whose address is given elsewhere in the request
-			 *  should have its stall condition cleared. If used in a similar manner inside a Set Feature
-			 *  request, this stalls an endpoint.
-			 */
-			#define FEATURE_ENDPOINT_HALT           0x00
-
-			/** Feature indicator for Clear Feature or Set Feature commands. When used in a Clear Feature
-			 *  request this indicates that the remote wakeup enabled device should not issue remote
-			 *  wakeup requests until further notice. If used in a similar manner inside a Set Feature
-			 *  request, this re-enabled the remote wakeup feature on the device.
-			 */
-			#define FEATURE_REMOTE_WAKEUP           0x01
+			//@}
 
 		/* Type Defines: */
-			/** Type define for a standard USB control request.
+			/** \brief Standard USB Control Request
+			 *
+			 *  Type define for a standard USB control request.
 			 *
 			 *  \see The USB 2.0 specification for more information on standard control requests.
 			 */
@@ -160,42 +174,64 @@
 			{
 				REQ_GetStatus           = 0, /**< Implemented in the library for device, endpoint and interface
 				                              *   recipients. Passed to the user application for other recipients
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_ClearFeature        = 1, /**< Implemented in the library for device, endpoint and interface
 				                              *   recipients. Passed to the user application for other recipients
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_SetFeature          = 3, /**< Implemented in the library for device, endpoint and interface
 				                              *   recipients. Passed to the user application for other recipients
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_SetAddress          = 5, /**< Implemented in the library for the device recipient. Passed
 				                              *   to the user application for other recipients via the
-				                              *   \ref USB_UnhandledControlPacket() event when received in
+				                              *   \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
-				REQ_GetDescriptor       = 6, /**< Implemented in the library for all recipients and all request
-				                              *   types. */
+				REQ_GetDescriptor       = 6, /**< Implemented in the library for device and interface recipients. Passed to the
+				                              *   user application for other recipients via the
+				                              *   \ref EVENT_USB_Device_ControlRequest() event when received in
+				                              *   device mode. */
 				REQ_SetDescriptor       = 7, /**< Not implemented in the library, passed to the user application
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_GetConfiguration    = 8, /**< Implemented in the library for the device recipient. Passed
 				                              *   to the user application for other recipients via the
-				                              *   \ref USB_UnhandledControlPacket() event when received in
+				                              *   \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_SetConfiguration    = 9, /**< Implemented in the library for the device recipient. Passed
 				                              *   to the user application for other recipients via the
-				                              *   \ref USB_UnhandledControlPacket() event when received in
+				                              *   \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_GetInterface        = 10, /**< Not implemented in the library, passed to the user application
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_SetInterface        = 11, /**< Not implemented in the library, passed to the user application
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
 				REQ_SynchFrame          = 12, /**< Not implemented in the library, passed to the user application
-				                              *   via the \ref USB_UnhandledControlPacket() event when received in
+				                              *   via the \ref EVENT_USB_Device_ControlRequest() event when received in
 				                              *   device mode. */
+			};
+			
+			/** Feature Selector values for Set Feature and Clear Feature standard control requests directed to the device, interface
+			 *  and endpoint recipients.
+			 */
+			enum USB_Feature_Selectors_t
+			{
+				FEATURE_SEL_EndpointHalt       = 0x00, /**< Feature selector for Clear Feature or Set Feature commands. When
+				                                        *   used in a Set Feature or Clear Feature request this indicates that an
+				                                        *   endpoint (whose address is given elsewhere in the request should have
+				                                        *   its stall condition changed.
+				                                        */
+				FEATURE_SEL_DeviceRemoteWakeup = 0x01, /**< Feature selector for Device level Remote Wakeup enable set or clear.
+			                                            *   This feature can be controlled by the host on devices which indicate
+			                                            *   remote wakeup support in their descriptors to selectively disable or
+			                                            *   enable remote wakeup.
+			                                            */
+				FEATURE_SEL_TestMode           = 0x02, /**< Feature selector for Test Mode features, used to test the USB controller
+			                                            *   to check for incorrect operation.
+			                                            */
 			};
 
 	/* Private Interface - For use in library only: */
@@ -208,3 +244,4 @@
 #endif
 
 /** @} */
+

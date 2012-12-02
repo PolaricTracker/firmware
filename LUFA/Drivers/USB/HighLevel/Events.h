@@ -1,18 +1,18 @@
 /*
              LUFA Library
-     Copyright (C) Dean Camera, 2009.
-              
+     Copyright (C) Dean Camera, 2010.
+
   dean [at] fourwalledcubicle [dot] com
-      www.fourwalledcubicle.com
+           www.lufa-lib.org
 */
 
 /*
-  Copyright 2009  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+  Copyright 2010  Dean Camera (dean [at] fourwalledcubicle [dot] com)
 
-  Permission to use, copy, modify, and distribute this software
-  and its documentation for any purpose and without fee is hereby
-  granted, provided that the above copyright notice appear in all
-  copies and that both that the copyright notice and this
+  Permission to use, copy, modify, distribute, and sell this
+  software and its documentation for any purpose is hereby granted
+  without fee, provided that the above copyright notice appear in
+  all copies and that both that the copyright notice and this
   permission notice and warranty disclaimer appear in supporting
   documentation, and that the name of the author not be used in
   advertising or publicity pertaining to distribution of the
@@ -28,6 +28,25 @@
   this software.
 */
 
+/** \file
+ *  \brief USB controller events manager.
+ *
+ *  This file contains macros and functions relating to the management of library events, which are small
+ *  pieces of code similar to ISRs which are run when a given condition is met. Each event can be fired from
+ *  multiple places in the user or library code, which may or may not be inside an ISR, thus each handler
+ *  should be written to be as small and fast as possible to prevent possible problems.
+ *
+ *  Events can be hooked by the user application by declaring a handler function with the same name and parameters
+ *  listed here. If an event with no user-associated handler is fired within the library, it by default maps to an
+ *  internal empty stub function.
+ *
+ *  Each event must only have one associated event handler, but can be raised by multiple sources by calling the
+ *  event handler function (with any required event parameters).
+ *
+ *  \note This file should not be included directly. It is automatically included as needed by the USB driver
+ *        dispatch header located in LUFA/Drivers/USB/USB.h.
+ */
+
 /** \ingroup Group_USB
  *  @defgroup Group_Events USB Events
  *
@@ -36,21 +55,22 @@
  *  multiple places in the user or library code, which may or may not be inside an ISR, thus each handler
  *  should be written to be as small and fast as possible to prevent possible problems.
  *
- *  Events can be hooked by the user application using the \ref EVENT_HANDLER() and \ref HANDLES_EVENT() macros. If an
- *  event with no associated handler is fired within the library, it by default fires an internal empty stub
- *  function. This is achieved through the use of the GCC compiler's "alias" attribute.
+ *  Events can be hooked by the user application by declaring a handler function with the same name and parameters
+ *  listed here. If an event with no user-associated handler is fired within the library, it by default maps to an
+ *  internal empty stub function.
  *
- *  Each event must only have one associated event handler, but can be raised by multiple sources.
+ *  Each event must only have one associated event handler, but can be raised by multiple sources by calling the
+ *  event handler function (with any required event parameters).
  *
  *  @{
  */
- 
+
 #ifndef __USBEVENTS_H__
 #define __USBEVENTS_H__
 
 	/* Includes: */
-		#include <avr/io.h>
-		
+		#include <stdint.h>
+
 		#include "../../../Common/Common.h"
 		#include "USBMode.h"
 
@@ -59,376 +79,287 @@
 			extern "C" {
 		#endif
 
+	/* Preprocessor Checks: */
+		#if !defined(__INCLUDE_FROM_USB_DRIVER)
+			#error Do not include this file directly. Include LUFA/Drivers/USB/USB.h instead.
+		#endif
+
 	/* Public Interface - May be used in end-application: */
-		/* Macros: */
-			/** Raises a given event name, with the specified parameters. For events with no parameters the
-			 *  only argument to the macro is the event name, events with parameters list the parameter values
-			 *  after the name as a comma separated list.
-			 *
-			 *  When a given event is fired, its corresponding event handler code is executed.
-			 *
-			 *  Usage Examples:
-			 *  \code
-			 *  // Raise the USB_VBUSChange event, which takes no parameters
-			 *  RAISE_EVENT(USB_VBUSChange);
-			 *
-			 *  // Raise the USB_UnhandledControlPacket event which takes two parameters
-			 *  RAISE_EVENT(USB_UnhandledControlPacket, 0, 1);
-			 *  \endcode
-			 *
-			 *  \see RAISES_EVENT()
-			 */
-			#define RAISE_EVENT(e, ...)                 Event_ ## e (__VA_ARGS__)
-
-			/** Indicates that a given module can raise a given event. This is the equivalent of putting the
-			 *  event function's prototype into the module, but in a cleaner way. Each event which may be
-			 *  fired via the \ref RAISE_EVENT macro in the module should have an accompanying \ref RAISES_EVENT
-			 *  prototype in the module's header file.
-			 *
-			 *  Usage Examples:
-			 *  \code
-			 *  // Module can raise the USB_VBUSChange event
-			 *  RAISES_EVENT(USB_VBUSChange);
-			 *
-			 *  // ...
-			 *  // Inside a block of code in a function of the module, raise the USB_VBUSChange event
-			 *  RAISE_EVENT(USB_VBUSChange);
-			 *  \endcode
-			 *
-			 *  \see RAISE_EVENT()
-			 */
-			#define RAISES_EVENT(e)                     HANDLES_EVENT(e)
-
-			/** Defines an event handler for the given event. Event handlers should be short in length, as they
-			 *  may be raised from inside an ISR. The user application can react to each event as it sees fit,
-			 *  such as logging the event, indicating the change to the user or performing some other action.
-			 *
-			 *  Only one event handler may be defined in any user project for each individual event. Events may
-			 *  or may not have parameters - for each event, refer to its documentation elsewhere in this module
-			 *  to determine the presence and purpose of any event parameters.
-			 *
-			 *  Usage Example:
-			 *  \code
-			 *  // Create an event handler for the USB_VBUSChange event
-			 *  EVENT_HANDLER(USB_VBUSChange)
-			 *  {
-			 *      // Code to execute when the VBUS level changes
-			 *  }
-			 *  \endcode
-			 *
-			 *  \see HANDLES_EVENT()
-			 */
-			#define EVENT_HANDLER(e)                    void Event_ ## e e ## _P
-			
-			/** Indicates that a given module handles an event. This is the equivalent of putting the
-			 *  event function's prototype into the module, but in a cleaner way. Each event which may be
-			 *  handled via the \ref EVENT_HANDLER macro in the module should have an accompanying \ref HANDLES_EVENT
-			 *  prototype in the module's header file.
-			 *
-			 *  Usage Examples:
-			 *  \code
-			 *  // Module handles the USB_VBUSChange event
-			 *  HANDLES_EVENT(USB_VBUSChange);
-			 *
-			 *  // Create the USB_VBUSChange event handler
-			 *  EVENT_HANDLER(USB_VBUSChange)
-			 *  {
-			 *      // Event handler code here
-			 *  }
-			 *  \endcode
-			 *
-			 *  \see EVENT_HANDLER()
-			 */
-			#define HANDLES_EVENT(e)                    EVENT_HANDLER(e)
-			
 		/* Pseudo-Functions for Doxygen: */
-		#if defined(__DOXYGEN__)
-			/** Event for VBUS level change. This event fires when the VBUS line of the USB AVR changes from
-			 *  high to low or vice-versa.
-			 *
-			 *  \note This event is only available on USB AVR models which support VBUS notification interrupts.
-			 */
-			void USB_VBUSChange(void);
-
-			/** Event for VBUS attachment. This event fires when the VBUS line of the USB AVR changes from
-			 *  low to high, signalling the attachment of the USB device to a host, before the enumeration
-			 *  process has begun.
-			 *
-			 *  \note This event is only available on USB AVR models which support VBUS notification interrupts.
-			 */
-			void USB_VBUSConnect(void);
-
-			/** Event for VBUS detachment. This event fires when the VBUS line of the USB AVR changes from
-			 *  high to low, signalling the USB device has been removed from a host whether it has been enumerated
-			 *  or not.
-			 *
-			 *  \note This event is only available on USB AVR models which support VBUS notification interrupts.
-			 */
-			void USB_VBUSDisconnect(void);
-
-			/** Event for USB device connection. This event fires when the AVR is in USB host mode and a device
-			 *  has been attached (but not yet fully enumerated), or when in device mode and the device is connected
-			 *  to a host, beginning the enumeration process.
-			 *
-			 *  When in device mode, this can be used to programmatically start the USB management task to reduce
-			 *  CPU usage.
-			 *
-			 *  \note For the smaller USB AVRs (AT90USBXX2) with limited USB controllers, VBUS is not available to the USB controller.
-			 *        this means that the current connection state is derived from the bus suspension and wake up events by default,
-			 *        which is not always accurate (host may suspend the bus while still connected). If the actual connection state
-			 *        needs to be determined, VBUS should be routed to an external pin, and the auto-detect behaviour turned off by
-			 *        passing the NO_LIMITED_CONTROLLER_CONNECT token to the compiler via the -D switch at compile time. The connection
-			 *        and disconnection events may be manually fired by \ref RAISE_EVENT(), and the \ref USB_IsConnected global changed manually.
-			 *
-			 *  \see USBTask.h for more information on the USB management task and reducing CPU usage.
-			 */
-			void USB_Connect(void);
-
-			/** Event for USB device disconnection. This event fires when the AVR is in USB host mode and an
-			 *  attached and enumerated device has been disconnected, or when in device mode and the device is
-			 *  disconnected from the host.
-			 *
-			 *  When in device mode, this can be used to programmatically stop the USB management task to reduce
-			 *  CPU usage.
-			 *
-			 *  \note For the smaller USB AVRs (AT90USBXX2) with limited USB controllers, VBUS is not available to the USB controller.
-			 *        this means that the current connection state is derived from the bus suspension and wake up events by default,
-			 *        which is not always accurate (host may suspend the bus while still connected). If the actual connection state
-			 *        needs to be determined, VBUS should be routed to an external pin, and the auto-detect behaviour turned off by
-			 *        passing the NO_LIMITED_CONTROLLER_CONNECT token to the compiler via the -D switch at compile time. The connection
-			 *        and disconnection events may be manually fired by \ref RAISE_EVENT(), and the \ref USB_IsConnected global changed manually.
-			 *
-			 *  \see USBTask.h for more information on the USB management task and reducing CPU usage.
-			 */
-			void USB_Disconnect(void);
-			
-			/** Event for USB initialization failure. This event fires when the USB interface fails to
-			 *  initialize correctly due to a hardware or software fault.
-			 *
-			 *  \note This event only exists on USB AVR models which support dual role modes.
-			 *
-			 *  \param ErrorCode  Error code indicating the failure reason, a value in \ref USB_InitErrorCodes_t
-			 *                    located in LowLevel.h.
-			 */
-			void USB_InitFailure(const uint8_t ErrorCode);
-
+		#if !defined(__INCLUDE_FROM_EVENTS_C) || defined(__DOXYGEN__)
 			/** Event for USB mode pin level change. This event fires when the USB interface is set to dual role
 			 *  mode, and the UID pin level has changed to indicate a new mode (device or host). This event fires
-			 *  before the mode is switched to the newly indicated mode.
+			 *  before the mode is switched to the newly indicated mode but after the \ref EVENT_USB_Device_Disconnect
+			 *  event has fired (if connected before the role change).
 			 *
 			 *  \note This event only exists on USB AVR models which support dual role modes.
+			 *        \n\n
 			 *
 			 *  \note This event does not exist if the USB_DEVICE_ONLY or USB_HOST_ONLY tokens have been supplied
 			 *        to the compiler (see \ref Group_USBManagement documentation).
 			 */
-			void USB_UIDChange(void);
+			void EVENT_USB_UIDChange(void);
 
 			/** Event for USB host error. This event fires when a hardware fault has occurred whilst the USB
 			 *  interface is in host mode.
 			 *
-			 *  \param ErrorCode  Error code indicating the failure reason, a value in \ref USB_Host_ErrorCodes_t
-			 *                    located in Host.h.
+			 *  \param[in] ErrorCode  Error code indicating the failure reason, a value in \ref USB_Host_ErrorCodes_t.
 			 *
 			 *  \note This event only exists on USB AVR models which supports host mode.
+			 *        \n\n
 			 *
 			 *  \note This event does not exist if the USB_DEVICE_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 */
-			void USB_HostError(const uint8_t ErrorCode);
-			
+			void EVENT_USB_Host_HostError(const uint8_t ErrorCode);
+
 			/** Event for USB device attachment. This event fires when a the USB interface is in host mode, and
 			 *  a USB device has been connected to the USB interface. This is interrupt driven, thus fires before
-			 *  the standard \ref USB_Connect event and so can be used to programmatically start the USB management
-			 *  task to reduce CPU consumption.
+			 *  the standard \ref EVENT_USB_Device_Connect() event and so can be used to programmatically start the USB
+			 *  management task to reduce CPU consumption.
 			 *
 			 *  \note This event only exists on USB AVR models which supports host mode.
+			 *        \n\n
 			 *
 			 *  \note This event does not exist if the USB_DEVICE_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 *
-			 *  \see \ref TASK(USB_USBTask) for more information on the USB management task and reducing CPU usage.
+			 *  \see \ref USB_USBTask() for more information on the USB management task and reducing CPU usage.
 			 */
-			void USB_DeviceAttached(void);
+			void EVENT_USB_Host_DeviceAttached(void);
 
 			/** Event for USB device removal. This event fires when a the USB interface is in host mode, and
 			 *  a USB device has been removed the USB interface whether or not it has been enumerated. This
 			 *  can be used to programmatically stop the USB management task to reduce CPU consumption.
 			 *
 			 *  \note This event only exists on USB AVR models which supports host mode.
+			 *        \n\n
 			 *
 			 *  \note This event does not exist if the USB_DEVICE_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 *
-			 *  \see \ref TASK(USB_USBTask) for more information on the USB management task and reducing CPU usage.
+			 *  \see \ref USB_USBTask() for more information on the USB management task and reducing CPU usage.
 			 */
-			void USB_DeviceUnattached(void);
-			
+			void EVENT_USB_Host_DeviceUnattached(void);
+
 			/** Event for USB device enumeration failure. This event fires when a the USB interface is
 			 *  in host mode, and an attached USB device has failed to enumerate completely.
 			 *
-			 *  \param ErrorCode  Error code indicating the failure reason, a value in 
-			 *                    \ref USB_Host_EnumerationErrorCodes_t located in Host.h.
+			 *  \param[in] ErrorCode     Error code indicating the failure reason, a value in
+			 *                           \ref USB_Host_EnumerationErrorCodes_t.
 			 *
-			 *  \param SubErrorCode  Sub error code indicating the reason for failure - for example, if the
-			 *                       ErrorCode parameter indicates a control error, this will give the error
-			 *                       code returned by the \ref USB_Host_SendControlRequest() function.
+			 *  \param[in] SubErrorCode  Sub error code indicating the reason for failure - for example, if the
+			 *                           ErrorCode parameter indicates a control error, this will give the error
+			 *                           code returned by the \ref USB_Host_SendControlRequest() function.
 			 *
 			 *  \note This event only exists on USB AVR models which supports host mode.
+			 *        \n\n
 			 *
 			 *  \note This event does not exist if the USB_DEVICE_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 */
-			void USB_DeviceEnumerationFailed(const uint8_t ErrorCode, const uint8_t SubErrorCode);
+			void EVENT_USB_Host_DeviceEnumerationFailed(const uint8_t ErrorCode,
+			                                            const uint8_t SubErrorCode);
 
 			/** Event for USB device enumeration completion. This event fires when a the USB interface is
 			 *  in host mode and an attached USB device has been completely enumerated and is ready to be
-			 *  controlled by the user application, or when the library is in device mode, and the Host
-			 *  has finished enumerating the device.
+			 *  controlled by the user application.
+			 *
+			 *  This event is time-critical; exceeding OS-specific delays within this event handler (typically of around
+			 *  1 second) when a transaction is waiting to be processed by the device will prevent break communications
+			 *  and cause the host to reset the USB bus.
 			 */
-			void USB_DeviceEnumerationComplete(void);
+			void EVENT_USB_Host_DeviceEnumerationComplete(void);
 
-			/** Event for unhandled control requests. This event fires when a the USB host issues a control
-			 *  request to the control endpoint (address 0) that the library does not handle. This may either
-			 *  be a standard request that the library has no handler code for, or a class specific request
-			 *  issued to the device which must be handled appropriately. Due to the strict timing requirements
-			 *  on control transfers, interrupts are disabled during control request processing.
+			/** Event for USB Start Of Frame detection, when enabled. This event fires at the start of each USB
+			 *  frame, once per millisecond, and is synchronized to the USB bus. This can be used as an accurate
+			 *  millisecond timer source when the USB bus is not suspended while in host mode.
+			 *
+			 *  This event is time-critical; it is run once per millisecond and thus long handlers will significantly
+			 *  degrade device performance. This event should only be enabled when needed to reduce device wake-ups.
+			 *
+			 *  \note This event is not normally active - it must be manually enabled and disabled via the
+			 *        \ref USB_Host_EnableSOFEvents() and \ref USB_Host_DisableSOFEvents() commands after enumeration of
+			 *        a USB device.
+			 *        \n\n
+			 *
+			 *  \note This event does not exist if the USB_DEVICE_ONLY token is supplied to the compiler (see
+			 *        \ref Group_USBManagement documentation).
+			 */
+			void EVENT_USB_Host_StartOfFrame(void);
+
+			/** Event for USB device connection. This event fires when the AVR in device mode and the device is connected
+			 *  to a host, beginning the enumeration process, measured by a rising level on the AVR's VBUS pin.
+			 *
+			 *  This event is time-critical; exceeding OS-specific delays within this event handler (typically of around
+			 *  two seconds) will prevent the device from enumerating correctly.
+			 *
+			 *  \note For the smaller series 2 USB AVRs with limited USB controllers, VBUS is not available to the USB controller.
+			 *        this means that the current connection state is derived from the bus suspension and wake up events by default,
+			 *        which is not always accurate (host may suspend the bus while still connected). If the actual connection state
+			 *        needs to be determined, VBUS should be routed to an external pin, and the auto-detect behaviour turned off by
+			 *        passing the NO_LIMITED_CONTROLLER_CONNECT token to the compiler via the -D switch at compile time. The connection
+			 *        and disconnection events may be manually fired, and the \ref USB_DeviceState global changed manually.
+			 *        \n\n
+			 *
+			 *  \note This event may fire multiple times during device enumeration on the series 2 USB AVRs with limited USB controllers
+			 *        if NO_LIMITED_CONTROLLER_CONNECT is not defined.
+			 *
+			 *  \see USBTask.h for more information on the USB management task and reducing CPU usage.
+			 */
+			void EVENT_USB_Device_Connect(void);
+
+			/** Event for USB device disconnection. This event fires when the AVR in device mode and the device is disconnected
+			 *  from a host, measured by a falling level on the AVR's VBUS pin.
+			 *
+			 *  \note For the smaller series 2 USB AVRs with limited USB controllers, VBUS is not available to the USB controller.
+			 *        this means that the current connection state is derived from the bus suspension and wake up events by default,
+			 *        which is not always accurate (host may suspend the bus while still connected). If the actual connection state
+			 *        needs to be determined, VBUS should be routed to an external pin, and the auto-detect behaviour turned off by
+			 *        passing the NO_LIMITED_CONTROLLER_CONNECT token to the compiler via the -D switch at compile time. The connection
+			 *        and disconnection events may be manually fired, and the \ref USB_DeviceState global changed manually.
+			 *        \n\n
+			 *
+			 *  \note This event may fire multiple times during device enumeration on the series 2 USB AVRs with limited USB controllers
+			 *        if NO_LIMITED_CONTROLLER_CONNECT is not defined.
+			 *
+			 *  \see USBTask.h for more information on the USB management task and reducing CPU usage.
+			 */
+			void EVENT_USB_Device_Disconnect(void);
+
+			/** Event for control requests. This event fires when a the USB host issues a control request
+			 *  to the mandatory device control endpoint (of address 0). This may either be a standard 
+			 *  request that the library may have a handler code for internally, or a class specific request
+			 *  issued to the device which must be handled appropriately. If a request is not processed in the
+			 *  user application via this event, it will be passed to the library for processing internally
+			 *  if a suitable handler exists.
+			 *
+			 *  This event is time-critical; each packet within the request transaction must be acknowledged or
+			 *  sent within 50ms or the host will abort the transfer.
+			 *
+			 *  The library internally handles all standard control requests with the exceptions of SYNC FRAME,
+			 *  SET DESCRIPTOR and SET INTERFACE. These and all other non-standard control requests will be left
+			 *  for the user to process via this event if desired. If not handled in the user application or by
+			 *  the library internally, unknown requests are automatically STALLed.
 			 *
 			 *  \note This event does not exist if the USB_HOST_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
+			 *        \n\n
 			 *
 			 *  \note Requests should be handled in the same manner as described in the USB 2.0 Specification,
 			 *        or appropriate class specification. In all instances, the library has already read the
 			 *        request SETUP parameters into the \ref USB_ControlRequest structure which should then be used
 			 *        by the application to determine how to handle the issued request.
 			 */
-			void USB_UnhandledControlPacket(void);
+			void EVENT_USB_Device_ControlRequest(void);
 
 			/** Event for USB configuration number changed. This event fires when a the USB host changes the
 			 *  selected configuration number while in device mode. This event should be hooked in device
 			 *  applications to create the endpoints and configure the device for the selected configuration.
+			 *
+			 *  This event is time-critical; exceeding OS-specific delays within this event handler (typically of around
+			 *  one second) will prevent the device from enumerating correctly.
 			 *
 			 *  This event fires after the value of \ref USB_ConfigurationNumber has been changed.
 			 *
 			 *  \note This event does not exist if the USB_HOST_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 */
-			void USB_ConfigurationChanged(void);
+			void EVENT_USB_Device_ConfigurationChanged(void);
 
 			/** Event for USB suspend. This event fires when a the USB host suspends the device by halting its
 			 *  transmission of Start Of Frame pulses to the device. This is generally hooked in order to move
-			 *  the device over to a low power state until the host wakes up the device.
+			 *  the device over to a low power state until the host wakes up the device. If the USB interface is
+			 *  enumerated with the \ref USB_OPT_AUTO_PLL option set, the library will automatically suspend the
+			 *  USB PLL before the event is fired to save power.
 			 *
 			 *  \note This event does not exist if the USB_HOST_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
+			 *        \n\n
 			 *
-			 *  \see \ref USB_WakeUp() event for accompanying Wake Up event.
+			 *  \note This event does not exist on the series 2 USB AVRs when the NO_LIMITED_CONTROLLER_CONNECT
+			 *        compile time token is not set - see \ref EVENT_USB_Device_Disconnect.
+			 *
+			 *  \see \ref EVENT_USB_Device_WakeUp() event for accompanying Wake Up event.
 			 */
-			void USB_Suspend(void);
+			void EVENT_USB_Device_Suspend(void);
 
 			/** Event for USB wake up. This event fires when a the USB interface is suspended while in device
 			 *  mode, and the host wakes up the device by supplying Start Of Frame pulses. This is generally
-			 *  hooked to pull the user application out of a lowe power state and back into normal operating
-			 *  mode.
+			 *  hooked to pull the user application out of a low power state and back into normal operating
+			 *  mode. If the USB interface is enumerated with the \ref USB_OPT_AUTO_PLL option set, the library
+			 *  will automatically restart the USB PLL before the event is fired.
 			 *
 			 *  \note This event does not exist if the USB_HOST_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
+			 *        \n\n
 			 *
-			 *  \see \ref USB_Suspend() event for accompanying Suspend event.
+			 *  \note This event does not exist on the series 2 USB AVRs when the NO_LIMITED_CONTROLLER_CONNECT
+			 *        compile time token is not set - see \ref EVENT_USB_Device_Connect.
+			 *
+			 *  \see \ref EVENT_USB_Device_Suspend() event for accompanying Suspend event.
 			 */
-			void USB_WakeUp(void);
+			void EVENT_USB_Device_WakeUp(void);
 
-			/** Event for USB interface reset. This event fires when a the USB interface is in device mode, and
-			 *  a the USB host requests that the device reset its interface. This is generally hooked so that
-			 *  the USB control endpoint can be switched to interrupt driven mode, by selecting it and calling
-			 *  USB_INT_Enable(ENDPOINT_INT_SETUP). Before this event fires, all device endpoints are reset and
-			 *  disabled.
+			/** Event for USB interface reset. This event fires when the USB interface is in device mode, and
+			 *  a the USB host requests that the device reset its interface. This event fires after the control
+			 *  endpoint has been automatically configured by the library.
+			 *
+			 *  This event is time-critical; exceeding OS-specific delays within this event handler (typically of around
+			 *  two seconds) will prevent the device from enumerating correctly.
 			 *
 			 *  \note This event does not exist if the USB_HOST_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 */
-			void USB_Reset(void);
-			
-			/** Event for USB device mode error. This event fires when the USB interface is in device mode,
-			 *  and an error occurs which prevents it from operating normally.
+			void EVENT_USB_Device_Reset(void);
+
+			/** Event for USB Start Of Frame detection, when enabled. This event fires at the start of each USB
+			 *  frame, once per millisecond, and is synchronized to the USB bus. This can be used as an accurate
+			 *  millisecond timer source when the USB bus is enumerated in device mode to a USB host.
 			 *
-			 *  \param ErrorCode  Error code indicating the source of the error. One of the values in the
-			 *                    \ref USB_Device_ErrorCodes_t enum located in Device.h.
+			 *  This event is time-critical; it is run once per millisecond and thus long handlers will significantly
+			 *  degrade device performance. This event should only be enabled when needed to reduce device wake-ups.
+			 *
+			 *  \note This event is not normally active - it must be manually enabled and disabled via the
+			 *        \ref USB_Device_EnableSOFEvents() and \ref USB_Device_DisableSOFEvents() commands after enumeration.
+			 *        \n\n
 			 *
 			 *  \note This event does not exist if the USB_HOST_ONLY token is supplied to the compiler (see
 			 *        \ref Group_USBManagement documentation).
 			 */
-			void USB_DeviceError(const uint8_t ErrorCode);
+			void EVENT_USB_Device_StartOfFrame(void);
 		#endif
-		
+
 	/* Private Interface - For use in library only: */
 	#if !defined(__DOXYGEN__)
-		/* Macros: */
-			#define ALIAS_STUB(e)                       EVENT_HANDLER(e) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub)
-		
-			#if defined(USB_FULL_CONTROLLER) || defined(USB_MODIFIED_FULL_CONTROLLER)
-				#define USB_VBUSChange_P                (void)
-				#define USB_VBUSConnect_P               (void)
-				#define USB_VBUSDisconnect_P            (void)
-			#endif
-			
-			#define USB_Connect_P                       (void)
-			#define USB_Disconnect_P                    (void)
-			#define USB_DeviceEnumerationComplete_P     (void)
-			
-			#if defined(USB_CAN_BE_BOTH)
-				#define USB_InitFailure_P               (const uint8_t ErrorCode)
-				#define USB_UIDChange_P                 (void)
-			#endif
-
-			#if defined(USB_CAN_BE_HOST)
-				#define USB_HostError_P                 (const uint8_t ErrorCode)
-				#define USB_DeviceAttached_P            (void)
-				#define USB_DeviceUnattached_P          (void)
-				#define USB_DeviceEnumerationFailed_P   (const uint8_t ErrorCode, const uint8_t SubErrorCode)
-			#endif
-			
-			#if defined(USB_CAN_BE_DEVICE)
-				#define USB_UnhandledControlPacket_P    (void)
-				#define USB_ConfigurationChanged_P      (void)
-				#define USB_Suspend_P                   (void)
-				#define USB_WakeUp_P                    (void)
-				#define USB_Reset_P                     (void)
-				#define USB_DeviceError_P               (const uint8_t ErrorCode)
-			#endif
-
 		/* Function Prototypes: */
-			#if defined(INCLUDE_FROM_EVENTS_C)
-				void USB_Event_Stub (void) ATTR_CONST;
+			#if defined(__INCLUDE_FROM_EVENTS_C)
+				void USB_Event_Stub(void) ATTR_CONST;
 
-				#if defined(USB_FULL_CONTROLLER) || defined(USB_MODIFIED_FULL_CONTROLLER)
-					ALIAS_STUB(USB_VBUSChange);
-					ALIAS_STUB(USB_VBUSConnect);
-					ALIAS_STUB(USB_VBUSDisconnect);
-				#endif
-				
-				ALIAS_STUB(USB_Connect);
-				ALIAS_STUB(USB_Disconnect);
-				ALIAS_STUB(USB_DeviceEnumerationComplete);
-				
 				#if defined(USB_CAN_BE_BOTH)
-					ALIAS_STUB(USB_InitFailure);
-					ALIAS_STUB(USB_UIDChange);
+					void EVENT_USB_UIDChange(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
 				#endif
-				
+
 				#if defined(USB_CAN_BE_HOST)
-					ALIAS_STUB(USB_HostError);
-					ALIAS_STUB(USB_DeviceAttached);
-					ALIAS_STUB(USB_DeviceUnattached);
-					ALIAS_STUB(USB_DeviceEnumerationFailed);
+					void EVENT_USB_Host_HostError(const uint8_t ErrorCode) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Host_DeviceAttached(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Host_DeviceUnattached(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Host_DeviceEnumerationComplete(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Host_DeviceEnumerationFailed(const uint8_t ErrorCode,
+                                                                const uint8_t SubErrorCode)
+					                                            ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Host_StartOfFrame(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
 				#endif
 
 				#if defined(USB_CAN_BE_DEVICE)
-					ALIAS_STUB(USB_UnhandledControlPacket);
-					ALIAS_STUB(USB_ConfigurationChanged);
-					ALIAS_STUB(USB_Suspend);
-					ALIAS_STUB(USB_WakeUp);
-					ALIAS_STUB(USB_Reset);
-					ALIAS_STUB(USB_DeviceError);
+					void EVENT_USB_Device_Connect(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_Disconnect(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_ControlRequest(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_ConfigurationChanged(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_Suspend(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_WakeUp(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_Reset(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
+					void EVENT_USB_Device_StartOfFrame(void) ATTR_WEAK ATTR_ALIAS(USB_Event_Stub);
 				#endif
 			#endif
 	#endif
@@ -437,7 +368,8 @@
 		#if defined(__cplusplus)
 			}
 		#endif
-	
+
 #endif
 
 /** @} */
+
