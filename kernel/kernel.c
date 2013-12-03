@@ -14,14 +14,20 @@ static TCB * fl_head;          /* Ordered list of terminated tasks which have st
 
 static uint8_t lastpid = 0, terminated = 0;
 static void *stackbase;
-static void *stack; 
+static void *stack, *chkstack; 
 
 static void _free_stack(TCB*);
 
+static uint8_t stack_high = 255;
+static void(*stackError)(void) = NULL;
 
 uint16_t t_stackUsed()   { return (uint16_t) (stackbase - stack); }
 uint8_t t_nTasks()       { return lastpid; }
 uint8_t t_nTerminated()  { return terminated; }
+uint8_t t_stackHigh()    { return stack_high; }
+
+void t_stackErrorHandler( void(*f)(void) ) 
+     { stackError = f; }
 
 uint8_t t_nRunning()    
 {   CONTAINS_CRITICAL;
@@ -37,6 +43,27 @@ uint8_t t_nRunning()
 }
 
 
+void check_stack() 
+{    
+  CONTAINS_CRITICAL;
+  enter_critical(); 
+  /* Get stack pointer */
+  asm volatile(
+    "in __tmp_reg__,  __SP_L__"  "\n\t"
+    "mov %A0, __tmp_reg__"       "\n\t"
+    "in __tmp_reg__,  __SP_H__"  "\n\t"
+    "mov %B0, __tmp_reg__"       "\n\t" 
+    : "=e" (chkstack) :
+  );
+  if (chkstack < q_head->stlimit + 30) {
+     stack_high = q_head->pid;
+     if (chkstack < q_head->stlimit + 15 && stackError != NULL)
+       (*stackError)(); 
+  }    
+  leave_critical();  
+}
+
+
 /****************************************************************************
  * Enable multithreading. stsize is the size of the stack to be 
  * allocated to the root task, i.e. the already running thread. 
@@ -48,7 +75,9 @@ void init_kernel(uint16_t stsize)
         q_head = q_end = &root_task;
         q_head->next = q_head;
         fl_head = NULL;
-        leave_critical(); 
+//        leave_critical(); 
+	
+	/* Get stack pointer */
         asm volatile(
             "in __tmp_reg__,  __SP_L__"  "\n\t"
             "mov %A0, __tmp_reg__"       "\n\t"
@@ -60,6 +89,8 @@ void init_kernel(uint16_t stsize)
         stackbase = stack;
         root_task.stsize = stsize;
         stack -= stsize; 
+        root_task.stlimit = stack;    
+        leave_critical(); 
 }
 
 
@@ -82,7 +113,7 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
         tcb->stsize = stsize;
         lastpid++;
         tcb->pid = lastpid;
-        leave_critical();
+//        leave_critical();
         
         /* Set stack pointer and call thread function */
         asm volatile(
@@ -95,6 +126,9 @@ void _t_start(void (*task)(), TCB * tcb, uint16_t stsize)
          ); 
 
          stack -= stsize; 
+         q_head->stlimit = stack; 
+         leave_critical(); 
+         
          (*task)();
 
         /* Thread is terminated. The last thing to do is to 
@@ -165,6 +199,7 @@ static void _free_stack(TCB* tcb)
  
 void t_yield()
 {   CONTAINS_CRITICAL;
+    check_stack();
     if (setjmp(q_head->env) == 0)
     {
         enter_critical();
@@ -182,6 +217,7 @@ void t_yield()
   
 bool t_is_idle() 
    { return (q_head == q_end); }
+ 
  
 
 /**********************************************************************************
@@ -204,6 +240,7 @@ void cond_init(Cond* c)
 void wait(Cond* c)
 {   
     CONTAINS_CRITICAL;
+    check_stack();
     if (setjmp(q_head->env) == 0) 
     { 
        enter_critical();

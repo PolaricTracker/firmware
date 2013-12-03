@@ -22,6 +22,7 @@ typedef struct _TCB {
     struct _TCB * next;
     uint8_t  pid;
     uint16_t stsize;   
+    void*  stlimit;
 } TCB;
 
 
@@ -55,6 +56,9 @@ uint16_t t_stackUsed(void);
 uint8_t  t_nTasks(void);     
 uint8_t  t_nTerminated(void);
 uint8_t  t_nRunning(void);
+uint8_t  t_stackHigh(void);
+void     t_stackErrorHandler( void(*)(void) ); 
+
 
 void cond_init(Cond* c);
 void wait(Cond* c);

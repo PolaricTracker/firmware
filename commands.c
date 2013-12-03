@@ -901,6 +901,12 @@ static void do_ps(uint8_t argc, char** argv, Stream* out, Stream* in)
    }
    sprintf_P(buf, PSTR("Stack space allocated: %d bytes\r\n\0"), t_stackUsed());
    putstr(out, buf);
+   putstr_P(out, PSTR("Stack high task      : ")); 
+   if (t_stackHigh() == 255)
+      sprintf_P(buf, PSTR("none\r\n\0"));
+   else
+      sprintf_P(buf, PSTR("%d\r\n\0"), t_stackHigh());
+   putstr(out, buf);
 }
 
 
