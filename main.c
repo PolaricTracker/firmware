@@ -111,6 +111,26 @@ void reset_params()
 
 
 /**************************************************************************
+ * to be called if the kernel detects a stack overflow
+ * 
+ * It will write the code 254 and then the task ID to the trace. 
+ * It will then turn on the LED (purple) and then halt.
+ *
+ * Note that there is no guarantee that a severe stack overflow won't 
+ * crash the device before it is able to detect it since, the check
+ * only happens at each context switch.  
+ **************************************************************************/
+
+void stackOverflow(void)
+{
+   TRACE(254); 
+   TRACE(t_stackHigh());
+   pri_rgb_led_on(true, false, true);
+   sleep_mode();
+}
+
+
+/**************************************************************************
  * main thread (startup)
  **************************************************************************/
  
@@ -135,6 +155,7 @@ int main(void)
    
       TRACE_INIT;
       sei();
+      t_stackErrorHandler(stackOverflow); 
       reset_params();
                             
       /* HDLC and AFSK setup */
