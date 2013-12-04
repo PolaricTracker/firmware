@@ -57,17 +57,17 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
-#define STACK_MAIN             180 
-#define STACK_LED              180
-#define STACK_BATT             210
-#define STACK_USBLISTENER      480 
+#define STACK_MAIN              90 
+#define STACK_LED               90
+#define STACK_BATT              90
+#define STACK_USBLISTENER      230  
 #define STACK_HDLCENCODER      200
 #define STACK_HDLCDECODER      220
-#define STACK_HDLCENCODER_TEST 150
-#define STACK_GPSLISTENER      350
-#define STACK_TRACKER          480   
-#define STACK_MONITOR          280  // +200
-#define STACK_USB              150 
+#define STACK_HDLCENCODER_TEST 110
+#define STACK_GPSLISTENER      250
+#define STACK_TRACKER          300   
+#define STACK_MONITOR          250 
+#define STACK_USB               90 
 #define STACK_DIGIPEATER       300
 #define STACK_HLIST_TICK       100 
 
@@ -77,13 +77,13 @@
  * Buffers, memory management
  *******************************************/
  
-#define UART_BUF_SIZE	   32
-#define FBUF_SLOTS         75
+#define UART_BUF_SIZE      32
+#define FBUF_SLOTS         80
 #define FBUF_SLOTSIZE      24
 
 
-#define AFSK_ENCODER_BUFFER_SIZE 64
-#define AFSK_DECODER_BUFFER_SIZE 64
+#define AFSK_ENCODER_BUFFER_SIZE 128
+#define AFSK_DECODER_BUFFER_SIZE 128
 #define HDLC_DECODER_QUEUE_SIZE  7
 #define HDLC_ENCODER_QUEUE_SIZE  7
 
