@@ -899,6 +899,10 @@ static void do_ps(uint8_t argc, char** argv, Stream* out, Stream* in)
       sprintf_P(buf, PSTR("Tasks terminated     : %d\r\n\0"), t_nTerminated());
       putstr(out, buf);
    }
+   sprintf_P(buf, PSTR("Total avail. buffers : %d bytes\r\n\0"), FBUF_SLOTS * FBUF_SLOTSIZE);
+   putstr(out, buf);   
+   sprintf_P(buf, PSTR("Free buffers         : %d bytes\r\n\0"), fbuf_freeSlots()*FBUF_SLOTSIZE);
+   putstr(out, buf);
    sprintf_P(buf, PSTR("Stack space allocated: %d bytes\r\n\0"), t_stackUsed());
    putstr(out, buf);
    putstr_P(out, PSTR("Stack high task      : ")); 

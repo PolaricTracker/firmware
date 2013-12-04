@@ -10,12 +10,13 @@
 #include "config.h"
 #include "kernel/kernel.h" 
 
+
 /***************************************************************
  * Storage for packet buffer chains
  * For each buffer slot we have 
  *    - reference count.
  *    - Length of content in bytes
- *    - Index of next buffer in chain (-1 if this is the last)
+ *    - Index of next buffer in chain (NILPTR if this is the last)
  *    - Storage for actual content
  *
  ***************************************************************/
@@ -25,9 +26,17 @@ uint8_t   _fbuf_length[FBUF_SLOTS];
 uint8_t   _fbuf_next  [FBUF_SLOTS];
 char      _fbuf_buf   [FBUF_SLOTS][FBUF_SLOTSIZE]; 
 
+static uint8_t _free_slots = FBUF_SLOTS; 
+
+static void(*memFullError)(void) = NULL;
+
 static uint8_t _split(uint8_t islot, uint8_t pos);
 
+uint8_t fbuf_freeSlots()
+   { return _free_slots; }
 
+   
+   
 /*
  * Note: We assume that FBUF objects are not shared between 
  * ISRs/threads. 
@@ -41,6 +50,11 @@ static uint8_t _split(uint8_t islot, uint8_t pos);
  */
 
 
+void fbuf_errorHandler( void(*f)(void) ) 
+  { memFullError = f; }
+
+
+
 /******************************************************
     Internal: Allocate a new buffer slot 
  ******************************************************/
@@ -51,9 +65,10 @@ static uint8_t _fbuf_newslot ()
    for (i=0; i<FBUF_SLOTS; i++)
        if (_fbuf_refcnt[i] == 0) 
        {
-           _fbuf_refcnt[i]++;
+           _fbuf_refcnt[i] = 1;
            _fbuf_length[i] = 0;
            _fbuf_next[i] = NILPTR; 
+           _free_slots--;
            return i; 
        }
    return NILPTR; 
@@ -81,7 +96,10 @@ void fbuf_release(FBUF* bb)
     register uint8_t b = bb->head;
     while (b != NILPTR) 
     {
-       _fbuf_refcnt[b]--; 
+       if (_fbuf_refcnt[b] > 0) 
+          _fbuf_refcnt[b]--;
+       if (_fbuf_refcnt[b] == 0)
+          _free_slots++;
        b = _fbuf_next[b]; 
     } 
     bb->head = bb->wslot = bb->rslot = NILPTR;
@@ -152,8 +170,12 @@ void fbuf_putChar (FBUF* b, const char c)
     {
         pos = 0; 
         register uint8_t newslot = _fbuf_newslot();
-        if (newslot == NILPTR)
-            return;
+        if (newslot == NILPTR) {
+            if (memFullError != NULL)
+               (*memFullError)();
+            else
+               return;
+        }  
         b->wslot = _fbuf_next[b->wslot] = newslot; 
         if (b->head == NILPTR)
             b->rslot = b->head = newslot;

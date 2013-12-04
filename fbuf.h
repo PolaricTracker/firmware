@@ -25,7 +25,7 @@ FBUF;
 /****************************************
    Operations for packet buffer chain
  ****************************************/
- 
+
 void  fbuf_new      (FBUF* b);
 FBUF  fbuf_newRef   (FBUF* b);
 void  fbuf_release  (FBUF* b);
@@ -39,6 +39,8 @@ char  fbuf_getChar  (FBUF* b);
 char* fbuf_read     (FBUF* b, uint8_t size, char *buf);
 void  fbuf_insert   (FBUF* b, FBUF* x, uint8_t pos);
 void  fbuf_connect  (FBUF* b, FBUF* x, uint8_t pos);
+
+uint8_t fbuf_freeSlots(void);
 
 #define fbuf_eof(b) ((b)->rslot == NILPTR)
 #define fbuf_length(b) ((b)->length)

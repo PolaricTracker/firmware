@@ -117,7 +117,7 @@ void reset_params()
  * It will then turn on the LED (purple) and then halt.
  *
  * Note that there is no guarantee that a severe stack overflow won't 
- * crash the device before it is able to detect it since, the check
+ * crash the device before it is able to detect it, since the check
  * only happens at each context switch.  
  **************************************************************************/
 
@@ -128,6 +128,24 @@ void stackOverflow(void)
    pri_rgb_led_on(true, false, true);
    sleep_mode();
 }
+
+
+/**************************************************************************
+ * to be called if memory full (out of buffers)
+ * 
+ * It will write the code 253 to the trace. 
+ * It will morse code "MEM". 
+ * It will then turn on two LEDs (color=purple + led2) and then halt.
+ **************************************************************************/ 
+void bufferOverflow(void)
+{
+   TRACE(253); 
+   beeps("-- . --");
+   pri_rgb_led_on(true, false, true);
+   set_port(LED1);
+   sleep_mode();
+}
+
 
 
 /**************************************************************************
@@ -156,6 +174,7 @@ int main(void)
       TRACE_INIT;
       sei();
       t_stackErrorHandler(stackOverflow); 
+      fbuf_errorHandler(bufferOverflow);
       reset_params();
                             
       /* HDLC and AFSK setup */
