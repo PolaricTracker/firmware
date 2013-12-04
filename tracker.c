@@ -444,7 +444,8 @@ static void report_station_position(posdata_t* pos, bool no_tx)
        (GET_BYTE_PARAM(COMPRESS_ON) != 0), false );
        
     /* Add extra reports from buffer 
-     * FIXME: Max number of reports - configurable */
+     * FIXME: Max number of reports - configurable 
+     */
     int i=0;
     while (!posBuf_empty() && i++ <= 2) {
        posdata_t p = getPos();
@@ -469,11 +470,13 @@ static void report_station_position(posdata_t* pos, bool no_tx)
     /* Send packet.
      * if no_tx flag was set, put it on monitor-queue instead (if active)
      */
-    if (no_tx){
+    if (no_tx) {
       if (mqueue) {
             fbuf_putChar(&packet, 0xff);fbuf_putChar(&packet, 0xff);
             fbq_put(mqueue, packet); 
          }
+      else
+         fbuf_release(&packet); 
     }
     else
         fbq_put(outframes, packet);

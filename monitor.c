@@ -27,7 +27,10 @@ void mon_init(stream_t* outstr)
 
 void mon_activate(bool m)
 { 
+   /* Start if not on already */
    bool tstart = m && !mon_on;
+   
+   /* Stop if not stopped already */
    bool tstop = !m && mon_on;
    
    mon_on = m;
@@ -35,6 +38,7 @@ void mon_activate(bool m)
    hdlc_subscribe_rx(mq, 0);
    if (!mon_on || GET_BYTE_PARAM(TXMON_ON))
       hdlc_monitor_tx(mq);
+   
    if (tstart) 
       THREAD_START(mon_thread, STACK_MONITOR);  
    if (tstop) {
@@ -60,16 +64,13 @@ static void mon_thread()
          * is not running. 
          */
         FBUF frame = fbq_get(&mon);
-        if (fbuf_empty(&frame))
-            continue;
-//        bcond_wait(&mon_ok);
-        
-        /* Display it */
-        ax25_display_frame(out, &frame);
-        putstr_P(out, PSTR("\r\n"));
-        
-        /* And dispose it */
-        fbuf_release(&frame);
+        if (!fbuf_empty(&frame)) {
+           /* Display it */
+           ax25_display_frame(out, &frame);
+           putstr_P(out, PSTR("\r\n"));
+        }
+        /* And dispose the frame. Note that also an empty frame should be disposed! */
+        fbuf_release(&frame);    
     }
 }
 
