@@ -96,10 +96,11 @@ void fbuf_release(FBUF* bb)
     register uint8_t b = bb->head;
     while (b != NILPTR) 
     {
-       if (_fbuf_refcnt[b] > 0) 
+       if (_fbuf_refcnt[b] > 0) {
           _fbuf_refcnt[b]--;
-       if (_fbuf_refcnt[b] == 0)
-          _free_slots++;
+           if (_fbuf_refcnt[b] == 0)
+             _free_slots++;
+       }
        b = _fbuf_next[b]; 
     } 
     bb->head = bb->wslot = bb->rslot = NILPTR;
