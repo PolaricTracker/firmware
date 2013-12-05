@@ -1,4 +1,7 @@
- 
+/*
+ * Heard list for digipeater
+ */
+
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
 #include "defines.h"

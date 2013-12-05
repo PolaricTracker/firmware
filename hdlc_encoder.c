@@ -118,11 +118,10 @@ void hdlc_wait_idle()
 
 
 /*******************************************************************************
- * Transmit a frame.
+ * TX encoder thread
  *
  * This function gets a frame from buffer-queue, and starts the transmitter
- * as soon as the channel is free. It should typically be called repeatedly
- * from a loop in a thread.  
+ * as soon as the channel is free.   
  *******************************************************************************/
 
 static void hdlc_txencoder()
@@ -198,11 +197,15 @@ static void hdlc_encode_frames()
             hdlc_encode_byte(txbyte, false);
         }
         if (mqueue) {
-//           fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
+           /* 
+            * Put packet on monitor queue, if active
+            */
+//         fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
            fbq_put( mqueue, buffer);
         }
-        else
+        else 
            fbuf_release(&buffer);   
+        
         hdlc_encode_byte(crc^0xFF, false);       // Send FCS, LSB first
         hdlc_encode_byte((crc>>8)^0xFF, false);  // MSB
         

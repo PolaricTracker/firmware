@@ -243,10 +243,11 @@ void cmdProcessor(Stream *in, Stream *out)
              if (argc < 2) {
                 putstr_P(out, PSTR("Available commands: \r\n"));
                 putstr_P(out, PSTR("  afc, altitude, autopower, beep, boot, bootsound, btext, compress, converse,\r\n")); 
-                putstr_P(out, PSTR("  dest, digipeater, path, fcal, extraturn, fakereports, freq, gps, listen,  maxframe, \r\n"));
-                putstr_P(out, PSTR("  maxpause, maxturn, mindist, minpause, mycall, oident, osymbol, powersave, \r\n"));
-                putstr_P(out, PSTR("  repeat, reset, rssi, squelch, statustime, symbol, testpacket, timestamp, \r\n"));
-                putstr_P(out, PSTR("  teston, tracker, tracktime, txdelay, txon, txmon, txtail, txtone, version\r\n"));
+                putstr_P(out, PSTR("  dest, digipeater, digi-sar, digi-wide1, fcal, extraturn, fakereports, \r\n")); 
+                putstr_P(out, PSTR("  freq, gps, listen,  maxframe, maxpause, maxturn, mindist, minpause, \r\n"));
+                putstr_P(out, PSTR("  mycall, oident, osymbol,  path, powersave,  repeat, reset, rssi, squelch, \r\n"));
+                putstr_P(out, PSTR("  statustime, symbol, testpacket, timestamp, teston, tracker, tracktime, \r\n"));
+                putstr_P(out, PSTR("  txdelay, txon, txmon, txtail, txtone, version\r\n"));
                 putstr_P(out, PSTR("\r\nMore info: \r\n  help <command> or ? <command>\r\n\r\n"));
                 continue;
              }

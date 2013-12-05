@@ -144,7 +144,9 @@ static void hdlc_decode ()
 
    if (crc_match(&fbuf, length)) 
    {     
-      /* Send packets to subscriber, if any 
+      /* Send packets to subscribers, if any. 
+       * Note that every receiver should release the buffers after use. 
+       * Note also that receiver queues should not share the fbuf, use newRef to create a new reference
        */
       if (mqueue[0] || mqueue[1] || mqueue[2]) { 
          if (mqueue[0]) fbq_put( mqueue[0], fbuf);               /* Monitor */
