@@ -1,4 +1,20 @@
 
+/*
+ * Digipeater
+ * 
+ * Stored parameters used by digipeater (can be changed in command interface)
+ *    MYCALL            - my callsign
+ *    DIGIPEATER_WIDE1  - true if wide1/fill-in digipeater mode. Meaning that only WIDE1 alias will be reacted on. 
+ *    DIGIPEATER_SAR    - true if SAR preemption mode. If an alias SAR is found anywhere in the path, it will 
+ *                        preempt others (moved first) and digipeated upon.  
+ * 
+ * Macros for configuration (defined in defines.h)
+ *    HDLC_DECODER_QUEUE_SIZE - size (in packets) of receiving queue. Normally 7.
+ *    STACK_DIGIPEATER        - size of stack for digipeater task.
+ *    STACK_HLIST_TICK        - size of stack for tick_thread (for heard list).
+ *   
+ */
+
 #include "kernel/kernel.h"
 #include "kernel/stream.h"
 #include "defines.h"
@@ -8,7 +24,6 @@
 #include "digipeater.h"
 #include <util/crc16.h>
 #include <string.h>
-
    
 static bool digi_on = false;
 static FBQ rxqueue;
@@ -49,8 +64,17 @@ void digipeater_activate(bool m)
       hdlc_subscribe_rx(mq, 1);
       THREAD_START(digipeater_thread, STACK_DIGIPEATER);  
       THREAD_START(tick_thread, STACK_HLIST_TICK);
-   }
+      
+      /* Turn on radio and decoder */
+      radio_require();
+      afsk_enable_decoder();
+   } 
    if (tstop) {
+     /* Turn off radio and decoder */
+      afsk_disable_decoder();
+      radio_release();
+      
+      /* Unsubscribe to RX packets and stop threads */
       hdlc_subscribe_rx(NULL, 1);
       fbq_signal(&rxqueue);
    }
@@ -74,7 +98,7 @@ static bool duplicate_packet(addr_t* from, addr_t* to, FBUF* f, uint8_t ndigis)
 
 /*********************************************************************************
  * Compute a checksum (hash) from source-callsign + destination-callsign 
- * + digipeater path + message. This is used to check for duplicate packets. 
+ * + message. This is used to check for duplicate packets. 
  *********************************************************************************/
 
 static uint16_t digi_checksum(addr_t* from, addr_t* to, FBUF* f, uint8_t ndigis)
@@ -185,8 +209,10 @@ static void digipeater_thread()
         /* Wait for frame. 
          */
         FBUF frame = fbq_get(&rxqueue);
-        if (fbuf_empty(&frame))
+        if (fbuf_empty(&frame)) {
+            fbuf_release(&frame); 
             continue;    
+        }
         
         /* Do something about it */
         check_frame(&frame);
