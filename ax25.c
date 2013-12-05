@@ -68,7 +68,6 @@ void ax25_encode_header(FBUF* b, addr_t* from,
 {
     register uint8_t i;
     if (ndigis > 7) ndigis = 0;
-    fbuf_new(b);
     encode_addr(b, to->callsign, to->ssid, 0);
     encode_addr(b, from->callsign, from->ssid, (ndigis == 0 ? FLAG_LAST : 0));       
     
@@ -90,6 +89,7 @@ void ax25_encode_header(FBUF* b, addr_t* from,
 /**********************************************************************
  * Decode an AX25 frame
  **********************************************************************/ 
+
 uint8_t ax25_decode_header(FBUF* b, addr_t* from, 
                                     addr_t* to,
                                     addr_t digis[],
