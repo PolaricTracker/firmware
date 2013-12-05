@@ -225,6 +225,7 @@ static void trackerThread(void)
         * and to save CPU cycles. 
         */
         uart_rx_pause();   
+
         /*
          * Send status report and object reports.
          */
@@ -387,6 +388,7 @@ static bool course_change(uint16_t crs, uint16_t prev, uint16_t limit)
 static void report_status(posdata_t* pos)
 {
     FBUF packet;   
+    fbuf_new(&packet);
     
     /* Create packet header */
     send_header(&packet, false);  
@@ -435,7 +437,8 @@ static void report_station_position(posdata_t* pos, bool no_tx)
     send_header(&packet, no_tx);    
     
     /* APRS Position report body
-     * with Timestamp if the parameter is set */
+     * with Timestamp if the parameter is set 
+     */
     uint8_t tstamp = GET_BYTE_PARAM(TIMESTAMP_ON); 
     fbuf_putChar(&packet, (tstamp ? '/' : '!')); 
     if (tstamp)
