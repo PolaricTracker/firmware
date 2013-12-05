@@ -31,6 +31,11 @@ void digipeater_init()
 }
 
 
+/***************************************************************
+ * Activate the digipeater if argument is true
+ * Deactivate if false
+ ***************************************************************/
+
 void digipeater_activate(bool m)
 { 
    bool tstart = m && !digi_on;
@@ -40,6 +45,7 @@ void digipeater_activate(bool m)
    FBQ* mq = (digi_on? &rxqueue : NULL);
  
    if (tstart) {
+      /* Subscribe to RX packets and start treads */
       hdlc_subscribe_rx(mq, 1);
       THREAD_START(digipeater_thread, STACK_DIGIPEATER);  
       THREAD_START(tick_thread, STACK_HLIST_TICK);
@@ -51,6 +57,10 @@ void digipeater_activate(bool m)
 }
 
 
+/*******************************************************************************
+ * Return true if packet is heard earlier. 
+ * If not, put it into the heard list. 
+ *******************************************************************************/
 
 static bool duplicate_packet(addr_t* from, addr_t* to, FBUF* f, uint8_t ndigis)
 { 
@@ -62,6 +72,10 @@ static bool duplicate_packet(addr_t* from, addr_t* to, FBUF* f, uint8_t ndigis)
 
 
 
+/*********************************************************************************
+ * Compute a checksum (hash) from source-callsign + destination-callsign 
+ * + digipeater path + message. This is used to check for duplicate packets. 
+ *********************************************************************************/
 
 static uint16_t digi_checksum(addr_t* from, addr_t* to, FBUF* f, uint8_t ndigis)
 {
@@ -82,6 +96,10 @@ static uint16_t digi_checksum(addr_t* from, addr_t* to, FBUF* f, uint8_t ndigis)
 
 
 
+/*******************************************************************
+ * Check a frame if it is to be digipeated
+ * If yes, digipeat it :)
+ *******************************************************************/
 
 static void check_frame(FBUF *f)
 {
@@ -98,9 +116,13 @@ static void check_frame(FBUF *f)
        return;
    GET_PARAM(MYCALL, &mycall);
 
+   /* Copy items in digi-path that has digi flag turned on, 
+    * i.e. the digis that the packet has been through already 
+    */
    for (i=0; i<ndigis && (digis[i].flags & FLAG_DIGI); i++) 
        digis2[i] = digis[i];   
 
+   /* Return if it has been through all digis in path */
    if (i==ndigis)
        return;
 

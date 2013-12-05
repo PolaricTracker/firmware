@@ -64,7 +64,7 @@
 #define STACK_HDLCENCODER      200
 #define STACK_HDLCDECODER      220
 #define STACK_HDLCENCODER_TEST 110
-#define STACK_GPSLISTENER      250
+#define STACK_GPSLISTENER      300
 #define STACK_TRACKER          300   
 #define STACK_MONITOR          250 
 #define STACK_USB               90 
