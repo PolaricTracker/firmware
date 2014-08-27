@@ -106,6 +106,7 @@ static void hdlc_decode ()
    do {      
       bit = get_bit ();
    }  while (bit == HDLC_FLAG);
+ 
 
    
    /* Receiving frame */
@@ -117,7 +118,7 @@ static void hdlc_decode ()
    fbuf_release (&fbuf); // In case we had an abort or checksum
    fbuf_new(&fbuf);      // mismatch on the previous frame
    do {
-      if (length > MAX_HDLC_FRAME_SIZE)
+      if (length > MAX_HDLC_FRAME_SIZE) 
          goto flag_sync; // Lost termination flag or only receiving noise?
 
       for (bit_count = 0; bit_count < 8; bit_count++) 
@@ -148,6 +149,8 @@ static void hdlc_decode ()
        * Note that every receiver should release the buffers after use. 
        * Note also that receiver queues should not share the fbuf, use newRef to create a new reference
        */
+      fbuf_removeLast(&fbuf);
+      fbuf_removeLast(&fbuf);
       if (mqueue[0] || mqueue[1] || mqueue[2]) { 
          if (mqueue[0]) fbq_put( mqueue[0], fbuf);               /* Monitor */
          if (mqueue[1]) fbq_put( mqueue[1], fbuf_newRef(&fbuf)); /* Digipeater */

@@ -153,48 +153,49 @@ static void check_frame(FBUF *f)
    if (GET_BYTE_PARAM(DIGIPEATER_WIDE1) 
            && strncasecmp("WIDE1", digis[i].callsign, 5) == 0 && digis[i].ssid == 1)
        widedigi = true; 
-   
+  
    /* Look for SAR alias in the rest of the path */    
    if (GET_BYTE_PARAM(DIGIPEATER_SAR)) 
      for (j=i; j<ndigis; j++)
-       if (strncasecmp("SAR", digis[i].callsign, 3) == 0) // FIXME
+       if (strncasecmp("SAR", digis[j].callsign, 3) == 0) // FIXME
           { sar_pos = j; break; } 
    
    if (sar_pos < 0 && !widedigi)
       return; 
-   
+
    /* Mark as digipeated through mycall */
    j = i;
    mycall.flags = FLAG_DIGI;
    digis2[j++] = mycall; 
    
+   
    /* do SAR preemption if requested  */
    if (sar_pos > -1) 
        str2addr(&digis2[j++], "SAR", true);
  
-   
    /* Otherwise, use wide digipeat method if requested and allowed */
    else if (widedigi) {
        i++;
        str2addr(&digis2[j++], "WIDE1", true);
    }
-   
+
    /* Copy rest of the path, exept the SAR alias (if used) */
    for (; i<ndigis; i++) 
        if (sar_pos < 0 || i != sar_pos)
           digis2[j++] = digis[i];
-
+   
    /* Write a new header -> newHdr */
-   ax25_encode_header(&newHdr, &from, &to, digis2, j, ctrl, PID);
+   fbuf_new(&newHdr);
+   ax25_encode_header(&newHdr, &from, &to, digis2, j, ctrl, pid);
 
    /* Replace header in original packet with new header. 
     * Do this non-destructively: Just add rest of existing packet to new header 
     */
    fbuf_connect(&newHdr, f, AX25_HDR_LEN(ndigis) );
-   
+
    /* Send packet */
    beeps("..");
-   fbq_put(outframes, newHdr); // eller mon_q for test
+   fbq_put(outframes, newHdr);  
    
 }
 

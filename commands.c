@@ -733,6 +733,7 @@ static void do_testpacket(uint8_t argc, char** argv, Stream* out, Stream* in)
     addr_t digis[7];
     uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
     GET_PARAM(DIGIS, &digis);   
+    fbuf_new(&packet);
     ax25_encode_header(&packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
     fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
     putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));       

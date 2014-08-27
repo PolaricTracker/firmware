@@ -26,8 +26,8 @@
  *  Software version, etc
  ********************************************/
 
-#define VERSION_STRING "TEST (10.8.2012)"
-#define CURRENT_VERSION_KEY 17
+#define VERSION_STRING "TEST (25.8.2014)"
+#define CURRENT_VERSION_KEY 18
 #define COMMENT_PERIOD 4
 
 
@@ -57,7 +57,7 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
-#define STACK_MAIN              90 
+#define STACK_MAIN             100 
 #define STACK_LED               90
 #define STACK_BATT              90
 #define STACK_USBLISTENER      230  

@@ -188,7 +188,7 @@ void ax25_display_frame(Stream* out, FBUF *b)
     if (ctrl == FTYPE_UI)
     {
        putstr_P(out, PSTR(":"));    
-       for (i=0; i < fbuf_length(b) - AX25_HDR_LEN(ndigis)-2; i++) {
+       for (i=0; i < fbuf_length(b) - AX25_HDR_LEN(ndigis); i++) {
           register char c = fbuf_getChar(b); 
           if (c!='\n' && c!='\r' && c>=(char) 28)
               putch(out, c);

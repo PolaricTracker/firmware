@@ -229,31 +229,32 @@ void fbuf_insert(FBUF* b, FBUF* x, uint8_t pos)
  * headers but with a shared last part. 
  * 
  * Note: After calling this, writing into the buffers
- * are not allowed. 
+ * is not allowed. 
  *****************************************************/
 
 void fbuf_connect(FBUF* b, FBUF* x, uint8_t pos)
 {
     register uint8_t islot = x->head;  
-    register p = pos;
+    register uint8_t p = pos;
     while (p >= FBUF_SLOTSIZE) {
         p -= _fbuf_length[islot]; 
         if (p > 0) 
             islot = _fbuf_next[islot];
     }
-    
+
     /* Find last slot of b and connect it to rest of x */
     register uint8_t xlast = b->head;
     while (_fbuf_next[xlast] != NILPTR) 
         xlast = _fbuf_next[xlast];
+
     _fbuf_next[xlast] = _split(islot, p);
-    
+
     /* Increment reference count of rest of x */
     while (_fbuf_next[xlast] != NILPTR) {
         xlast = _fbuf_next[xlast];
         _fbuf_refcnt[xlast]++;
     }
-    
+
     b->wslot = x->wslot = NILPTR; // Disallow writing
     b->length = b->length + x->length - pos;
 }
@@ -267,9 +268,13 @@ static uint8_t _split(uint8_t islot, uint8_t pos)
       register uint8_t newslot = _fbuf_newslot();
       _fbuf_next[newslot] = _fbuf_next[islot];
       _fbuf_next[islot] = newslot;
-      for (uint8_t i = 0; i<FBUF_SLOTSIZE-pos; i++)
+      _fbuf_refcnt[newslot] = _fbuf_refcnt[islot]; 
+      
+      /* Copy last part of slot to newslot */
+      for (uint8_t i = 0; i<_fbuf_length[islot]-pos; i++)
           _fbuf_buf[newslot][i] = _fbuf_buf[islot][pos+i];   
-      _fbuf_length[newslot] = FBUF_SLOTSIZE - pos;
+
+      _fbuf_length[newslot] = _fbuf_length[islot] - pos;
       _fbuf_length[islot] = pos; 
       return newslot;
 }
@@ -365,6 +370,26 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
     return buf; 
 }
 
+
+void fbuf_removeLast(FBUF* x)
+{
+  register uint8_t xlast = x->head;
+  register uint8_t prev = xlast;
+  
+  while (_fbuf_next[xlast] != NILPTR) {
+    xlast = _fbuf_next[xlast];
+    if (_fbuf_next[xlast] != NILPTR)
+      prev = xlast;
+  }
+  
+  _fbuf_length[xlast]--;
+  if (_fbuf_length[xlast] == 0 && prev != xlast) {
+    _fbuf_refcnt[xlast]--;
+    if (_fbuf_refcnt[xlast] == 0)
+      _free_slots++;
+    _fbuf_next[prev] = NILPTR;
+  }
+}
 
 
 /* 
