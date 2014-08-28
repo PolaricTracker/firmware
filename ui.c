@@ -1,5 +1,4 @@
 /*
- *
  * Polaric tracker UI, using buzzer and LEDs on top of tracker unit
  * Handle on/off button and battery charging.
  */
@@ -495,7 +494,13 @@ static void ui_thread(void)
 //    report_batt(); 
     if (usb_on)
         rgb_led_on(false,false,true);
-   
+    
+    /* Activate digipeater if requested */
+    if (GET_BYTE_PARAM(DIGIPEATER_ON)) {
+      sleep (100);
+      digipeater_activate(true);
+    }
+    
     BLINK_NORMAL;
     while (1) {
         set_port( LED1 );        

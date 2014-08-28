@@ -179,11 +179,11 @@ int main(void)
                             
       /* HDLC and AFSK setup */
       mon_init(&cdc_outstr);
-      digipeater_init();
       adf7021_init();
       inframes  = hdlc_init_decoder( afsk_init_decoder() );
       outframes = hdlc_init_encoder( afsk_init_encoder() );            
-
+      digipeater_init();
+      /* Activate digipeater in ui thread */
 
       /* USB */
       usb_init();  
@@ -194,6 +194,7 @@ int main(void)
       /* GPS and tracking */
       gps_init(&cdc_outstr);
       tracker_init();
+
       
       TRACE(1);
       while(1) 

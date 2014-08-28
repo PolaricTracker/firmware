@@ -154,14 +154,17 @@ static void check_frame(FBUF *f)
            && strncasecmp("WIDE1", digis[i].callsign, 5) == 0 && digis[i].ssid == 1)
        widedigi = true; 
   
-   /* Look for SAR alias in the rest of the path */    
-   if (GET_BYTE_PARAM(DIGIPEATER_SAR)) 
+   /* Look for SAR alias in the rest of the path 
+    * NOTE: Don't use SAR-preemption if packet has been digipeated by others first 
+    */    
+   if (GET_BYTE_PARAM(DIGIPEATER_SAR) && i<=0) 
      for (j=i; j<ndigis; j++)
-       if (strncasecmp("SAR", digis[j].callsign, 3) == 0) // FIXME
+       if (strncasecmp("SAR", digis[j].callsign, 3) == 0) 
           { sar_pos = j; break; } 
    
+   /* Return if no SAR preemtion and WIDE1 alias not found first */
    if (sar_pos < 0 && !widedigi)
-      return; 
+      return;
 
    /* Mark as digipeated through mycall */
    j = i;
@@ -196,7 +199,6 @@ static void check_frame(FBUF *f)
    /* Send packet */
    beeps("..");
    fbq_put(outframes, newHdr);  
-   
 }
 
 
