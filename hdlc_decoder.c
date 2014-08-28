@@ -156,7 +156,7 @@ static void hdlc_decode ()
          if (mqueue[1]) fbq_put( mqueue[1], fbuf_newRef(&fbuf)); /* Digipeater */
          if (mqueue[2]) fbq_put( mqueue[2], fbuf_newRef(&fbuf));
       }
-      else 
+      if (!mqueue[0])
          fbuf_release(&fbuf); 
       fbuf_new(&fbuf);
    }
