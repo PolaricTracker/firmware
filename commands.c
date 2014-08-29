@@ -219,15 +219,16 @@ void cmdProcessor(Stream *in, Stream *out)
     char* argv[MAXTOKENS];
     uint8_t argc;
     sleep (10);
-    putstr_P(out, PSTR("\r\n\r\n*************************************************************"));
+    putstr_P(out, PSTR("\r\n\r\n**************************************************************"));
 #if defined TARGET_USBKEY
     putstr_P(out, PSTR("\n\r Welcome to 'Polaric USBKEY' firmware "));        
 #else 
     putstr_P(out, PSTR("\n\r Welcome to 'Polaric Tracker' firmware "));
 #endif    
     putstr_P(out, PSTR(VERSION_STRING));
-    putstr_P(out, PSTR("\r\n (C) 2010 LA3T, Tromsogruppen av NRRL"));    
-    putstr_P(out, PSTR("\r\n*************************************************************\r\n\r\n"));
+    putstr_P(out, PSTR("\r\n (C) 2010-2014 LA3T Tromsogruppen av NRRL and contributors.."));
+    putstr_P(out, PSTR("\r\n This is free software (see source code on github)"));  
+    putstr_P(out, PSTR("\r\n**************************************************************\r\n\r\n"));
     
     while (1) {
          memset(argv, 0, MAXTOKENS);
@@ -526,13 +527,13 @@ static void do_listen(uint8_t argc, char** argv, Stream* out, Stream* in)
 
 static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
 {
+   FBUF packet; 
    putstr_P(out, PSTR("***** CONVERSE MODE *****\r\n"));
    radio_require();
    afsk_enable_decoder();
    mon_activate(true); 
-   while ( readLine(in, out, buf, BUFSIZE)) {
-        FBUF packet;    
-        
+   while ( readLine(in, out, buf, BUFSIZE)) { 
+        fbuf_new(&packet);
         addr_t from, to; 
         GET_PARAM(MYCALL, &from);
         GET_PARAM(DEST, &to);       
@@ -548,6 +549,30 @@ static void do_converse(uint8_t argc, char** argv, Stream* out, Stream* in)
    radio_release();
 }
 
+
+
+
+/*********************************************
+ * tx : Send AX25 test packet
+ *********************************************/
+
+static void do_testpacket(uint8_t argc, char** argv, Stream* out, Stream* in)
+{ 
+  FBUF packet;    
+  addr_t from, to; 
+  radio_require();
+  GET_PARAM(MYCALL, &from);
+  GET_PARAM(DEST, &to);       
+  addr_t digis[7];
+  uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
+  GET_PARAM(DIGIS, &digis);   
+  fbuf_new(&packet);
+  ax25_encode_header(&packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
+  fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
+  putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));       
+  fbq_put(outframes, packet);
+  radio_release();
+}
 
 
 
@@ -717,29 +742,6 @@ static void do_txtone(uint8_t argc, char** argv, Stream* out, Stream* in)
   radio_release();
 }
 
-
-         
-/*********************************************
- * tx : Send AX25 test packet
- *********************************************/
-
-static void do_testpacket(uint8_t argc, char** argv, Stream* out, Stream* in)
-{ 
-    FBUF packet;    
-    addr_t from, to; 
-    radio_require();
-    GET_PARAM(MYCALL, &from);
-    GET_PARAM(DEST, &to);       
-    addr_t digis[7];
-    uint8_t ndigis = GET_BYTE_PARAM(NDIGIS); 
-    GET_PARAM(DIGIS, &digis);   
-    fbuf_new(&packet);
-    ax25_encode_header(&packet, &from, &to, digis, ndigis, FTYPE_UI, PID_NO_L3);
-    fbuf_putstr_P(&packet, PSTR("The lazy brown dog jumps over the quick fox 1234567890"));                      
-    putstr_P(out, PSTR("Sending (AX25 UI) test packet....\r\n"));       
-    fbq_put(outframes, packet);
-    radio_release();
-}
 
 
 
