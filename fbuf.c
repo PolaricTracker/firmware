@@ -371,6 +371,10 @@ char* fbuf_read (FBUF* b, uint8_t size, char *buf)
 }
 
 
+/*******************************************************
+  Remove the last byte of a buffer chain.
+ *******************************************************/
+
 void fbuf_removeLast(FBUF* x)
 {
   register uint8_t xlast = x->head;
@@ -390,6 +394,7 @@ void fbuf_removeLast(FBUF* x)
     _fbuf_next[prev] = NILPTR;
   }
 }
+
 
 
 /* 

@@ -200,7 +200,6 @@ static void hdlc_encode_frames()
            /* 
             * Put packet on monitor queue, if active
             */
-//         fbuf_putChar(&buffer, 0xff);fbuf_putChar(&buffer, 0xff);
            fbq_put( mqueue, buffer);
         }
         else 

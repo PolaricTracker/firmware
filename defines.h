@@ -26,7 +26,7 @@
  *  Software version, etc
  ********************************************/
 
-#define VERSION_STRING "TEST (25.8.2014)"
+#define VERSION_STRING "V1.1 beta1 (28.8.2014)"
 #define CURRENT_VERSION_KEY 18
 #define COMMENT_PERIOD 4
 
@@ -57,19 +57,19 @@
  * Stack configuration (one stack per thread)
  *********************************************/
 
-#define STACK_MAIN             100 
-#define STACK_LED               90
-#define STACK_BATT              90
-#define STACK_USBLISTENER      230  
-#define STACK_HDLCENCODER      200
-#define STACK_HDLCDECODER      220
-#define STACK_HDLCENCODER_TEST 110
-#define STACK_GPSLISTENER      300
-#define STACK_TRACKER          300   
-#define STACK_MONITOR          250 
-#define STACK_USB               90 
-#define STACK_DIGIPEATER       300
-#define STACK_HLIST_TICK       100 
+#define STACK_MAIN             110 
+#define STACK_LED              100
+#define STACK_BATT             100
+#define STACK_USBLISTENER      400  
+#define STACK_HDLCENCODER      210
+#define STACK_HDLCDECODER      230
+#define STACK_HDLCENCODER_TEST 120
+#define STACK_GPSLISTENER      310
+#define STACK_TRACKER          310   
+#define STACK_MONITOR          260 
+#define STACK_USB              100 
+#define STACK_DIGIPEATER       310
+#define STACK_HLIST_TICK       110 
 
 
 
