@@ -43,7 +43,7 @@ extern Semaphore cdc_run;
 extern Stream cdc_instr; 
 extern Stream cdc_outstr;
 
-fbq_t *outframes, *inframes;  
+fbq_t *outframes;  
 
 
 
